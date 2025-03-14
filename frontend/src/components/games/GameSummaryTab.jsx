@@ -94,13 +94,23 @@ const GameSummaryTab = ({ gameId, players, game, innings }) => {
     
     const title = `Game_${game.game_number}_vs_${game.opponent.replace(/\s+/g, '_')}`;
     
-    // html2pdf options
+    // html2pdf options with smaller margins and optimized scaling
     const options = {
-      margin: 10,
+      margin: [5, 5, 5, 5], // [top, right, bottom, left]
       filename: `${title}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { 
+        scale: 1.5, 
+        useCORS: true,
+        letterRendering: true,
+      },
+      jsPDF: { 
+        unit: 'mm', 
+        format: 'a4', 
+        orientation: 'landscape',
+        compress: true
+      },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
     
     // Generate PDF from the summary content
@@ -127,54 +137,44 @@ const GameSummaryTab = ({ gameId, players, game, innings }) => {
         </button>
       </div>
       
-      <div ref={summaryRef}>
+      <div ref={summaryRef} className="pdf-content" style={{ maxWidth: '1050px', margin: '0 auto' }}>
 
-      <div className="card mb-4">
-        <div className="card-header bg-primary text-white">
-          <h5 className="mb-0">Team Information</h5>
+      <div className="card mb-3">
+        <div className="card-header bg-primary text-white py-1">
+          <h5 className="mb-0">Game #{game.game_number}: {teamDetails?.name || 'Team'} vs {game.opponent}</h5>
         </div>
-        <div className="card-body">
+        <div className="card-body py-2">
           <div className="row">
-            <div className="col-md-6">
-              <p><strong>Team:</strong> {teamDetails?.name || 'N/A'}</p>
-              <p><strong>League:</strong> {teamDetails?.league || 'N/A'}</p>
+            <div className="col-md-3">
+              <p className="mb-1"><small><strong>Team:</strong> {teamDetails?.name || 'N/A'}</small></p>
+              <p className="mb-1"><small><strong>League:</strong> {teamDetails?.league || 'N/A'}</small></p>
             </div>
-            <div className="col-md-6">
-              <p><strong>Head Coach:</strong> {teamDetails?.head_coach || 'N/A'}</p>
-              <p><strong>Assistant Coaches:</strong> {teamDetails?.assistant_coach1 || 'N/A'}, {teamDetails?.assistant_coach2 || 'N/A'}</p>
+            <div className="col-md-3">
+              <p className="mb-1"><small><strong>Head Coach:</strong> {teamDetails?.head_coach || 'N/A'}</small></p>
+              <p className="mb-1"><small><strong>Asst. Coaches:</strong> {teamDetails?.assistant_coach1 || 'N/A'}</small></p>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="card mb-4">
-        <div className="card-header bg-primary text-white">
-          <h5 className="mb-0">Game Information</h5>
-        </div>
-        <div className="card-body">
-          <div className="row">
-            <div className="col-md-6">
-              <p><strong>Opponent:</strong> {game.opponent}</p>
-              <p><strong>Date:</strong> {new Date(game.date).toLocaleDateString()}</p>
+            <div className="col-md-3">
+              <p className="mb-1"><small><strong>Date:</strong> {new Date(game.date).toLocaleDateString()}</small></p>
+              <p className="mb-1"><small><strong>Time:</strong> {game.time ? new Date(`2022-01-01T${game.time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}</small></p>
             </div>
-            <div className="col-md-6">
-              <p><strong>Time:</strong> {game.time ? new Date(`2022-01-01T${game.time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}</p>
-              <p><strong>Innings:</strong> {game.innings}</p>
+            <div className="col-md-3">
+              <p className="mb-1"><small><strong>Opponent:</strong> {game.opponent}</small></p>
+              <p className="mb-1"><small><strong>Innings:</strong> {game.innings}</small></p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="table-responsive">
-        <table className="table table-bordered table-striped">
+        <table className="table table-bordered table-striped table-sm small">
           <thead>
             <tr className="bg-primary text-white">
-              <th>Batting Order</th>
-              <th>Jersey #</th>
-              <th>Player Name</th>
-              <th>Available</th>
+              <th className="py-1">Bat</th>
+              <th className="py-1">#</th>
+              <th className="py-1">Player</th>
+              <th className="py-1">Avail</th>
               {Array.from({ length: innings }).map((_, i) => (
-                <th key={i+1}>Inning {i+1}</th>
+                <th key={i+1} className="py-1">Inn {i+1}</th>
               ))}
             </tr>
           </thead>
@@ -182,24 +182,24 @@ const GameSummaryTab = ({ gameId, players, game, innings }) => {
             {battingOrder.length > 0 ? (
               battingOrder.map((player, index) => (
                 <tr key={player.id}>
-                  <td>{index + 1}</td>
-                  <td>{player.jersey_number}</td>
-                  <td>{player.full_name || `${player.first_name} ${player.last_name}`}</td>
-                  <td>{isPlayerAvailable(player.id) ? "Yes" : "No"}</td>
+                  <td className="py-1">{index + 1}</td>
+                  <td className="py-1">{player.jersey_number}</td>
+                  <td className="py-1">{player.full_name || `${player.first_name} ${player.last_name}`}</td>
+                  <td className="py-1">{isPlayerAvailable(player.id) ? "Y" : "N"}</td>
                   {Array.from({ length: innings }).map((_, i) => (
-                    <td key={i+1}>{getPlayerPosition(player.id, i+1)}</td>
+                    <td key={i+1} className="py-1">{getPlayerPosition(player.id, i+1)}</td>
                   ))}
                 </tr>
               ))
             ) : (
               players.map((player) => (
                 <tr key={player.id}>
-                  <td>-</td>
-                  <td>{player.jersey_number}</td>
-                  <td>{player.full_name || `${player.first_name} ${player.last_name}`}</td>
-                  <td>{isPlayerAvailable(player.id) ? "Yes" : "No"}</td>
+                  <td className="py-1">-</td>
+                  <td className="py-1">{player.jersey_number}</td>
+                  <td className="py-1">{player.full_name || `${player.first_name} ${player.last_name}`}</td>
+                  <td className="py-1">{isPlayerAvailable(player.id) ? "Y" : "N"}</td>
                   {Array.from({ length: innings }).map((_, i) => (
-                    <td key={i+1}>{getPlayerPosition(player.id, i+1)}</td>
+                    <td key={i+1} className="py-1">{getPlayerPosition(player.id, i+1)}</td>
                   ))}
                 </tr>
               ))
