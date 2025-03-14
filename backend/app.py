@@ -47,17 +47,25 @@ if not os.path.exists(static_folder_path):
 
 app = Flask(__name__, static_folder=static_folder_path, static_url_path='')
 
-# Configure app
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'change-me-in-production')
+# Import datetime at the top level
+from datetime import timedelta
+
+# Configure app with secure defaults
+jwt_secret = os.getenv('JWT_SECRET_KEY')
+if not jwt_secret:
+    import secrets
+    jwt_secret = secrets.token_hex(32)  # Generate a secure random key if not provided
+    print("WARNING: JWT_SECRET_KEY not found in environment. Using a temporary random key.")
+    print("This is OK for development but not for production.")
+    print("Set a permanent JWT_SECRET_KEY in your environment variables.")
+
+app.config['JWT_SECRET_KEY'] = jwt_secret
 app.config['JWT_TOKEN_LOCATION'] = ['headers']
 app.config['JWT_HEADER_NAME'] = 'Authorization'
 app.config['JWT_HEADER_TYPE'] = 'Bearer'
-# Set token expiration to 30 days
-from datetime import timedelta
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=30)
-# Don't require CSRF tokens for development
-app.config['JWT_COOKIE_CSRF_PROTECT'] = False
-print(f"JWT_SECRET_KEY is set to: {'[hidden]' if os.getenv('JWT_SECRET_KEY') else 'default-key'}")
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=30)  # Set token expiration to 30 days
+app.config['JWT_COOKIE_CSRF_PROTECT'] = False  # Don't require CSRF tokens for API-only backends
+print(f"JWT configuration complete. Secret key is {'randomly generated' if not os.getenv('JWT_SECRET_KEY') else 'from environment'}.")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///lineup.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 

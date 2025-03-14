@@ -29,82 +29,92 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // Login function
+  // Login function - simplified and more reliable
   const handleLogin = async (email, password) => {
     try {
+      // Step 1: Attempt to log in and get token
       const response = await login(email, password);
       
-      // Store the token and log it for debugging
+      // Step 2: Validate token
       const token = response.data.access_token;
-      console.log("Login successful, token received:", token ? "Yes" : "No");
-      
       if (!token) {
-        console.error("No token received from server");
+        setError("Authentication failed: No token received");
         throw new Error("Authentication failed: No token received");
       }
       
-      // Clear any existing token first
-      localStorage.removeItem("token");
-      // Then store the new token
+      // Step 3: Store token in localStorage (our single source of truth)
       localStorage.setItem("token", token);
       
-      // Set the token in axios headers immediately
-      const authHeader = `Bearer ${token}`;
-      axios.defaults.headers.common["Authorization"] = authHeader;
-      
-      // Wait a moment for storage and header setting to complete
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
+      // Step 4: Try to get current user data with the token
       try {
-        // Log headers before making the request
-        console.log("Making getCurrentUser request with token");
-        
         const userResponse = await getCurrentUser();
-        console.log("User data received:", userResponse.data);
         setCurrentUser(userResponse.data);
         setError(null);
       } catch (userErr) {
-        console.error("Error getting user after login:", userErr);
-        console.error("Response:", userErr.response);
-        
-        // Even if getting the user fails, consider login successful with minimal data
-        setCurrentUser({ id: response.data.user_id, email });
+        // If we can't get user details, create minimal user object
+        // This allows login to succeed even if /me endpoint fails
+        console.warn("Couldn't get full user details, using minimal user object");
+        setCurrentUser({ 
+          id: response.data.user_id, 
+          email: email 
+        });
       }
       
       return response;
     } catch (err) {
-      console.error("Login error:", err);
-      setError(err.response?.data?.error || "Login failed");
-      throw err;
+      // Clear any potentially saved token on login failure
+      localStorage.removeItem("token");
+      
+      // Set appropriate error message
+      const errorMessage = err.response?.data?.error || "Login failed";
+      setError(errorMessage);
+      
+      // Re-throw for component handling
+      throw new Error(errorMessage);
     }
   };
 
-  // Register function
+  // Register function - simplified and aligned with login
   const handleRegister = async (email, password) => {
     try {
+      // Step 1: Attempt to register and get token
       const response = await register(email, password);
-      // Store the token and log it for debugging
-      console.log("Registration successful, token:", response.data.access_token);
-      localStorage.setItem("token", response.data.access_token);
       
-      // Small delay to ensure token is stored before making the next request
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Step 2: Validate token
+      const token = response.data.access_token;
+      if (!token) {
+        setError("Registration failed: No token received");
+        throw new Error("Registration failed: No token received");
+      }
       
+      // Step 3: Store token in localStorage (our single source of truth)
+      localStorage.setItem("token", token);
+      
+      // Step 4: Try to get current user data with the token
       try {
         const userResponse = await getCurrentUser();
         setCurrentUser(userResponse.data);
         setError(null);
       } catch (userErr) {
-        console.error("Error getting user after registration:", userErr);
-        // Even if getting the user fails, consider registration successful
-        setCurrentUser({ id: response.data.user_id, email });
+        // If we can't get user details, create minimal user object
+        console.warn("Couldn't get full user details after registration, using minimal user object");
+        setCurrentUser({ 
+          id: response.data.user_id, 
+          email: email 
+        });
       }
       
       return response;
     } catch (err) {
-      console.error("Registration error:", err);
-      setError(err.response?.data?.error || "Registration failed");
-      throw err;
+      // Clear any potentially saved token on registration failure
+      localStorage.removeItem("token");
+      
+      // Set appropriate error message
+      const errorMessage = err.response?.data?.error || "Registration failed";
+      setError(errorMessage);
+      
+      // Re-throw for component handling
+      throw new Error(errorMessage);
     }
   };
 

@@ -68,30 +68,35 @@ def login():
 @auth.route('/me', methods=['GET'])
 @jwt_required()
 def get_user_info():
-    print("Headers:", request.headers)
-    auth_header = request.headers.get('Authorization', '')
-    print(f"Auth header: {auth_header}")
-    
+    # Get user ID from JWT token
     user_id = get_jwt_identity()
-    print(f"JWT identity: {user_id}")
     
+    # Validate user ID
+    if not user_id:
+        return jsonify({'error': 'Invalid token: No user identity found'}), 401
+    
+    # Log for debugging
+    print(f"GET /me: User ID from JWT: {user_id}")
+    
+    # Get database connection
     db = get_db()
     try:
         # Get user via service
         user = AuthService.get_user_by_id(db, user_id)
         
         if not user:
-            print(f"User not found with ID: {user_id}")
+            print(f"Error: User not found with ID: {user_id}")
             return jsonify({'error': 'User not found'}), 404
         
         # Serialize user object
         result = AuthService.serialize_user(user)
+        print(f"Returning user data for ID {user_id}")
         
         return jsonify(result), 200
     except Exception as e:
         import traceback
         print(f"Error in get_user_info: {str(e)}")
         print(traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Failed to retrieve user information'}), 500
     finally:
         db.close()

@@ -44,12 +44,17 @@ def init_db():
 def get_db():
     """
     Returns a database session.
-    This function should be used within a try/finally block 
-    to ensure the session is properly closed.
-    """
-    db = SessionLocal()
+    This function must be used within a try/finally block 
+    with db.close() in the finally clause to ensure the session is properly closed.
+    
+    Example usage:
+    
+    db = get_db()
     try:
-        return db
-    except Exception as e:
+        # use db for queries
+        result = db.query(Model).all()
+        return result
+    finally:
         db.close()
-        raise e
+    """
+    return SessionLocal()

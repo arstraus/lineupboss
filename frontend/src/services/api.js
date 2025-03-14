@@ -1,8 +1,28 @@
 import axios from "axios";
 
-// Define API URL based on environment
-const API_URL = process.env.REACT_APP_API_URL || window.location.origin + "/api";
-console.log("API URL:", API_URL);
+// Define API URL based on environment with better fallback mechanism
+let API_URL = '';
+try {
+  // First try environment variable
+  if (process.env.REACT_APP_API_URL) {
+    API_URL = process.env.REACT_APP_API_URL;
+  } 
+  // Then try window.location as fallback
+  else if (window.location && window.location.origin) {
+    API_URL = window.location.origin + "/api";
+  }
+  // Last resort fallback
+  else {
+    API_URL = "/api";  // Relative path fallback
+  }
+} catch (e) {
+  API_URL = "/api";  // Absolute minimum fallback
+}
+
+// Set for debugging but not in production
+if (process.env.NODE_ENV !== 'production') {
+  console.log("API URL:", API_URL);
+}
 
 // Create axios instance
 const api = axios.create({
@@ -12,37 +32,28 @@ const api = axios.create({
   },
 });
 
-// Add request interceptor to include auth token
+// Add request interceptor to include auth token - simplified and more reliable approach
 api.interceptors.request.use(
   (config) => {
+    // Get token from localStorage for each request (always fresh)
     const token = localStorage.getItem("token");
     
-    // Log the actual URL being requested
-    console.log(`Request to: ${config.method?.toUpperCase()} ${config.url}`);
+    // Only log in development
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`Request to: ${config.method?.toUpperCase()} ${config.url}`);
+    }
     
+    // If we have a token, add it to this specific request only
     if (token) {
-      // Make sure we're setting the Authorization header properly
-      const authHeader = `Bearer ${token}`;
-      console.log("Authorization header:", authHeader);
-      
-      // Set headers for this specific request
-      config.headers = {
-        ...config.headers,
-        "Authorization": authHeader,
-        "Content-Type": "application/json"
-      };
-      
-      // Also set the default headers for all future requests
-      axios.defaults.headers.common["Authorization"] = authHeader;
-      api.defaults.headers.common["Authorization"] = authHeader;
-    } else {
-      console.warn("No token found in localStorage - request will fail if authentication is required");
+      // Set Authorization header for this request only
+      config.headers.Authorization = `Bearer ${token}`;
     }
     
     return config;
   },
   (error) => {
-    console.error("Request interceptor error:", error);
+    // Log the error and reject the promise
+    console.error("API request preparation failed:", error.message);
     return Promise.reject(error);
   }
 );
@@ -62,23 +73,25 @@ export const getCurrentUser = () => {
 
 // Team services
 export const getTeams = () => {
-  return api.get("/teams");
+  // Make sure to hit the correct trailing slash endpoint
+  return api.get("/teams/"); 
 };
 
 export const getTeam = (id) => {
-  return api.get(`/teams/${id}`);
+  return api.get(`/teams/${id}/`); 
 };
 
 export const createTeam = (teamData) => {
-  return api.post("/teams", teamData);
+  // Make sure to hit the correct trailing slash endpoint
+  return api.post("/teams/", teamData);
 };
 
 export const updateTeam = (id, teamData) => {
-  return api.put(`/teams/${id}`, teamData);
+  return api.put(`/teams/${id}/`, teamData);
 };
 
 export const deleteTeam = (id) => {
-  return api.delete(`/teams/${id}`);
+  return api.delete(`/teams/${id}/`);
 };
 
 // Player services

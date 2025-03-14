@@ -56,17 +56,24 @@ class AuthService:
         # Check user credentials
         user = db.query(User).filter(User.email == email).first()
         
-        if not user or not user.check_password(password):
+        if not user:
+            print(f"Login failed: No user found with email {email}")
+            return None, None
+            
+        if not user.check_password(password):
+            print(f"Login failed: Invalid password for user {email}")
             return None, None
         
-        # Create access token with 30-day expiration
+        # Import at function level to avoid circular imports
         from datetime import timedelta
+        
+        # Create access token with 30-day expiration
         access_token = create_access_token(
             identity=user.id,
             expires_delta=timedelta(days=30)
         )
         
-        print(f"Login: Generated token for user {user.id}")
+        print(f"Login successful for user {user.id}, token generated")
         
         return user, access_token
     
