@@ -7,14 +7,10 @@ npm config set legacy-peer-deps true
 # Go to frontend directory
 cd frontend
 
-# Skip cleaning if node_modules exists to speed up builds
-if [ ! -d "node_modules" ]; then
-  echo "Installing dependencies..."
-  # Install dependencies with legacy-peer-deps flag
-  npm install --legacy-peer-deps --no-audit --no-fund
-else
-  echo "Using existing node_modules to speed up build..."
-fi
+# Always do a clean install to ensure all dependencies are properly installed
+echo "Installing dependencies..."
+# Install dependencies with legacy-peer-deps flag
+npm install --legacy-peer-deps --no-audit --no-fund
 
 # Directly modify package.json to use React 18 if needed
 if grep -q "\"react\": \"18.0.0\"" package.json; then
