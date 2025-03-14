@@ -1,5 +1,5 @@
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from database import get_db
 from services.team_service import TeamService
@@ -10,6 +10,12 @@ teams = Blueprint('teams', __name__)
 @jwt_required()
 def get_teams():
     user_id = get_jwt_identity()
+    
+    # Print token details for debugging
+    print(f"JWT Token received for user ID: {user_id}")
+    auth_header = request.headers.get('Authorization', 'None')
+    print(f"Authorization header: {auth_header}")
+    
     db = get_db()
     
     try:

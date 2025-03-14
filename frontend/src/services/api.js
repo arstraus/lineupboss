@@ -47,6 +47,11 @@ api.interceptors.request.use(
     if (token) {
       // Set Authorization header for this request only
       config.headers.Authorization = `Bearer ${token}`;
+      
+      // Log token for debugging (only in development)
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`Using token: ${token.substring(0, 10)}...`);
+      }
     }
     
     return config;

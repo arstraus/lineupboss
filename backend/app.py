@@ -1,5 +1,5 @@
 
-from flask import Flask, jsonify, send_from_directory, Blueprint
+from flask import Flask, jsonify, send_from_directory, Blueprint, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
@@ -65,6 +65,8 @@ app.config['JWT_HEADER_NAME'] = 'Authorization'
 app.config['JWT_HEADER_TYPE'] = 'Bearer'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=30)  # Set token expiration to 30 days
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False  # Don't require CSRF tokens for API-only backends
+app.config['PROPAGATE_EXCEPTIONS'] = True  # Propagate exceptions from JWT
+app.config['JWT_ERROR_MESSAGE_KEY'] = 'error'  # Use 'error' as the key for error messages
 print(f"JWT configuration complete. Secret key is {'randomly generated' if not os.getenv('JWT_SECRET_KEY') else 'from environment'}.")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///lineup.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -90,6 +92,28 @@ if 'postgresql' in db_url:
 
 # Initialize extensions
 jwt = JWTManager(app)
+
+# JWT error handlers for better debugging
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    print(f"Expired token received: {jwt_header}")
+    return jsonify({"error": "Token has expired"}), 401
+
+@jwt.invalid_token_loader
+def invalid_token_callback(error_string):
+    print(f"Invalid token error: {error_string}")
+    return jsonify({"error": f"Invalid token: {error_string}"}), 401
+
+@jwt.unauthorized_loader
+def missing_token_callback(error_string):
+    print(f"Missing token error: {error_string}")
+    return jsonify({"error": f"Missing token: {error_string}"}), 401
+
+@jwt.token_verification_failed_loader
+def token_verification_failed_callback():
+    print("Token verification failed")
+    return jsonify({"error": "Token verification failed"}), 401
+
 # Configure CORS to allow requests from the frontend with proper headers
 CORS(app, 
      resources={r"/api/*": {"origins": "*"}}, 
