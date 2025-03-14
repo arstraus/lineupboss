@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { getFieldingRotations, saveFieldingRotation, getPlayerAvailability } from "../../services/api";
-import FieldPositionEditor from "./FieldPositionEditor";
 
-// Constants from CLAUDE.md
+// Constants from constants.js
 const POSITIONS = ["Pitcher", "Catcher", "1B", "2B", "3B", "SS", "LF", "RF", "LC", "RC", "Bench"];
 const INFIELD = ["Pitcher", "1B", "2B", "3B", "SS"];
 const OUTFIELD = ["Catcher", "LF", "RF", "LC", "RC"];
@@ -15,6 +14,7 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [battingOrder, setBattingOrder] = useState([]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -83,20 +83,34 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
     }
   };
 
-  const handlePositionChange = (position, playerId) => {
-    // Create a new rotation for the current inning if it doesn't exist
-    const currentRotation = rotations[currentInning] || {};
+  const handlePositionChange = (player, inning, position) => {
+    // Create a new rotation for the specified inning if it doesn't exist
+    const inningRotation = rotations[inning] || {};
     
     // Update the position with the player ID
     const updatedRotation = {
-      ...currentRotation,
-      [position]: playerId
+      ...inningRotation,
+      [position]: player.id
     };
     
     // Update the rotations state
     setRotations({
       ...rotations,
-      [currentInning]: updatedRotation
+      [inning]: updatedRotation
+    });
+  };
+
+  const handleClearPosition = (inning, position) => {
+    // Create a copy of current rotations
+    const inningRotation = { ...rotations[inning] };
+    
+    // Delete the position from the rotation
+    delete inningRotation[position];
+    
+    // Update the rotations state
+    setRotations({
+      ...rotations,
+      [inning]: inningRotation
     });
   };
 
@@ -165,7 +179,6 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
     }
   };
 
-
   const getPlayerById = (playerId) => {
     return availablePlayers.find(player => player.id === playerId);
   };
@@ -184,6 +197,11 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
 
   // Generate array of innings
   const inningsArray = Array.from({ length: innings }, (_, i) => i + 1);
+
+  // Sort players by jersey number for display
+  const sortedPlayers = [...availablePlayers].sort((a, b) => 
+    a.jersey_number - b.jersey_number
+  );
 
   return (
     <div>
@@ -232,51 +250,74 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
           </ul>
         </div>
         <div className="card-body">
-          <div className="row">
-            <div className="col-md-8">
-              <FieldPositionEditor 
-                positions={rotations[currentInning] || {}}
-                availablePlayers={availablePlayers}
-                onPositionChange={handlePositionChange}
-              />
-            </div>
-            <div className="col-md-4">
-              <div className="card">
-                <div className="card-header">
-                  <h5 className="mb-0">Position Assignments</h5>
-                </div>
-                <div className="card-body">
-                  <div className="mb-3">
-                    <h6>Infield</h6>
-                    {INFIELD.map(position => (
-                      <div className="d-flex justify-content-between mb-1" key={position}>
-                        <span>{position}:</span>
-                        <span>
-                          {rotations[currentInning]?.[position] ? 
-                            `#${getPlayerById(rotations[currentInning][position])?.jersey_number} ${getPlayerById(rotations[currentInning][position])?.name}` : 
-                            <span className="text-muted">Unassigned</span>
-                          }
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mb-3">
-                    <h6>Outfield</h6>
-                    {OUTFIELD.map(position => (
-                      <div className="d-flex justify-content-between mb-1" key={position}>
-                        <span>{position}:</span>
-                        <span>
-                          {rotations[currentInning]?.[position] ? 
-                            `#${getPlayerById(rotations[currentInning][position])?.jersey_number} ${getPlayerById(rotations[currentInning][position])?.name}` : 
-                            <span className="text-muted">Unassigned</span>
-                          }
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="table-responsive">
+            <table className="table table-striped">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Player</th>
+                  {inningsArray.map(inning => (
+                    <th key={inning} className={inning === currentInning ? "table-primary" : ""}>
+                      Inning {inning}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sortedPlayers.map(player => (
+                  <tr key={player.id}>
+                    <td>{player.jersey_number}</td>
+                    <td>{player.name}</td>
+                    {inningsArray.map(inning => {
+                      // Find the position for this player in this inning
+                      let position = null;
+                      const inningRotation = rotations[inning] || {};
+                      for (const [pos, playerId] of Object.entries(inningRotation)) {
+                        if (playerId === player.id) {
+                          position = pos;
+                          break;
+                        }
+                      }
+                      
+                      return (
+                        <td key={inning} className={inning === currentInning ? "table-primary" : ""}>
+                          <select 
+                            className="form-select form-select-sm"
+                            value={position || ""}
+                            onChange={(e) => {
+                              const newPosition = e.target.value;
+                              if (newPosition === "") {
+                                // If empty, clear any existing position for this player in this inning
+                                if (position) {
+                                  handleClearPosition(inning, position);
+                                }
+                              } else {
+                                // Assign the player to the new position
+                                handlePositionChange(player, inning, newPosition);
+                              }
+                            }}
+                          >
+                            <option value="">Not Playing</option>
+                            {POSITIONS.filter(pos => pos !== "Bench").map(pos => (
+                              <option 
+                                key={pos} 
+                                value={pos}
+                                disabled={
+                                  // Disable if position is already assigned to another player
+                                  inningRotation[pos] && inningRotation[pos] !== player.id
+                                }
+                              >
+                                {pos}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
