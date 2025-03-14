@@ -29,6 +29,15 @@ npm start
 npm run build
 ```
 
+### Full Stack (Backend + Frontend)
+```bash
+# Install all dependencies
+npm install
+
+# Start development servers
+npm run start:dev
+```
+
 ## API Testing
 ```bash
 # Get all teams

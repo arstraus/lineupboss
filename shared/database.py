@@ -4,7 +4,6 @@ Shared database utilities for LineupBoss.
 This module provides common database connection and session handling
 for the application backend.
 """
-import pandas as pd
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -30,7 +29,7 @@ engine = create_engine_from_url()
 # Create a session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Create all tables in the database
+# Create all tables
 def create_tables():
     """Create all database tables."""
     Base.metadata.create_all(engine)
@@ -103,68 +102,25 @@ class db_session:
         # Always close the session
         self.session.close()
 
-# Helper functions to convert between dataframes and database models
-def roster_df_to_db(team_id, roster_df):
-    """Convert roster dataframe to Player objects"""
-    players = []
-    for _, row in roster_df.iterrows():
-        player = Player(
-            team_id=team_id,
-            first_name=row['First Name'],
-            last_name=row['Last Name'],
-            jersey_number=str(row['Jersey Number'])
-        )
-        players.append(player)
-    return players
-
-def roster_db_to_df(players):
-    """Convert Player objects to roster dataframe"""
-    data = {
-        "First Name": [],
-        "Last Name": [],
-        "Jersey Number": []
+# Model serialization functions
+def serialize_player(player):
+    """Serialize a Player object to a dictionary"""
+    return {
+        "id": player.id,
+        "team_id": player.team_id,
+        "first_name": player.first_name,
+        "last_name": player.last_name,
+        "jersey_number": player.jersey_number
     }
-    
-    for player in players:
-        data["First Name"].append(player.first_name)
-        data["Last Name"].append(player.last_name)
-        data["Jersey Number"].append(player.jersey_number)
-    
-    return pd.DataFrame(data)
 
-def schedule_df_to_db(team_id, schedule_df):
-    """Convert schedule dataframe to Game objects"""
-    games = []
-    for _, row in schedule_df.iterrows():
-        game = Game(
-            team_id=team_id,
-            game_number=row['Game #'],
-            date=row['Date'] if pd.notna(row['Date']) else None,
-            time=row['Time'] if 'Time' in row and pd.notna(row['Time']) else None,
-            opponent=row['Opponent'],
-            innings=row['Innings']
-        )
-        games.append(game)
-    return games
-
-def schedule_db_to_df(games):
-    """Convert Game objects to schedule dataframe"""
-    data = {
-        "Game #": [],
-        "Date": [],
-        "Time": [],
-        "Opponent": [],
-        "Innings": []
+def serialize_game(game):
+    """Serialize a Game object to a dictionary"""
+    return {
+        "id": game.id,
+        "team_id": game.team_id,
+        "game_number": game.game_number,
+        "date": game.date.isoformat() if game.date else None,
+        "time": game.time.isoformat() if game.time else None,
+        "opponent": game.opponent,
+        "innings": game.innings
     }
-    
-    for game in games:
-        data["Game #"].append(game.game_number)
-        data["Date"].append(game.date)
-        data["Time"].append(game.time)
-        data["Opponent"].append(game.opponent)
-        data["Innings"].append(game.innings)
-    
-    df = pd.DataFrame(data)
-    # Ensure Date column is datetime type
-    df["Date"] = pd.to_datetime(df["Date"])
-    return df

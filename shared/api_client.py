@@ -1,15 +1,13 @@
 """
 API client for LineupBoss.
 
-This module provides a unified client for accessing the LineupBoss API,
-which can be used by both the Streamlit frontend and any other clients.
+This module provides a unified client for accessing the LineupBoss API.
 """
 import os
 import requests
 import json
 from typing import Dict, List, Optional, Union, Any
 from dotenv import load_dotenv
-import streamlit as st
 
 # Load environment variables
 load_dotenv()
@@ -25,10 +23,6 @@ class LineupBossAPIClient:
         """
         # Try to get from environment variable first
         self.base_url = base_url or os.getenv("API_URL")
-        
-        # If running in Streamlit, try to get from secrets
-        if not self.base_url and hasattr(st, "secrets") and "API_URL" in st.secrets:
-            self.base_url = st.secrets["API_URL"]
             
         # Fallback to local API
         if not self.base_url:

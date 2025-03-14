@@ -1,6 +1,9 @@
 {
-  "name": "lineup-boss",
+  "name": "LineupBoss",
   "description": "Baseball Lineup Manager",
+  "repository": "https://github.com/yourusername/lineupboss",
+  "logo": "https://github.com/yourusername/lineupboss/raw/main/frontend/public/logo192.png",
+  "keywords": ["baseball", "lineup", "management", "react", "flask"],
   "buildpacks": [
     { "url": "heroku/nodejs" },
     { "url": "heroku/python" }
@@ -8,6 +11,18 @@
   "env": {
     "NPM_CONFIG_LEGACY_PEER_DEPS": {
       "value": "true"
+    },
+    "DATABASE_URL": {
+      "description": "PostgreSQL database URL",
+      "required": true
+    },
+    "JWT_SECRET_KEY": {
+      "description": "Secret key for JWT authentication",
+      "generator": "secret"
+    },
+    "FLASK_ENV": {
+      "description": "Environment (development or production)",
+      "value": "production"
     }
   }
 }

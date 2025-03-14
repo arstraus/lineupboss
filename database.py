@@ -3,15 +3,13 @@ Database utilities for LineupBoss main application.
 
 This file re-exports the shared database utilities to maintain compatibility with existing imports.
 """
-import pandas as pd
 from shared.models import (
     Base, User, Team, Player, Game, 
     BattingOrder, FieldingRotation, PlayerAvailability
 )
 from shared.database import (
     create_tables, get_db_session, db_session,
-    roster_df_to_db, roster_db_to_df, 
-    schedule_df_to_db, schedule_db_to_df
+    serialize_player, serialize_game
 )
 from shared.auth import (
     create_user, verify_user, get_teams_for_user,

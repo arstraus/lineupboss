@@ -1,8 +1,7 @@
 """
 Shared database models for LineupBoss.
 
-This module contains SQLAlchemy models used by both the Streamlit frontend
-and the Flask API backend.
+This module contains SQLAlchemy models for the application.
 """
 import hashlib
 import secrets

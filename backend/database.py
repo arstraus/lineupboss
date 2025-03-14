@@ -4,8 +4,14 @@ Database utilities for LineupBoss backend.
 
 This file re-exports the shared database utilities to maintain compatibility with existing imports.
 """
-from shared.database import create_tables as init_db
 from shared.database import get_db_session, db_session
+from shared.models import Base
+
+# Create all tables
+def init_db():
+    """Create all database tables."""
+    from shared.database import engine
+    Base.metadata.create_all(bind=engine)
 
 # For backward compatibility
 def get_db():

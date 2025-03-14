@@ -1,8 +1,7 @@
 """
 Shared authentication utilities for LineupBoss.
 
-This module provides common user authentication functions
-for both the Streamlit frontend and Flask API backend.
+This module provides common user authentication functions for the application.
 """
 from shared.database import get_db_session, db_session
 from shared.models import User
