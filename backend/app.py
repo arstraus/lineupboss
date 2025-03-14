@@ -47,6 +47,8 @@ app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'change-me-in-product
 app.config['JWT_TOKEN_LOCATION'] = ['headers']
 app.config['JWT_HEADER_NAME'] = 'Authorization'
 app.config['JWT_HEADER_TYPE'] = 'Bearer'
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = False  # Tokens don't expire for testing
+print(f"JWT_SECRET_KEY is set to: {'[hidden]' if os.getenv('JWT_SECRET_KEY') else 'default-key'}")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///lineup.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -128,6 +130,17 @@ def static_proxy(path):
 @app.route('/api')
 def hello():
     return jsonify({'message': 'Welcome to Lineup API'})
+
+# Test JWT route
+@app.route('/api/test-jwt')
+@jwt_required()
+def test_jwt():
+    from flask import request
+    current_user_id = get_jwt_identity()
+    auth_header = request.headers.get('Authorization', 'None')
+    print(f"Authorization header: {auth_header}")
+    print(f"Current user ID from JWT: {current_user_id}")
+    return jsonify({'message': 'JWT is valid', 'user_id': current_user_id})
 
 # Test database endpoint
 @app.route('/api/test-db')

@@ -13,8 +13,12 @@ def get_teams():
     db = get_db()
     
     try:
+        # Log for debugging
+        print(f"Getting teams for user ID: {user_id}")
+        
         # Get all teams for the current user via service
         teams_list = TeamService.get_teams_by_user(db, user_id)
+        print(f"Found {len(teams_list)} teams")
         
         # Serialize team objects
         result = [TeamService.serialize_team(team) for team in teams_list]
@@ -22,6 +26,8 @@ def get_teams():
         return jsonify(result), 200
     except Exception as e:
         print(f"Error getting teams: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": "Failed to retrieve teams"}), 500
     finally:
         db.close()

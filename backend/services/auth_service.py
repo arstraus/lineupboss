@@ -29,8 +29,13 @@ class AuthService:
         db.commit()
         db.refresh(user)
         
-        # Create access token
-        access_token = create_access_token(identity=user.id)
+        # Create access token with no expiration for testing
+        access_token = create_access_token(
+            identity=user.id,
+            expires_delta=False  # No expiration for easier testing
+        )
+        
+        print(f"Register: Generated token for user {user.id}")
         
         return user, access_token
     
@@ -53,8 +58,13 @@ class AuthService:
         if not user or not user.check_password(password):
             return None, None
         
-        # Create access token
-        access_token = create_access_token(identity=user.id)
+        # Create access token with no expiration for testing
+        access_token = create_access_token(
+            identity=user.id,
+            expires_delta=False  # No expiration for easier testing
+        )
+        
+        print(f"Login: Generated token for user {user.id}")
         
         return user, access_token
     

@@ -16,23 +16,29 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
+    
+    // Log the actual URL being requested
+    console.log(`Request to: ${config.method?.toUpperCase()} ${config.url}`);
+    
     if (token) {
       // Make sure we're setting the Authorization header properly
       const authHeader = `Bearer ${token}`;
-      console.log("Adding token header:", authHeader);
+      console.log("Authorization header:", authHeader);
       
       // Set headers for this specific request
       config.headers = {
         ...config.headers,
-        "Authorization": authHeader
+        "Authorization": authHeader,
+        "Content-Type": "application/json"
       };
       
       // Also set the default headers for all future requests
       axios.defaults.headers.common["Authorization"] = authHeader;
       api.defaults.headers.common["Authorization"] = authHeader;
     } else {
-      console.warn("No token found in localStorage");
+      console.warn("No token found in localStorage - request will fail if authentication is required");
     }
+    
     return config;
   },
   (error) => {
