@@ -5,16 +5,16 @@ import { getFieldingRotations, saveFieldingRotation, getPlayerAvailability } fro
 const POSITIONS = ["Pitcher", "Catcher", "1B", "2B", "3B", "SS", "LF", "RF", "LC", "RC", "Bench"];
 const INFIELD = ["Pitcher", "1B", "2B", "3B", "SS"];
 const OUTFIELD = ["Catcher", "LF", "RF", "LC", "RC"];
+const FIELD_POSITIONS = POSITIONS.filter(pos => pos !== "Bench");
 
 const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
-  const [currentInning, setCurrentInning] = useState(1);
   const [rotations, setRotations] = useState({});
   const [availablePlayers, setAvailablePlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [battingOrder, setBattingOrder] = useState([]);
+  const [validationErrors, setValidationErrors] = useState({});
 
   const fetchData = useCallback(async () => {
     try {
@@ -67,16 +67,78 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
     fetchData();
   }, [fetchData]);
 
+  // Validate rotations before saving
+  const validateRotations = () => {
+    const errors = {};
+    
+    // Generate array of innings
+    const inningsArray = Array.from({ length: innings }, (_, i) => i + 1);
+    
+    // Check each inning
+    inningsArray.forEach(inning => {
+      const inningErrors = [];
+      const inningRotation = rotations[inning] || {};
+      
+      // 1. Check for missing positions
+      const assignedPositions = Object.keys(inningRotation);
+      const missingPositions = FIELD_POSITIONS.filter(pos => !assignedPositions.includes(pos));
+      
+      if (missingPositions.length > 0) {
+        inningErrors.push(`Missing positions: ${missingPositions.join(', ')}`);
+      }
+      
+      // 2. Check for duplicate player assignments
+      const positionsByPlayer = {};
+      Object.entries(inningRotation).forEach(([position, playerId]) => {
+        if (!positionsByPlayer[playerId]) {
+          positionsByPlayer[playerId] = [];
+        }
+        positionsByPlayer[playerId].push(position);
+      });
+      
+      const duplicates = Object.entries(positionsByPlayer)
+        .filter(([_, positions]) => positions.length > 1)
+        .map(([playerId, positions]) => {
+          const player = availablePlayers.find(p => p.id === parseInt(playerId));
+          return `#${player?.jersey_number} ${player?.name}: ${positions.join(', ')}`;
+        });
+      
+      if (duplicates.length > 0) {
+        inningErrors.push(`Players assigned multiple positions: ${duplicates.join('; ')}`);
+      }
+      
+      if (inningErrors.length > 0) {
+        errors[inning] = inningErrors;
+      }
+    });
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSaveRotation = async () => {
     try {
+      // Validate rotations first
+      if (!validateRotations()) {
+        setError("Please fix the validation errors before saving.");
+        return;
+      }
+      
       setSaving(true);
       setSuccess("");
       setError("");
       
-      await saveFieldingRotation(gameId, currentInning, rotations[currentInning] || {});
-      setSuccess("Fielding rotation saved successfully.");
+      // Generate array of innings
+      const inningsArray = Array.from({ length: innings }, (_, i) => i + 1);
+      
+      // Save each inning
+      for (const inning of inningsArray) {
+        await saveFieldingRotation(gameId, inning, rotations[inning] || {});
+      }
+      
+      setSuccess("Fielding rotations saved successfully.");
     } catch (err) {
-      setError("Failed to save fielding rotation. Please try again.");
+      setError("Failed to save fielding rotations. Please try again.");
       console.error(err);
     } finally {
       setSaving(false);
@@ -114,9 +176,9 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
     });
   };
 
-  const generateDefaultRotation = () => {
+  const autoAssignPositions = (inning) => {
     // Get current rotation
-    const currentRotation = rotations[currentInning] || {};
+    const currentRotation = rotations[inning] || {};
     
     // Get unassigned players
     const assignedPlayerIds = Object.values(currentRotation);
@@ -163,24 +225,30 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
     // Update rotations
     setRotations({
       ...rotations,
-      [currentInning]: newRotation
+      [inning]: newRotation
     });
   };
 
-  const copyFromPreviousInning = () => {
-    if (currentInning > 1) {
-      const previousInning = currentInning - 1;
+  const autoAssignAllInnings = () => {
+    // Generate array of innings
+    const inningsArray = Array.from({ length: innings }, (_, i) => i + 1);
+    
+    // Auto-assign each inning
+    inningsArray.forEach(inning => {
+      autoAssignPositions(inning);
+    });
+  };
+
+  const copyFromPreviousInning = (inning) => {
+    if (inning > 1) {
+      const previousInning = inning - 1;
       const previousRotation = rotations[previousInning] || {};
       
       setRotations({
         ...rotations,
-        [currentInning]: { ...previousRotation }
+        [inning]: { ...previousRotation }
       });
     }
-  };
-
-  const getPlayerById = (playerId) => {
-    return availablePlayers.find(player => player.id === playerId);
   };
 
   if (loading) {
@@ -209,24 +277,17 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
         <h3>Fielding Rotations</h3>
         <div>
           <button 
-            className="btn btn-outline-secondary me-2"
-            onClick={copyFromPreviousInning}
-            disabled={currentInning === 1 || !rotations[currentInning - 1]}
-          >
-            Copy from Previous Inning
-          </button>
-          <button 
             className="btn btn-outline-primary me-2"
-            onClick={generateDefaultRotation}
+            onClick={autoAssignAllInnings}
           >
-            Auto-Assign Positions
+            Auto-Assign All Innings
           </button>
           <button 
             className="btn btn-primary"
             onClick={handleSaveRotation}
             disabled={saving}
           >
-            {saving ? "Saving..." : "Save Rotation"}
+            {saving ? "Saving..." : "Save Rotations"}
           </button>
         </div>
       </div>
@@ -234,21 +295,26 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
-      <div className="card mb-4">
-        <div className="card-header">
-          <ul className="nav nav-tabs card-header-tabs">
-            {inningsArray.map(inning => (
-              <li className="nav-item" key={inning}>
-                <button
-                  className={`nav-link ${currentInning === inning ? 'active' : ''}`}
-                  onClick={() => setCurrentInning(inning)}
-                >
-                  Inning {inning}
-                </button>
+      {/* Display validation errors */}
+      {Object.keys(validationErrors).length > 0 && (
+        <div className="alert alert-warning">
+          <h5>Please fix the following issues:</h5>
+          <ul>
+            {Object.entries(validationErrors).map(([inning, errors]) => (
+              <li key={inning}>
+                <strong>Inning {inning}:</strong>
+                <ul>
+                  {errors.map((err, index) => (
+                    <li key={index}>{err}</li>
+                  ))}
+                </ul>
               </li>
             ))}
           </ul>
         </div>
+      )}
+
+      <div className="card mb-4">
         <div className="card-body">
           <div className="table-responsive">
             <table className="table table-striped">
@@ -257,8 +323,26 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                   <th>#</th>
                   <th>Player</th>
                   {inningsArray.map(inning => (
-                    <th key={inning} className={inning === currentInning ? "table-primary" : ""}>
+                    <th key={inning}>
                       Inning {inning}
+                      <div className="btn-group btn-group-sm ms-2">
+                        <button 
+                          className="btn btn-outline-secondary btn-sm"
+                          onClick={() => autoAssignPositions(inning)}
+                          title="Auto-assign positions for this inning"
+                        >
+                          <i className="bi bi-lightning"></i>
+                        </button>
+                        {inning > 1 && (
+                          <button 
+                            className="btn btn-outline-secondary btn-sm"
+                            onClick={() => copyFromPreviousInning(inning)}
+                            title="Copy from previous inning"
+                          >
+                            <i className="bi bi-arrow-left"></i>
+                          </button>
+                        )}
+                      </div>
                     </th>
                   ))}
                 </tr>
@@ -280,7 +364,7 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                       }
                       
                       return (
-                        <td key={inning} className={inning === currentInning ? "table-primary" : ""}>
+                        <td key={inning}>
                           <select 
                             className="form-select form-select-sm"
                             value={position || ""}
@@ -298,15 +382,8 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                             }}
                           >
                             <option value="">Not Playing</option>
-                            {POSITIONS.filter(pos => pos !== "Bench").map(pos => (
-                              <option 
-                                key={pos} 
-                                value={pos}
-                                disabled={
-                                  // Disable if position is already assigned to another player
-                                  inningRotation[pos] && inningRotation[pos] !== player.id
-                                }
-                              >
+                            {FIELD_POSITIONS.map(pos => (
+                              <option key={pos} value={pos}>
                                 {pos}
                               </option>
                             ))}
