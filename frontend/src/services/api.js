@@ -78,25 +78,25 @@ export const getCurrentUser = () => {
 
 // Team services
 export const getTeams = () => {
-  // Make sure to hit the correct trailing slash endpoint
-  return api.get("/teams/"); 
+  // Try without trailing slash
+  return api.get("/teams"); 
 };
 
 export const getTeam = (id) => {
-  return api.get(`/teams/${id}/`); 
+  return api.get(`/teams/${id}`); 
 };
 
 export const createTeam = (teamData) => {
-  // Make sure to hit the correct trailing slash endpoint
-  return api.post("/teams/", teamData);
+  // Try without trailing slash
+  return api.post("/teams", teamData);
 };
 
 export const updateTeam = (id, teamData) => {
-  return api.put(`/teams/${id}/`, teamData);
+  return api.put(`/teams/${id}`, teamData);
 };
 
 export const deleteTeam = (id) => {
-  return api.delete(`/teams/${id}/`);
+  return api.delete(`/teams/${id}`);
 };
 
 // Player services
