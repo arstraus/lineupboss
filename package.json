@@ -1,0 +1,16 @@
+{
+  "name": "lineup-boss",
+  "version": "1.0.0",
+  "description": "Baseball Lineup Manager",
+  "engines": {
+    "node": "18.x",
+    "npm": "9.x"
+  },
+  "scripts": {
+    "start": "cd backend && gunicorn app:app",
+    "heroku-postbuild": "./bin/build.sh"
+  },
+  "cacheDirectories": [
+    "frontend/node_modules"
+  ]
+}

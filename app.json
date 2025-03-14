@@ -1,0 +1,13 @@
+{
+  "name": "lineup-boss",
+  "description": "Baseball Lineup Manager",
+  "buildpacks": [
+    { "url": "heroku/nodejs" },
+    { "url": "heroku/python" }
+  ],
+  "env": {
+    "NPM_CONFIG_LEGACY_PEER_DEPS": {
+      "value": "true"
+    }
+  }
+}

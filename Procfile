@@ -1,0 +1,1 @@
+web: cd backend && python -m pip install apispec apispec-webframeworks marshmallow-sqlalchemy && gunicorn app:app --log-level debug
