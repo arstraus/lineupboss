@@ -8,6 +8,7 @@ from database import (
     roster_df_to_db, roster_db_to_df, 
     schedule_df_to_db, schedule_db_to_df
 )
+from shared.constants import POSITIONS, INFIELD, OUTFIELD, BENCH
 
 # Team Operations
 def get_team(team_id):
@@ -500,10 +501,7 @@ def analyze_fielding_fairness(team_id):
             player_name = f"{player.first_name} {player.last_name} (#{jersey})"
             jersey_to_player[jersey] = player_name
         
-        # Constants for position categories
-        INFIELD = ["Pitcher", "1B", "2B", "3B", "SS"]
-        OUTFIELD = ["Catcher", "LF", "RF", "LC", "RC"]
-        BENCH = ["Bench"]
+        # Position categories are defined in shared.constants
         
         # Initialize counters for infield, outfield, and bench positions
         player_names = [p.full_name() for p in players]

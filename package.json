@@ -1,5 +1,5 @@
 {
-  "name": "lineup-boss",
+  "name": "lineupboss",
   "version": "1.0.0",
   "description": "Baseball Lineup Manager",
   "engines": {
@@ -8,9 +8,29 @@
   },
   "scripts": {
     "start": "cd backend && gunicorn app:app",
-    "heroku-postbuild": "./bin/build.sh"
+    "start:dev": "concurrently \"cd backend && gunicorn app:app --reload\" \"cd frontend && npm start\"",
+    "start:backend": "cd backend && gunicorn app:app --reload",
+    "start:frontend": "cd frontend && npm start",
+    "install:backend": "pip install -r backend/requirements.txt",
+    "install:frontend": "cd frontend && npm install",
+    "build:frontend": "cd frontend && npm run build",
+    "heroku-postbuild": "./bin/build.sh",
+    "test": "cd frontend && npm test",
+    "lint": "cd frontend && npm run lint"
   },
   "cacheDirectories": [
     "frontend/node_modules"
-  ]
+  ],
+  "keywords": [
+    "baseball",
+    "lineup",
+    "management",
+    "react",
+    "flask"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  }
 }

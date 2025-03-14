@@ -3,7 +3,9 @@ Authentication service for handling user-related business logic.
 """
 from sqlalchemy.orm import Session
 from flask_jwt_extended import create_access_token
-from models.models import User
+from datetime import timedelta
+from shared.models import User
+from shared import auth as shared_auth
 
 class AuthService:
     """Service for authentication operations."""
@@ -30,7 +32,6 @@ class AuthService:
         db.refresh(user)
         
         # Create access token with 30-day expiration
-        from datetime import timedelta
         access_token = create_access_token(
             identity=user.id,
             expires_delta=timedelta(days=30)
@@ -63,9 +64,6 @@ class AuthService:
         if not user.check_password(password):
             print(f"Login failed: Invalid password for user {email}")
             return None, None
-        
-        # Import at function level to avoid circular imports
-        from datetime import timedelta
         
         # Create access token with 30-day expiration
         access_token = create_access_token(

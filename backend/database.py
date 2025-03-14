@@ -1,46 +1,13 @@
 
-import os
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
-from models.models import Base
+"""
+Database utilities for LineupBoss backend.
 
-# Load environment variables
-load_dotenv()
+This file re-exports the shared database utilities to maintain compatibility with existing imports.
+"""
+from shared.database import create_tables as init_db
+from shared.database import get_db_session, db_session
 
-# Get database connection string
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-if not DATABASE_URL:
-    print("WARNING: DATABASE_URL not found in environment variables.")
-    print("Please set DATABASE_URL in your .env file.")
-    # Use SQLite as fallback
-    DATABASE_URL = 'sqlite:///lineup.db'
-    print(f"Using fallback database: {DATABASE_URL}")
-else:
-    # Handle postgres:// vs postgresql:// URL format for SQLAlchemy
-    if DATABASE_URL.startswith('postgres://'):
-        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-        print("Converted DATABASE_URL from postgres:// to postgresql:// format")
-    
-    # Log connection info (without credentials)
-    if 'postgresql' in DATABASE_URL:
-        parts = DATABASE_URL.split('@')
-        if len(parts) > 1:
-            host_part = parts[1].split('/')[0]
-            print(f"Using PostgreSQL database at: {host_part}")
-
-# Create SQLAlchemy engine
-engine = create_engine(DATABASE_URL)
-
-# Create a session factory
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Create all tables
-def init_db():
-    Base.metadata.create_all(bind=engine)
-
-# Get database session
+# For backward compatibility
 def get_db():
     """
     Returns a database session.
@@ -56,5 +23,12 @@ def get_db():
         return result
     finally:
         db.close()
+        
+    Alternatively, use the db_session context manager for automatic cleanup:
+    
+    with db_session() as session:
+        # use session for queries
+        result = session.query(Model).all()
+        return result
     """
-    return SessionLocal()
+    return get_db_session()

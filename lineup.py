@@ -19,11 +19,8 @@ from dotenv import load_dotenv
 import db_operations as db
 import database
 
-# Define positions (keep these as constants)
-POSITIONS = ["Pitcher", "Catcher", "1B", "2B", "3B", "SS", "LF", "RF", "LC", "RC", "Bench"]
-INFIELD = ["Pitcher", "1B", "2B", "3B", "SS"]
-OUTFIELD = ["Catcher", "LF", "RF", "LC", "RC"]
-BENCH = ["Bench"]
+# Import position constants
+from shared.constants import POSITIONS, INFIELD, OUTFIELD, BENCH
 
 # Load environment variables
 load_dotenv()
