@@ -13,15 +13,25 @@ const api = axios.create({
 });
 
 // Add request interceptor to include auth token
-// Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
     if (token) {
-      console.log("Adding token to request:", token);
-      config.headers["Authorization"] = `Bearer ${token}`;
-      // Also set the common default headers for all requests
-      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      // Make sure we're setting the Authorization header properly
+      const authHeader = `Bearer ${token}`;
+      console.log("Adding token header:", authHeader);
+      
+      // Set headers for this specific request
+      config.headers = {
+        ...config.headers,
+        "Authorization": authHeader
+      };
+      
+      // Also set the default headers for all future requests
+      axios.defaults.headers.common["Authorization"] = authHeader;
+      api.defaults.headers.common["Authorization"] = authHeader;
+    } else {
+      console.warn("No token found in localStorage");
     }
     return config;
   },

@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect } from "react";
+import axios from "axios";
 import { login, register, getCurrentUser } from "../services/api";
 
 // Create Auth Context
@@ -32,20 +33,41 @@ export const AuthProvider = ({ children }) => {
   const handleLogin = async (email, password) => {
     try {
       const response = await login(email, password);
-      // Store the token and log it for debugging
-      console.log("Login successful, token:", response.data.access_token);
-      localStorage.setItem("token", response.data.access_token);
       
-      // Small delay to ensure token is stored before making the next request
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Store the token and log it for debugging
+      const token = response.data.access_token;
+      console.log("Login successful, token received:", token ? "Yes" : "No");
+      
+      if (!token) {
+        console.error("No token received from server");
+        throw new Error("Authentication failed: No token received");
+      }
+      
+      // Clear any existing token first
+      localStorage.removeItem("token");
+      // Then store the new token
+      localStorage.setItem("token", token);
+      
+      // Set the token in axios headers immediately
+      const authHeader = `Bearer ${token}`;
+      axios.defaults.headers.common["Authorization"] = authHeader;
+      
+      // Wait a moment for storage and header setting to complete
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       try {
+        // Log headers before making the request
+        console.log("Making getCurrentUser request with token");
+        
         const userResponse = await getCurrentUser();
+        console.log("User data received:", userResponse.data);
         setCurrentUser(userResponse.data);
         setError(null);
       } catch (userErr) {
         console.error("Error getting user after login:", userErr);
-        // Even if getting the user fails, consider login successful
+        console.error("Response:", userErr.response);
+        
+        // Even if getting the user fails, consider login successful with minimal data
         setCurrentUser({ id: response.data.user_id, email });
       }
       

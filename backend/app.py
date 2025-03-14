@@ -76,7 +76,8 @@ CORS(app,
      resources={r"/api/*": {"origins": "*"}}, 
      supports_credentials=True,
      allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
-     expose_headers=["Authorization", "Content-Type"])
+     expose_headers=["Authorization", "Content-Type"],
+     max_age=86400)
 
 # Register API blueprint
 app.register_blueprint(api)

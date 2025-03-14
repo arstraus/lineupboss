@@ -20,12 +20,23 @@ const Dashboard = () => {
   const fetchTeams = async () => {
     try {
       setLoading(true);
+      // Get token directly before making the request
+      const token = localStorage.getItem("token");
+      console.log("Fetching teams with token:", token ? "Present" : "Not found");
+      
+      // Force headers to be set with correct token
       const response = await getTeams();
+      console.log("Teams API response:", response);
+      
       setTeams(response.data);
       setError("");
     } catch (err) {
+      console.error("Error fetching teams:", err);
+      if (err.response) {
+        console.error("Response status:", err.response.status);
+        console.error("Response data:", err.response.data);
+      }
       setError("Failed to load teams. Please try again.");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -42,7 +53,14 @@ const Dashboard = () => {
   const handleNewTeamSubmit = async (e) => {
     e.preventDefault();
     try {
-      await createTeam(newTeam);
+      console.log("Creating team with data:", newTeam);
+      // Check token before team creation
+      const token = localStorage.getItem("token");
+      console.log("Creating team with token:", token ? "Present" : "Not found");
+      
+      const response = await createTeam(newTeam);
+      console.log("Team creation response:", response);
+      
       setNewTeam({
         name: "",
         league: "",
@@ -51,8 +69,12 @@ const Dashboard = () => {
       setShowNewTeamForm(false);
       fetchTeams();
     } catch (err) {
+      console.error("Error creating team:", err);
+      if (err.response) {
+        console.error("Response status:", err.response.status);
+        console.error("Response data:", err.response.data);
+      }
       setError("Failed to create team. Please try again.");
-      console.error(err);
     }
   };
 
