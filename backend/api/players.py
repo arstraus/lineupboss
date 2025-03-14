@@ -11,26 +11,49 @@ players = Blueprint("players", __name__)
 @jwt_required()
 def get_players(team_id):
     user_id = get_jwt_identity()
-    db = next(get_db())
     
-    # Verify team belongs to user
-    team = TeamService.get_team(db, team_id, user_id)
-    if not team:
-        return jsonify({'error': 'Team not found or unauthorized'}), 404
+    # Convert user_id to integer if it's a string
+    try:
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid user ID format'}), 400
+        
+    db = get_db()
     
-    # Get all players for this team via service
-    players_list = PlayerService.get_players_by_team(db, team_id)
-    
-    # Serialize player objects
-    result = [PlayerService.serialize_player(player) for player in players_list]
-    
-    return jsonify(result), 200
+    try:
+        # Verify team belongs to user
+        team = TeamService.get_team(db, team_id, user_id)
+        if not team:
+            return jsonify({'error': 'Team not found or unauthorized'}), 404
+        
+        # Get all players for this team via service
+        players_list = PlayerService.get_players_by_team(db, team_id)
+        
+        # Serialize player objects
+        result = [PlayerService.serialize_player(player) for player in players_list]
+        
+        return jsonify(result), 200
+    except Exception as e:
+        db.rollback()
+        print(f"Error getting players: {str(e)}")
+        return jsonify({"error": "Failed to retrieve players"}), 500
+    finally:
+        db.close()
 
 @players.route('/<int:player_id>', methods=['GET'])
 @jwt_required()
 def get_player(player_id):
     user_id = get_jwt_identity()
-    db = next(get_db())
+    
+    # Convert user_id to integer if it's a string
+    try:
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid user ID format'}), 400
+        
+    db = get_db()
     
     # Get player with verification that it belongs to user's team via service
     player = PlayerService.get_player(db, player_id, user_id)
@@ -47,12 +70,20 @@ def get_player(player_id):
 @jwt_required()
 def create_player(team_id):
     user_id = get_jwt_identity()
+    
+    # Convert user_id to integer if it's a string
+    try:
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid user ID format'}), 400
+        
     data = request.get_json()
     
     if not data or not data.get('first_name') or not data.get('last_name') or not data.get('jersey_number'):
         return jsonify({'error': 'First name, last name and jersey number are required'}), 400
     
-    db = next(get_db())
+    db = get_db()
     
     # Verify team belongs to user
     team = TeamService.get_team(db, team_id, user_id)
@@ -72,12 +103,20 @@ def create_player(team_id):
 @jwt_required()
 def update_player(player_id):
     user_id = get_jwt_identity()
+    
+    # Convert user_id to integer if it's a string
+    try:
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid user ID format'}), 400
+        
     data = request.get_json()
     
     if not data:
         return jsonify({'error': 'No data provided'}), 400
     
-    db = next(get_db())
+    db = get_db()
     
     # Verify player belongs to user's team via service
     player = PlayerService.get_player(db, player_id, user_id)
@@ -98,7 +137,15 @@ def update_player(player_id):
 @jwt_required()
 def delete_player(player_id):
     user_id = get_jwt_identity()
-    db = next(get_db())
+    
+    # Convert user_id to integer if it's a string
+    try:
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid user ID format'}), 400
+        
+    db = get_db()
     
     # Verify player belongs to user's team via service
     player = PlayerService.get_player(db, player_id, user_id)

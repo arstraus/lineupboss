@@ -122,6 +122,7 @@ export const deletePlayer = (id) => {
 
 // Game services
 export const getGames = (teamId) => {
+  // Ensure consistent URL format without trailing slashes
   return api.get(`/games/team/${teamId}`);
 };
 
