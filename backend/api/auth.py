@@ -16,9 +16,8 @@ def register():
         print("Missing email or password")
         return jsonify({'error': 'Email and password are required'}), 400
     
+    db = get_db()
     try:
-        db = next(get_db())
-        
         # Check if user already exists
         existing_user = AuthService.get_user_by_email(db, data['email'])
         if existing_user:
@@ -38,6 +37,8 @@ def register():
     except Exception as e:
         print(f"Error during registration: {str(e)}")
         return jsonify({'error': f'Registration failed: {str(e)}'}), 500
+    finally:
+        db.close()
 
 @auth.route('/login', methods=['POST'])
 def login():
@@ -46,32 +47,36 @@ def login():
     if not data or not data.get('email') or not data.get('password'):
         return jsonify({'error': 'Email and password are required'}), 400
     
-    db = next(get_db())
-    
-    # Login user via service
-    user, access_token = AuthService.login_user(db, data['email'], data['password'])
-    
-    if not user or not access_token:
-        return jsonify({'error': 'Invalid email or password'}), 401
-    
-    return jsonify({
-        'access_token': access_token,
-        'user_id': user.id
-    }), 200
+    db = get_db()
+    try:
+        # Login user via service
+        user, access_token = AuthService.login_user(db, data['email'], data['password'])
+        
+        if not user or not access_token:
+            return jsonify({'error': 'Invalid email or password'}), 401
+        
+        return jsonify({
+            'access_token': access_token,
+            'user_id': user.id
+        }), 200
+    except Exception as e:
+        print(f"Error during login: {str(e)}")
+        return jsonify({'error': f'Login failed: {str(e)}'}), 500
+    finally:
+        db.close()
 
 @auth.route('/me', methods=['GET'])
 @jwt_required()
 def get_user_info():
+    print("Headers:", request.headers)
+    auth_header = request.headers.get('Authorization', '')
+    print(f"Auth header: {auth_header}")
+    
+    user_id = get_jwt_identity()
+    print(f"JWT identity: {user_id}")
+    
+    db = get_db()
     try:
-        print("Headers:", request.headers)
-        auth_header = request.headers.get('Authorization', '')
-        print(f"Auth header: {auth_header}")
-        
-        user_id = get_jwt_identity()
-        print(f"JWT identity: {user_id}")
-        
-        db = next(get_db())
-        
         # Get user via service
         user = AuthService.get_user_by_id(db, user_id)
         
@@ -88,3 +93,5 @@ def get_user_info():
         print(f"Error in get_user_info: {str(e)}")
         print(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()
