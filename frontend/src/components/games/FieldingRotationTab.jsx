@@ -82,9 +82,56 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
     fetchData();
   }, [fetchData]);
 
+  // Get position count summary for a player
+  const getPlayerPositionSummary = (playerId) => {
+    const summary = {
+      infield: 0,
+      outfield: 0,
+      bench: 0,
+      positions: {}
+    };
+    
+    // Generate array of innings
+    const inningsArray = Array.from({ length: innings }, (_, i) => i + 1);
+    
+    inningsArray.forEach(inning => {
+      const inningRotation = rotations[inning] || {};
+      let found = false;
+      
+      // Look for the player in this inning
+      for (const [position, pid] of Object.entries(inningRotation)) {
+        if (pid === playerId) {
+          // Count by position type
+          if (INFIELD.includes(position)) {
+            summary.infield++;
+          } else if (OUTFIELD.includes(position)) {
+            summary.outfield++;
+          }
+          
+          // Count specific positions
+          if (!summary.positions[position]) {
+            summary.positions[position] = 0;
+          }
+          summary.positions[position]++;
+          
+          found = true;
+          break;
+        }
+      }
+      
+      // If player is not found in any position in this inning, they're on the bench
+      if (!found) {
+        summary.bench++;
+      }
+    });
+    
+    return summary;
+  };
+  
   // Validate rotations before saving
   const validateRotations = () => {
     const errors = {};
+    const playerErrors = {};
     
     // Generate array of innings
     const inningsArray = Array.from({ length: innings }, (_, i) => i + 1);
@@ -102,7 +149,7 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
         inningErrors.push(`Missing positions: ${missingPositions.join(', ')}`);
       }
       
-      // 2. Check for duplicate player assignments
+      // 2. Check for duplicate player assignments in an inning
       const positionsByPlayer = {};
       Object.entries(inningRotation).forEach(([position, playerId]) => {
         if (!positionsByPlayer[playerId]) {
@@ -127,8 +174,66 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       }
     });
     
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    // 3. Check if players play the same position more than once in the game
+    availablePlayers.forEach(player => {
+      const playerErrs = [];
+      const positionSummary = getPlayerPositionSummary(player.id);
+      
+      // Check for duplicate positions
+      const repeatPositions = Object.entries(positionSummary.positions)
+        .filter(([_, count]) => count > 1)
+        .map(([position, count]) => `${position} (${count} times)`);
+      
+      if (repeatPositions.length > 0) {
+        playerErrs.push(`Plays same position multiple times: ${repeatPositions.join(', ')}`);
+      }
+      
+      // 4. Check for consecutive infield or outfield innings
+      for (let i = 1; i < innings; i++) {
+        const currentInning = rotations[i] || {};
+        const nextInning = rotations[i + 1] || {};
+        
+        let currentPosition = null;
+        let nextPosition = null;
+        
+        // Find position in current inning
+        for (const [pos, pid] of Object.entries(currentInning)) {
+          if (pid === player.id) {
+            currentPosition = pos;
+            break;
+          }
+        }
+        
+        // Find position in next inning
+        for (const [pos, pid] of Object.entries(nextInning)) {
+          if (pid === player.id) {
+            nextPosition = pos;
+            break;
+          }
+        }
+        
+        // Check for consecutive infield innings
+        if (currentPosition && nextPosition) {
+          if (INFIELD.includes(currentPosition) && INFIELD.includes(nextPosition)) {
+            playerErrs.push(`Plays infield in consecutive innings (${i} and ${i+1})`);
+          }
+          
+          // Check for consecutive outfield innings
+          if (OUTFIELD.includes(currentPosition) && OUTFIELD.includes(nextPosition)) {
+            playerErrs.push(`Plays outfield in consecutive innings (${i} and ${i+1})`);
+          }
+        }
+      }
+      
+      if (playerErrs.length > 0) {
+        playerErrors[player.id] = playerErrs;
+      }
+    });
+    
+    // Combine inning errors and player errors
+    setValidationErrors({ innings: errors, players: playerErrors });
+    
+    return Object.keys(errors).length === 0 && Object.keys(playerErrors).length === 0;
   };
 
   const handleSaveRotation = async () => {
@@ -330,24 +435,55 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       {success && <div className="alert alert-success">{success}</div>}
 
       {/* Display validation errors */}
-      {Object.keys(validationErrors).length > 0 && (
+      {(validationErrors.innings && Object.keys(validationErrors.innings).length > 0) || 
+       (validationErrors.players && Object.keys(validationErrors.players).length > 0) ? (
         <div className="alert alert-warning">
           <h5>Please fix the following issues:</h5>
-          <ul>
-            {Object.entries(validationErrors).map(([inning, errors]) => (
-              <li key={inning}>
-                <strong>Inning {inning}:</strong>
-                <ul>
-                  {errors.map((err, index) => (
-                    <li key={index}>{err}</li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
+          
+          {/* Inning errors */}
+          {validationErrors.innings && Object.keys(validationErrors.innings).length > 0 && (
+            <div>
+              <h6>Inning Issues:</h6>
+              <ul>
+                {Object.entries(validationErrors.innings).map(([inning, errors]) => (
+                  <li key={inning}>
+                    <strong>Inning {inning}:</strong>
+                    <ul>
+                      {errors.map((err, index) => (
+                        <li key={index}>{err}</li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {/* Player errors */}
+          {validationErrors.players && Object.keys(validationErrors.players).length > 0 && (
+            <div>
+              <h6>Player Issues:</h6>
+              <ul>
+                {Object.entries(validationErrors.players).map(([playerId, errors]) => {
+                  const player = availablePlayers.find(p => p.id.toString() === playerId);
+                  return (
+                    <li key={playerId}>
+                      <strong>#{player?.jersey_number} {player?.name}:</strong>
+                      <ul>
+                        {errors.map((err, index) => (
+                          <li key={index}>{err}</li>
+                        ))}
+                      </ul>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
-      )}
+      ) : null}
 
+      {/* Position Assignment Table */}
       <div className="card mb-4">
         <div className="card-body">
           <div className="table-responsive">
@@ -357,6 +493,7 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                   <th>Batting</th>
                   <th>#</th>
                   <th>Player</th>
+                  <th>Summary</th>
                   {inningsArray.map(inning => (
                     <th key={inning}>
                       Inning {inning}
@@ -383,7 +520,9 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                 </tr>
               </thead>
               <tbody>
-                {sortedPlayers.map(player => (
+                {sortedPlayers.map(player => {
+                  const positionSummary = getPlayerPositionSummary(player.id);
+                  return (
                   <tr key={player.id}>
                     <td>
                       {getPlayerBattingPosition(player.id) ? 
@@ -392,6 +531,13 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                     </td>
                     <td>{player.jersey_number}</td>
                     <td>{player.name}</td>
+                    <td>
+                      <small>
+                        IF: {positionSummary.infield} &middot; 
+                        OF: {positionSummary.outfield} &middot; 
+                        Bench: {positionSummary.bench}
+                      </small>
+                    </td>
                     {inningsArray.map(inning => {
                       // Find the position for this player in this inning
                       let position = null;
@@ -403,10 +549,56 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                         }
                       }
                       
+                      // Check if this is a problematic position (consecutive infield or outfield)
+                      let isProblematic = false;
+                      if (position) {
+                        // Check previous inning
+                        if (inning > 1) {
+                          const prevInningRotation = rotations[inning - 1] || {};
+                          let prevPosition = null;
+                          
+                          for (const [pos, pid] of Object.entries(prevInningRotation)) {
+                            if (pid === player.id) {
+                              prevPosition = pos;
+                              break;
+                            }
+                          }
+                          
+                          if (prevPosition) {
+                            if (INFIELD.includes(position) && INFIELD.includes(prevPosition)) {
+                              isProblematic = true;
+                            } else if (OUTFIELD.includes(position) && OUTFIELD.includes(prevPosition)) {
+                              isProblematic = true;
+                            }
+                          }
+                        }
+                        
+                        // Check next inning
+                        if (inning < innings) {
+                          const nextInningRotation = rotations[inning + 1] || {};
+                          let nextPosition = null;
+                          
+                          for (const [pos, pid] of Object.entries(nextInningRotation)) {
+                            if (pid === player.id) {
+                              nextPosition = pos;
+                              break;
+                            }
+                          }
+                          
+                          if (nextPosition) {
+                            if (INFIELD.includes(position) && INFIELD.includes(nextPosition)) {
+                              isProblematic = true;
+                            } else if (OUTFIELD.includes(position) && OUTFIELD.includes(nextPosition)) {
+                              isProblematic = true;
+                            }
+                          }
+                        }
+                      }
+                      
                       return (
                         <td key={inning}>
                           <select 
-                            className="form-select form-select-sm"
+                            className={`form-select form-select-sm ${isProblematic ? 'border-danger' : ''}`}
                             value={position || ""}
                             onChange={(e) => {
                               const newPosition = e.target.value;
@@ -422,17 +614,69 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                             }}
                           >
                             <option value="">Not Playing</option>
-                            {FIELD_POSITIONS.map(pos => (
-                              <option key={pos} value={pos}>
-                                {pos}
-                              </option>
-                            ))}
+                            {FIELD_POSITIONS.map(pos => {
+                              // Check if this position already appears for this player in the game
+                              const isDuplicatePosition = positionSummary.positions[pos] && 
+                                                        (position !== pos || positionSummary.positions[pos] > 1);
+                              
+                              return (
+                                <option 
+                                  key={pos} 
+                                  value={pos}
+                                  className={isDuplicatePosition ? 'text-danger' : ''}
+                                >
+                                  {pos}{isDuplicatePosition ? ` (${positionSummary.positions[pos]}×)` : ''}
+                                </option>
+                              );
+                            })}
                           </select>
                         </td>
                       );
                     })}
                   </tr>
-                ))}
+                )})}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      {/* Position Summary Table */}
+      <div className="card mb-4">
+        <div className="card-header">
+          <h5 className="mb-0">Position Summaries</h5>
+        </div>
+        <div className="card-body">
+          <div className="table-responsive">
+            <table className="table table-sm">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Player</th>
+                  <th>Infield</th>
+                  <th>Outfield</th>
+                  <th>Bench</th>
+                  <th>Positions Played</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedPlayers.map(player => {
+                  const positionSummary = getPlayerPositionSummary(player.id);
+                  const positionsPlayed = Object.entries(positionSummary.positions)
+                    .map(([position, count]) => `${position}${count > 1 ? ` (${count}×)` : ''}`)
+                    .join(', ');
+                    
+                  return (
+                    <tr key={player.id}>
+                      <td>{player.jersey_number}</td>
+                      <td>{player.name}</td>
+                      <td>{positionSummary.infield}</td>
+                      <td>{positionSummary.outfield}</td>
+                      <td>{positionSummary.bench}</td>
+                      <td><small>{positionsPlayed || 'None'}</small></td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
