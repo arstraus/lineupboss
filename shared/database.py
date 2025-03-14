@@ -16,7 +16,10 @@ def create_engine_from_url(database_url=None):
         database_url = config.get_database_url()
         
     if database_url:
-        return create_engine(database_url)
+        connect_args = {}
+        if database_url.startswith("postgresql"):
+            connect_args = {"sslmode": "require"}
+        return create_engine(database_url, connect_args=connect_args)
     else:
         print("WARNING: DATABASE_URL not found in environment variables.")
         print("Please set DATABASE_URL in your .env file.")

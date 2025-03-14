@@ -1,7 +1,7 @@
 {
   "name": "lineupboss",
   "version": "1.0.0",
-  "description": "Baseball Lineup Manager",
+  "description": "Baseball Lineup Application",
   "engines": {
     "node": "18.x",
     "npm": "9.x"

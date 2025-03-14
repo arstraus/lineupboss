@@ -1,6 +1,6 @@
 {
   "name": "LineupBoss",
-  "description": "Baseball Lineup Manager",
+  "description": "Baseball Lineup Application",
   "repository": "https://github.com/yourusername/lineupboss",
   "logo": "https://github.com/yourusername/lineupboss/raw/main/frontend/public/logo192.png",
   "keywords": ["baseball", "lineup", "management", "react", "flask"],

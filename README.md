@@ -1,4 +1,4 @@
-# LineupBoss - Baseball Lineup Manager
+# LineupBoss - Baseball Lineup Application
 
 A modern baseball lineup management application with a React frontend and Flask API backend.
 

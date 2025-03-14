@@ -10,7 +10,7 @@ const Header = () => {
     <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
       <div className="container">
         <Link className="navbar-brand" to="/">
-          Lineup Manager
+          LineupBoss
         </Link>
         <button
           className="navbar-toggler"

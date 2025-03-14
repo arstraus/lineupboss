@@ -1,4 +1,4 @@
-# CLAUDE.md for LineupBoss Baseball Manager
+# CLAUDE.md for Lineup Boss
 
 ## Build & Run Commands
 
