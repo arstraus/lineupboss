@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { getFieldingRotations, saveFieldingRotation, getPlayerAvailability } from "../../services/api";
+import { getFieldingRotations, saveFieldingRotation, getPlayerAvailability, getBattingOrder } from "../../services/api";
 
 // Constants from constants.js
 const POSITIONS = ["Pitcher", "Catcher", "1B", "2B", "3B", "SS", "LF", "RF", "LC", "RC", "Bench"];
@@ -15,6 +15,7 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
+  const [battingOrder, setBattingOrder] = useState([]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -37,6 +38,20 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       }));
       
       setAvailablePlayers(availPlayers);
+      
+      // Get batting order
+      try {
+        const battingOrderResponse = await getBattingOrder(gameId);
+        if (battingOrderResponse.data && battingOrderResponse.data.order_data) {
+          setBattingOrder(battingOrderResponse.data.order_data);
+        } else {
+          setBattingOrder([]);
+        }
+      } catch (err) {
+        // If no batting order exists yet
+        setBattingOrder([]);
+        console.log("No batting order found or error fetching batting order");
+      }
       
       // Get fielding rotations
       try {
@@ -266,10 +281,29 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
   // Generate array of innings
   const inningsArray = Array.from({ length: innings }, (_, i) => i + 1);
 
-  // Sort players by jersey number for display
-  const sortedPlayers = [...availablePlayers].sort((a, b) => 
-    a.jersey_number - b.jersey_number
-  );
+  // Get player batting order position
+  const getPlayerBattingPosition = (playerId) => {
+    const index = battingOrder.findIndex(id => id === playerId);
+    return index !== -1 ? index + 1 : null;
+  };
+  
+  // Sort players by batting order, then by jersey number
+  const sortedPlayers = [...availablePlayers].sort((a, b) => {
+    const aOrder = getPlayerBattingPosition(a.id);
+    const bOrder = getPlayerBattingPosition(b.id);
+    
+    // If both have batting positions, sort by batting order
+    if (aOrder !== null && bOrder !== null) {
+      return aOrder - bOrder;
+    }
+    
+    // If only one has a batting position, put that one first
+    if (aOrder !== null) return -1;
+    if (bOrder !== null) return 1;
+    
+    // If neither has a batting position, sort by jersey number
+    return a.jersey_number - b.jersey_number;
+  });
 
   return (
     <div>
@@ -320,6 +354,7 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
             <table className="table table-striped">
               <thead>
                 <tr>
+                  <th>Batting</th>
                   <th>#</th>
                   <th>Player</th>
                   {inningsArray.map(inning => (
@@ -350,6 +385,11 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
               <tbody>
                 {sortedPlayers.map(player => (
                   <tr key={player.id}>
+                    <td>
+                      {getPlayerBattingPosition(player.id) ? 
+                        getPlayerBattingPosition(player.id) : 
+                        '-'}
+                    </td>
                     <td>{player.jersey_number}</td>
                     <td>{player.name}</td>
                     {inningsArray.map(inning => {
