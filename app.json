@@ -18,9 +18,6 @@
     "NODE_ENV": {
       "value": "production"
     },
-    "PYTHON_VERSION": {
-      "value": "3.9.16"
-    },
     "DATABASE_URL": {
       "description": "PostgreSQL database URL",
       "required": true
