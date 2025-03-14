@@ -29,10 +29,11 @@ class AuthService:
         db.commit()
         db.refresh(user)
         
-        # Create access token with no expiration for testing
+        # Create access token with 30-day expiration
+        from datetime import timedelta
         access_token = create_access_token(
             identity=user.id,
-            expires_delta=False  # No expiration for easier testing
+            expires_delta=timedelta(days=30)
         )
         
         print(f"Register: Generated token for user {user.id}")
@@ -58,10 +59,11 @@ class AuthService:
         if not user or not user.check_password(password):
             return None, None
         
-        # Create access token with no expiration for testing
+        # Create access token with 30-day expiration
+        from datetime import timedelta
         access_token = create_access_token(
             identity=user.id,
-            expires_delta=False  # No expiration for easier testing
+            expires_delta=timedelta(days=30)
         )
         
         print(f"Login: Generated token for user {user.id}")

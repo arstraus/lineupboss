@@ -13,17 +13,22 @@ from database import init_db, get_db
 docs = Blueprint('docs', __name__)
 swagger_ui_blueprint = Blueprint('swagger_ui', __name__)
 
-# Import API with error handling
+# Import API with better error handling
 try:
+    # First import flask_jwt_extended to avoid dependency issues
+    from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
+    
     from api import api
     # Try to import docs
     try:
         from api.docs import docs, swagger_ui_blueprint
     except ImportError as e:
         print(f"WARNING: Could not import api.docs: {e}")
+        print(f"Error details: {str(e)}")
         # We'll use the fallback blueprint defined above
 except ImportError as e:
     print(f"ERROR: Could not import api: {e}")
+    print(f"Error details: {str(e)}")
     # Create a fallback API blueprint
     api = Blueprint('api', __name__, url_prefix='/api')
 
@@ -47,7 +52,11 @@ app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'change-me-in-product
 app.config['JWT_TOKEN_LOCATION'] = ['headers']
 app.config['JWT_HEADER_NAME'] = 'Authorization'
 app.config['JWT_HEADER_TYPE'] = 'Bearer'
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = False  # Tokens don't expire for testing
+# Set token expiration to 30 days
+from datetime import timedelta
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=30)
+# Don't require CSRF tokens for development
+app.config['JWT_COOKIE_CSRF_PROTECT'] = False
 print(f"JWT_SECRET_KEY is set to: {'[hidden]' if os.getenv('JWT_SECRET_KEY') else 'default-key'}")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///lineup.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -135,7 +144,6 @@ def hello():
 @app.route('/api/test-jwt')
 @jwt_required()
 def test_jwt():
-    from flask import request
     current_user_id = get_jwt_identity()
     auth_header = request.headers.get('Authorization', 'None')
     print(f"Authorization header: {auth_header}")
