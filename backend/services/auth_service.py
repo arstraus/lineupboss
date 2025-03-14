@@ -31,9 +31,9 @@ class AuthService:
         db.commit()
         db.refresh(user)
         
-        # Create access token with 30-day expiration
+        # Create access token with 30-day expiration - convert user ID to string
         access_token = create_access_token(
-            identity=user.id,
+            identity=str(user.id),  # Convert to string to prevent JWT validation errors
             expires_delta=timedelta(days=30)
         )
         
@@ -65,9 +65,9 @@ class AuthService:
             print(f"Login failed: Invalid password for user {email}")
             return None, None
         
-        # Create access token with 30-day expiration
+        # Create access token with 30-day expiration - convert user ID to string
         access_token = create_access_token(
-            identity=user.id,
+            identity=str(user.id),  # Convert to string to prevent JWT validation errors
             expires_delta=timedelta(days=30)
         )
         

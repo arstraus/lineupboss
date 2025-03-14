@@ -75,8 +75,15 @@ def get_user_info():
     if not user_id:
         return jsonify({'error': 'Invalid token: No user identity found'}), 401
     
+    # Convert user_id to integer if it's a string
+    try:
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid user ID format'}), 400
+    
     # Log for debugging
-    print(f"GET /me: User ID from JWT: {user_id}")
+    print(f"GET /me: User ID from JWT: {user_id} (type: {type(user_id).__name__})")
     
     # Get database connection
     db = get_db()

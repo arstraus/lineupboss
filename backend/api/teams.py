@@ -12,9 +12,16 @@ def get_teams():
     user_id = get_jwt_identity()
     
     # Print token details for debugging
-    print(f"JWT Token received for user ID: {user_id}")
+    print(f"JWT Token received for user ID: {user_id} (type: {type(user_id).__name__})")
     auth_header = request.headers.get('Authorization', 'None')
     print(f"Authorization header: {auth_header}")
+    
+    # Convert user_id to integer if it's a string
+    try:
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid user ID format'}), 400
     
     db = get_db()
     
@@ -42,6 +49,14 @@ def get_teams():
 @jwt_required()
 def get_team(team_id):
     user_id = get_jwt_identity()
+    
+    # Convert user_id to integer if it's a string
+    try:
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid user ID format'}), 400
+        
     db = get_db()
     
     try:
@@ -65,6 +80,14 @@ def get_team(team_id):
 @jwt_required()
 def create_team():
     user_id = get_jwt_identity()
+    
+    # Convert user_id to integer if it's a string
+    try:
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid user ID format'}), 400
+    
     data = request.get_json()
     
     if not data or not data.get('name'):
@@ -95,12 +118,20 @@ def create_team():
 @jwt_required()
 def update_team(team_id):
     user_id = get_jwt_identity()
+    
+    # Convert user_id to integer if it's a string
+    try:
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid user ID format'}), 400
+        
     data = request.get_json()
     
     if not data:
         return jsonify({'error': 'No data provided'}), 400
     
-    db = next(get_db())
+    db = get_db()
     
     # Check if team exists and belongs to user
     team = TeamService.get_team(db, team_id, user_id)
@@ -108,30 +139,52 @@ def update_team(team_id):
     if not team:
         return jsonify({'error': 'Team not found or unauthorized'}), 404
     
-    # Update team via service
-    updated_team = TeamService.update_team(db, team, data)
-    
-    return jsonify({
-        'id': updated_team.id,
-        'name': updated_team.name,
-        'message': 'Team updated successfully'
-    }), 200
+    try:
+        # Update team via service
+        updated_team = TeamService.update_team(db, team, data)
+        
+        return jsonify({
+            'id': updated_team.id,
+            'name': updated_team.name,
+            'message': 'Team updated successfully'
+        }), 200
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating team: {str(e)}")
+        return jsonify({"error": "Failed to update team"}), 500
+    finally:
+        db.close()
 
 @teams.route('/<int:team_id>', methods=['DELETE'])
 @jwt_required()
 def delete_team(team_id):
     user_id = get_jwt_identity()
-    db = next(get_db())
     
-    # Check if team exists and belongs to user
-    team = TeamService.get_team(db, team_id, user_id)
+    # Convert user_id to integer if it's a string
+    try:
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid user ID format'}), 400
+        
+    db = get_db()
     
-    if not team:
-        return jsonify({'error': 'Team not found or unauthorized'}), 404
-    
-    # Delete team via service
-    TeamService.delete_team(db, team)
-    
-    return jsonify({
-        'message': 'Team deleted successfully'
-    }), 200
+    try:
+        # Check if team exists and belongs to user
+        team = TeamService.get_team(db, team_id, user_id)
+        
+        if not team:
+            return jsonify({'error': 'Team not found or unauthorized'}), 404
+        
+        # Delete team via service
+        TeamService.delete_team(db, team)
+        
+        return jsonify({
+            'message': 'Team deleted successfully'
+        }), 200
+    except Exception as e:
+        db.rollback()
+        print(f"Error deleting team: {str(e)}")
+        return jsonify({"error": "Failed to delete team"}), 500
+    finally:
+        db.close()
