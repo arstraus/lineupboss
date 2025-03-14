@@ -4,6 +4,7 @@ import { getGame, getPlayers } from "../services/api";
 import BattingOrderTab from "../components/games/BattingOrderTab";
 import FieldingRotationTab from "../components/games/FieldingRotationTab";
 import PlayerAvailabilityTab from "../components/games/PlayerAvailabilityTab";
+import GameSummaryTab from "../components/games/GameSummaryTab";
 
 const GameDetail = () => {
   const { gameId } = useParams();
@@ -128,6 +129,14 @@ const GameDetail = () => {
             Fielding Rotations
           </button>
         </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link ${activeTab === "summary" ? "active" : ""}`}
+            onClick={() => setActiveTab("summary")}
+          >
+            Game Summary
+          </button>
+        </li>
       </ul>
 
       {activeTab === "availability" && (
@@ -140,6 +149,10 @@ const GameDetail = () => {
 
       {activeTab === "fielding" && (
         <FieldingRotationTab gameId={gameId} players={players} innings={game.innings} />
+      )}
+      
+      {activeTab === "summary" && (
+        <GameSummaryTab gameId={gameId} players={players} game={game} innings={game.innings} />
       )}
     </div>
   );
