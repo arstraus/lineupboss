@@ -137,7 +137,7 @@ const GameSummaryTab = ({ gameId, players, game, innings }) => {
         </button>
       </div>
       
-      <div ref={summaryRef} className="pdf-content" style={{ maxWidth: '1050px', margin: '0 auto' }}>
+      <div ref={summaryRef} className="pdf-content" style={{ maxWidth: '1050px', margin: '0 auto', fontSize: '0.9em' }}>
 
       <div className="card mb-3">
         <div className="card-header bg-primary text-white py-1">
@@ -151,7 +151,8 @@ const GameSummaryTab = ({ gameId, players, game, innings }) => {
             </div>
             <div className="col-md-3">
               <p className="mb-1"><small><strong>Head Coach:</strong> {teamDetails?.head_coach || 'N/A'}</small></p>
-              <p className="mb-1"><small><strong>Asst. Coaches:</strong> {teamDetails?.assistant_coach1 || 'N/A'}</small></p>
+              <p className="mb-1"><small><strong>Asst1:</strong> {teamDetails?.assistant_coach1 || 'N/A'}</small></p>
+              <p className="mb-1"><small><strong>Asst2:</strong> {teamDetails?.assistant_coach2 || 'N/A'}</small></p>
             </div>
             <div className="col-md-3">
               <p className="mb-1"><small><strong>Date:</strong> {new Date(game.date).toLocaleDateString()}</small></p>
