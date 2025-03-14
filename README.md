@@ -128,7 +128,7 @@ Remember to set the `REACT_APP_API_URL` to point to your deployed API.
 
 ## Requirements
 
-- Python 3.8+ (for backend)
-- Node.js 14+ (for frontend)
+- Python 3.11+ (for backend)
+- Node.js 18+ (for frontend)
 - PostgreSQL database
 - See backend/requirements.txt and frontend/package.json for detailed dependencies

@@ -1,10 +1,7 @@
 import React, { useState } from "react";
 
-// Constants from CLAUDE.md
-const POSITIONS = ["Pitcher", "Catcher", "1B", "2B", "3B", "SS", "LF", "RF", "LC", "RC", "Bench"];
-const INFIELD = ["Pitcher", "1B", "2B", "3B", "SS"];
-const OUTFIELD = ["Catcher", "LF", "RF", "LC", "RC"];
-const BENCH = ["Bench"];
+// Constants from constants.js
+import { POSITIONS } from "../../constants";
 
 const FieldPositionEditor = ({ positions, availablePlayers, onPositionChange }) => {
   const [selectedPosition, setSelectedPosition] = useState(null);

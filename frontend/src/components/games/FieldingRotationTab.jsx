@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { getFieldingRotations, saveFieldingRotation, getPlayerAvailability } from "../../services/api";
 import FieldPositionEditor from "./FieldPositionEditor";
 
@@ -6,7 +6,6 @@ import FieldPositionEditor from "./FieldPositionEditor";
 const POSITIONS = ["Pitcher", "Catcher", "1B", "2B", "3B", "SS", "LF", "RF", "LC", "RC", "Bench"];
 const INFIELD = ["Pitcher", "1B", "2B", "3B", "SS"];
 const OUTFIELD = ["Catcher", "LF", "RF", "LC", "RC"];
-const BENCH = ["Bench"];
 
 const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
   const [currentInning, setCurrentInning] = useState(1);
@@ -17,11 +16,7 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  useEffect(() => {
-    fetchData();
-  }, [gameId, players]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -66,7 +61,11 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [gameId, players]);
+  
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleSaveRotation = async () => {
     try {
@@ -166,11 +165,6 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
     }
   };
 
-  const getPositionClass = (position) => {
-    if (INFIELD.includes(position)) return "infield";
-    if (OUTFIELD.includes(position)) return "outfield";
-    return "bench";
-  };
 
   const getPlayerById = (playerId) => {
     return availablePlayers.find(player => player.id === playerId);

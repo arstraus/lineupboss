@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import React, { useState, useEffect, useCallback } from "react";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { getBattingOrder, saveBattingOrder, getPlayerAvailability } from "../../services/api";
 
 const BattingOrderTab = ({ gameId, players }) => {
@@ -10,11 +10,7 @@ const BattingOrderTab = ({ gameId, players }) => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  useEffect(() => {
-    fetchData();
-  }, [gameId, players]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -70,7 +66,11 @@ const BattingOrderTab = ({ gameId, players }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [gameId, players]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleSaveOrder = async () => {
     try {

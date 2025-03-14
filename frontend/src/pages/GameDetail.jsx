@@ -1,25 +1,19 @@
-import React, { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import { getGame, updateGame, getPlayers } from "../services/api";
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams, Link } from "react-router-dom";
+import { getGame, getPlayers } from "../services/api";
 import BattingOrderTab from "../components/games/BattingOrderTab";
 import FieldingRotationTab from "../components/games/FieldingRotationTab";
 import PlayerAvailabilityTab from "../components/games/PlayerAvailabilityTab";
 
 const GameDetail = () => {
   const { gameId } = useParams();
-  const navigate = useNavigate();
   const [game, setGame] = useState(null);
-  const [team, setTeam] = useState(null);
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("availability");
 
-  useEffect(() => {
-    fetchGameData();
-  }, [gameId]);
-
-  const fetchGameData = async () => {
+  const fetchGameData = useCallback(async () => {
     try {
       setLoading(true);
       // Get game details
@@ -38,7 +32,11 @@ const GameDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [gameId]);
+  
+  useEffect(() => {
+    fetchGameData();
+  }, [fetchGameData]);
 
   // Helper function to format date
   const formatDate = (dateString) => {
