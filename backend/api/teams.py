@@ -10,32 +10,44 @@ teams = Blueprint('teams', __name__)
 @jwt_required()
 def get_teams():
     user_id = get_jwt_identity()
-    db = next(get_db())
+    db = get_db()
     
-    # Get all teams for the current user via service
-    teams_list = TeamService.get_teams_by_user(db, user_id)
-    
-    # Serialize team objects
-    result = [TeamService.serialize_team(team) for team in teams_list]
-    
-    return jsonify(result), 200
+    try:
+        # Get all teams for the current user via service
+        teams_list = TeamService.get_teams_by_user(db, user_id)
+        
+        # Serialize team objects
+        result = [TeamService.serialize_team(team) for team in teams_list]
+        
+        return jsonify(result), 200
+    except Exception as e:
+        print(f"Error getting teams: {str(e)}")
+        return jsonify({"error": "Failed to retrieve teams"}), 500
+    finally:
+        db.close()
 
 @teams.route('/<int:team_id>', methods=['GET'])
 @jwt_required()
 def get_team(team_id):
     user_id = get_jwt_identity()
-    db = next(get_db())
+    db = get_db()
     
-    # Get the specific team via service
-    team = TeamService.get_team(db, team_id, user_id)
-    
-    if not team:
-        return jsonify({'error': 'Team not found or unauthorized'}), 404
-    
-    # Serialize team object
-    result = TeamService.serialize_team(team)
-    
-    return jsonify(result), 200
+    try:
+        # Get the specific team via service
+        team = TeamService.get_team(db, team_id, user_id)
+        
+        if not team:
+            return jsonify({'error': 'Team not found or unauthorized'}), 404
+        
+        # Serialize team object
+        result = TeamService.serialize_team(team)
+        
+        return jsonify(result), 200
+    except Exception as e:
+        print(f"Error getting team {team_id}: {str(e)}")
+        return jsonify({"error": "Failed to retrieve team"}), 500
+    finally:
+        db.close()
 
 @teams.route('/', methods=['POST'])
 @jwt_required()
@@ -46,16 +58,26 @@ def create_team():
     if not data or not data.get('name'):
         return jsonify({'error': 'Team name is required'}), 400
     
-    db = next(get_db())
+    db = get_db()
     
-    # Create new team via service
-    team = TeamService.create_team(db, data, user_id)
-    
-    return jsonify({
-        'id': team.id,
-        'name': team.name,
-        'message': 'Team created successfully'
-    }), 201
+    try:
+        # Create new team via service
+        team = TeamService.create_team(db, data, user_id)
+        
+        if not team:
+            return jsonify({'error': 'Failed to create team'}), 500
+        
+        return jsonify({
+            'id': team.id,
+            'name': team.name,
+            'message': 'Team created successfully'
+        }), 201
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating team: {str(e)}")
+        return jsonify({"error": "Failed to create team"}), 500
+    finally:
+        db.close()
 
 @teams.route('/<int:team_id>', methods=['PUT'])
 @jwt_required()

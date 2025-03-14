@@ -50,9 +50,24 @@ app.config['JWT_HEADER_TYPE'] = 'Bearer'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///lineup.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Fix for Heroku PostgreSQL
+# Handle both postgres:// and postgresql:// formats for any PostgreSQL provider (Heroku, Neon, etc.)
 if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
     app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://', 1)
+    print(f"Updated SQLALCHEMY_DATABASE_URI to use postgresql:// prefix")
+    
+# Also fix the DATABASE_URL environment variable to ensure consistent connections
+if os.environ.get('DATABASE_URL', '').startswith('postgres://'):
+    os.environ['DATABASE_URL'] = os.environ['DATABASE_URL'].replace('postgres://', 'postgresql://', 1)
+    print(f"Updated DATABASE_URL to use postgresql:// prefix")
+
+# Log database connection for debugging (without credentials)
+db_url = app.config['SQLALCHEMY_DATABASE_URI']
+if 'postgresql' in db_url:
+    # Extract just the host part for logging
+    parts = db_url.split('@')
+    if len(parts) > 1:
+        host_part = parts[1].split('/')[0]
+        print(f"Connecting to PostgreSQL database at: {host_part}")
 
 # Initialize extensions
 jwt = JWTManager(app)

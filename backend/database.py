@@ -17,6 +17,18 @@ if not DATABASE_URL:
     # Use SQLite as fallback
     DATABASE_URL = 'sqlite:///lineup.db'
     print(f"Using fallback database: {DATABASE_URL}")
+else:
+    # Handle postgres:// vs postgresql:// URL format for SQLAlchemy
+    if DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+        print("Converted DATABASE_URL from postgres:// to postgresql:// format")
+    
+    # Log connection info (without credentials)
+    if 'postgresql' in DATABASE_URL:
+        parts = DATABASE_URL.split('@')
+        if len(parts) > 1:
+            host_part = parts[1].split('/')[0]
+            print(f"Using PostgreSQL database at: {host_part}")
 
 # Create SQLAlchemy engine
 engine = create_engine(DATABASE_URL)
@@ -31,14 +43,13 @@ def init_db():
 # Get database session
 def get_db():
     """
-    Returns a generator for a database session.
-    
-    Instead of using 'yield' which requires a context manager,
-    we're putting the session in a list and returning an iterator.
+    Returns a database session.
+    This function should be used within a try/finally block 
+    to ensure the session is properly closed.
     """
     db = SessionLocal()
     try:
-        return iter([db])
+        return db
     except Exception as e:
         db.close()
         raise e
