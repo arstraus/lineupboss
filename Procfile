@@ -1,1 +1,1 @@
-web: cd backend && gunicorn app:app --log-level debug
+web: cd backend && gunicorn app:app --log-level warning --preload

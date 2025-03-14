@@ -12,6 +12,15 @@
     "NPM_CONFIG_LEGACY_PEER_DEPS": {
       "value": "true"
     },
+    "NPM_CONFIG_PRODUCTION": {
+      "value": "true"
+    },
+    "NODE_ENV": {
+      "value": "production"
+    },
+    "PYTHON_VERSION": {
+      "value": "3.9.16"
+    },
     "DATABASE_URL": {
       "description": "PostgreSQL database URL",
       "required": true
@@ -23,6 +32,13 @@
     "FLASK_ENV": {
       "description": "Environment (development or production)",
       "value": "production"
+    }
+  },
+  "stack": "heroku-22",
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "eco"
     }
   }
 }
