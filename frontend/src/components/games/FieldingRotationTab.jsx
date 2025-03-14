@@ -236,11 +236,14 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
     return Object.keys(errors).length === 0 && Object.keys(playerErrors).length === 0;
   };
 
-  const handleSaveRotation = async () => {
+  const handleSaveRotation = async (forceIgnoreValidation = false) => {
     try {
-      // Validate rotations first
-      if (!validateRotations()) {
-        setError("Please fix the validation errors before saving.");
+      // Validate rotations
+      const isValid = validateRotations();
+      
+      // Show validation errors but don't block saving if forceIgnoreValidation is true
+      if (!isValid && !forceIgnoreValidation) {
+        setError("There are validation errors. Click 'Save Anyway' if you need to save despite these issues.");
         return;
       }
       
@@ -256,7 +259,9 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
         await saveFieldingRotation(gameId, inning, rotations[inning] || {});
       }
       
-      setSuccess("Fielding rotations saved successfully.");
+      setSuccess(isValid ? 
+        "Fielding rotations saved successfully." :
+        "Fielding rotations saved with validation issues.");
     } catch (err) {
       setError("Failed to save fielding rotations. Please try again.");
       console.error(err);
@@ -422,11 +427,19 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
             Auto-Assign All Innings
           </button>
           <button 
-            className="btn btn-primary"
-            onClick={handleSaveRotation}
+            className="btn btn-primary me-2"
+            onClick={() => handleSaveRotation(false)}
             disabled={saving}
           >
             {saving ? "Saving..." : "Save Rotations"}
+          </button>
+          <button 
+            className="btn btn-outline-warning"
+            onClick={() => handleSaveRotation(true)}
+            disabled={saving}
+            title="Ignore validation errors and save anyway"
+          >
+            Save Anyway
           </button>
         </div>
       </div>
