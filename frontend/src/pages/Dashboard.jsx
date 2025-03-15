@@ -95,96 +95,172 @@ const Dashboard = () => {
   }
 
   return (
-    <div>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>My Teams</h1>
-        <button 
-          className="btn btn-primary" 
-          onClick={() => setShowNewTeamForm(!showNewTeamForm)}
-        >
-          {showNewTeamForm ? "Cancel" : "Add New Team"}
-        </button>
+    <div className="dashboard">
+      {/* Hero Section */}
+      <div className="hero-section mb-5">
+        <div className="hero-content">
+          <h1 className="display-4 text-white">Welcome to Lineup Boss</h1>
+          <p className="lead text-white">The ultimate baseball lineup management application</p>
+        </div>
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
-
-      {showNewTeamForm && (
-        <div className="card mb-4">
-          <div className="card-header">
-            <h3 className="mb-0">Create New Team</h3>
+      {/* App Features */}
+      <div className="app-features mb-5">
+        <h2 className="text-center mb-4">Organize Your Team with Ease</h2>
+        <div className="row text-center">
+          <div className="col-md-4 mb-4">
+            <div className="feature-card">
+              <div className="feature-icon">
+                <i className="bi bi-people-fill"></i>
+              </div>
+              <h3>Team Management</h3>
+              <p>Create and manage multiple teams with detailed rosters</p>
+            </div>
           </div>
-          <div className="card-body">
-            <form onSubmit={handleNewTeamSubmit}>
-              <div className="mb-3">
-                <label htmlFor="name" className="form-label">Team Name *</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="name"
-                  name="name"
-                  value={newTeam.name}
-                  onChange={handleNewTeamChange}
-                  required
-                />
+          <div className="col-md-4 mb-4">
+            <div className="feature-card">
+              <div className="feature-icon">
+                <i className="bi bi-calendar-check"></i>
               </div>
-              <div className="mb-3">
-                <label htmlFor="league" className="form-label">League</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="league"
-                  name="league"
-                  value={newTeam.league}
-                  onChange={handleNewTeamChange}
-                />
+              <h3>Game Scheduling</h3>
+              <p>Organize your season schedule and track game details</p>
+            </div>
+          </div>
+          <div className="col-md-4 mb-4">
+            <div className="feature-card">
+              <div className="feature-icon">
+                <i className="bi bi-list-ol"></i>
               </div>
-              <div className="mb-3">
-                <label htmlFor="head_coach" className="form-label">Head Coach</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="head_coach"
-                  name="head_coach"
-                  value={newTeam.head_coach}
-                  onChange={handleNewTeamChange}
-                />
-              </div>
-              <button type="submit" className="btn btn-success">Create Team</button>
-            </form>
+              <h3>Fair Rotations</h3>
+              <p>Create balanced batting orders and field rotations</p>
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {teams.length === 0 ? (
-        <div className="alert alert-info">
-          You have not created any teams yet. Click "Add New Team" to get started.
+      {/* Teams Section */}
+      <div className="teams-section mb-5">
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h2 className="section-title">
+            <i className="bi bi-trophy"></i> My Teams
+          </h2>
+          <button 
+            className="btn btn-primary" 
+            onClick={() => setShowNewTeamForm(!showNewTeamForm)}
+          >
+            <i className="bi bi-plus-circle me-2"></i>
+            {showNewTeamForm ? "Cancel" : "Add New Team"}
+          </button>
         </div>
-      ) : (
-        <div className="row">
-          {teams.map((team) => (
-            <div className="col-md-4 mb-4" key={team.id}>
-              <div className="card h-100">
-                <div className="card-header">
-                  <h3 className="mb-0">{team.name}</h3>
+
+        {error && <div className="alert alert-danger">{error}</div>}
+
+        {showNewTeamForm && (
+          <div className="card mb-4 new-team-card">
+            <div className="card-header bg-primary text-white">
+              <h3 className="mb-0">Create New Team</h3>
+            </div>
+            <div className="card-body">
+              <form onSubmit={handleNewTeamSubmit}>
+                <div className="mb-3">
+                  <label htmlFor="name" className="form-label">Team Name *</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="name"
+                    name="name"
+                    value={newTeam.name}
+                    onChange={handleNewTeamChange}
+                    required
+                  />
                 </div>
-                <div className="card-body">
-                  {team.league && <p><strong>League:</strong> {team.league}</p>}
-                  {team.head_coach && <p><strong>Head Coach:</strong> {team.head_coach}</p>}
+                <div className="mb-3">
+                  <label htmlFor="league" className="form-label">League</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="league"
+                    name="league"
+                    value={newTeam.league}
+                    onChange={handleNewTeamChange}
+                  />
                 </div>
-                <div className="card-footer d-flex justify-content-between">
-                  <Link to={`/teams/${team.id}`} className="btn btn-primary">Manage Team</Link>
+                <div className="mb-3">
+                  <label htmlFor="head_coach" className="form-label">Head Coach</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="head_coach"
+                    name="head_coach"
+                    value={newTeam.head_coach}
+                    onChange={handleNewTeamChange}
+                  />
+                </div>
+                <button type="submit" className="btn btn-success">
+                  <i className="bi bi-check-circle me-2"></i>Create Team
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {teams.length === 0 ? (
+          <div className="alert alert-info">
+            <i className="bi bi-info-circle-fill me-2"></i>
+            You have not created any teams yet. Click "Add New Team" to get started.
+          </div>
+        ) : (
+          <div className="team-cards">
+            {teams.map((team) => (
+              <div className="team-card" key={team.id}>
+                <div className="team-card-header">
+                  <h3>{team.name}</h3>
+                </div>
+                <div className="team-card-body">
+                  {team.league && <p><i className="bi bi-trophy-fill me-2"></i><strong>League:</strong> {team.league}</p>}
+                  {team.head_coach && <p><i className="bi bi-whistle-fill me-2"></i><strong>Head Coach:</strong> {team.head_coach}</p>}
+                </div>
+                <div className="team-card-footer">
+                  <Link to={`/teams/${team.id}`} className="btn btn-primary">
+                    <i className="bi bi-clipboard-data me-2"></i>Manage Team
+                  </Link>
                   <button 
-                    className="btn btn-danger"
+                    className="btn btn-outline-danger"
                     onClick={() => handleDeleteTeam(team.id)}
                   >
-                    Delete
+                    <i className="bi bi-trash"></i>
                   </button>
                 </div>
               </div>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      {/* App Info Section */}
+      <div className="app-info mb-5">
+        <div className="row align-items-center">
+          <div className="col-md-6">
+            <h3>Make Game Day a Home Run!</h3>
+            <p>LineupBoss helps coaches create balanced batting orders and field rotations that give every player fair playing time while optimizing your team's performance.</p>
+            <ul className="app-features-list">
+              <li><i className="bi bi-check2-circle"></i> Manage multiple teams in one place</li>
+              <li><i className="bi bi-check2-circle"></i> Create fair batting orders across all games</li>
+              <li><i className="bi bi-check2-circle"></i> Track which players are available for each game</li>
+              <li><i className="bi bi-check2-circle"></i> Generate printable game-day lineup sheets</li>
+            </ul>
+          </div>
+          <div className="col-md-6">
+            <div className="app-screenshot">
+              {/* Placeholder for app screenshot - you can replace this with an actual image */}
+              <div className="screenshot-placeholder">
+                <i className="bi bi-phone"></i>
+                <p>LineupBoss works great on mobile and desktop!</p>
+              </div>
             </div>
-          ))}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
