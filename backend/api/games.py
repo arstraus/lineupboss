@@ -5,6 +5,7 @@ from database import get_db
 from datetime import datetime
 from services.team_service import TeamService
 from services.game_service import GameService
+from services.ai_service import AIService
 
 games = Blueprint("games", __name__)
 
@@ -543,5 +544,60 @@ def batch_save_player_availability(game_id):
         db.rollback()
         print(f"Error updating player availability in batch: {str(e)}")
         return jsonify({"error": "Failed to update player availability"}), 500
+    finally:
+        db.close()
+
+# AI Fielding Rotation endpoint
+@games.route('/<int:game_id>/ai-fielding-rotation', methods=['POST'])
+@jwt_required()
+def generate_ai_fielding_rotation(game_id):
+    user_id = get_jwt_identity()
+    
+    # Convert user_id to integer if it's a string
+    try:
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid user ID format'}), 400
+        
+    data = request.get_json()
+    
+    if not data or 'players' not in data or not isinstance(data['players'], list):
+        return jsonify({'error': 'Player data is required'}), 400
+    
+    db = get_db()
+    
+    try:
+        # Verify game belongs to user's team via service
+        game = GameService.get_game(db, game_id, user_id)
+        if not game:
+            return jsonify({'error': 'Game not found or unauthorized'}), 404
+        
+        # Get required parameters from request data
+        players = data['players']
+        innings = data.get('innings', game.innings) or 6  # Default to game innings or fallback to 6
+        required_positions = data.get('required_positions', [])
+        infield_positions = data.get('infield_positions', [])
+        outfield_positions = data.get('outfield_positions', [])
+        
+        # Use the AI service to generate fielding rotation
+        rotation_result = AIService.generate_fielding_rotation(
+            game_id, 
+            players, 
+            innings,
+            required_positions,
+            infield_positions,
+            outfield_positions
+        )
+        
+        return jsonify(rotation_result), 200
+    except ValueError as e:
+        db.rollback()
+        print(f"Error generating AI fielding rotation: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        db.rollback()
+        print(f"Error generating AI fielding rotation: {str(e)}")
+        return jsonify({"error": "Failed to generate AI fielding rotation"}), 500
     finally:
         db.close()

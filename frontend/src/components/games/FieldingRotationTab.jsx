@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { getFieldingRotations, saveFieldingRotation, getPlayerAvailability, getBattingOrder } from "../../services/api";
+import { getFieldingRotations, saveFieldingRotation, getPlayerAvailability, getBattingOrder, generateAIFieldingRotation } from "../../services/api";
 
 // Constants from constants.js
 const POSITIONS = ["Pitcher", "Catcher", "1B", "2B", "3B", "SS", "LF", "RF", "LC", "RC", "Bench"];
@@ -16,6 +16,10 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
   const [success, setSuccess] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
   const [battingOrder, setBattingOrder] = useState([]);
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [aiRotations, setAIRotations] = useState({});
+  const [generatingAI, setGeneratingAI] = useState(false);
+  const [aiError, setAIError] = useState("");
 
   const fetchData = useCallback(async () => {
     try {
@@ -404,6 +408,64 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       setTimeout(() => validateRotations(), 0);
     }
   };
+  
+  // Function to generate AI fielding rotation
+  const handleGenerateAIRotation = async () => {
+    try {
+      setGeneratingAI(true);
+      setAIError("");
+      
+      // Prepare player data for AI
+      const playersData = availablePlayers.map(player => {
+        // Find availability data for this player
+        const availabilityData = {};
+        
+        return {
+          id: player.id,
+          name: player.name,
+          jersey_number: player.jersey_number,
+          available: true, // We already filter unavailable players
+          can_play_catcher: true // Assuming all can play catcher for now, adjust based on your data model
+        };
+      });
+      
+      // Prepare required positions
+      const requiredPositions = FIELD_POSITIONS;
+      
+      // Send request to generate AI rotation
+      const response = await generateAIFieldingRotation(gameId, {
+        players: playersData,
+        innings: innings,
+        required_positions: requiredPositions,
+        infield_positions: INFIELD,
+        outfield_positions: OUTFIELD
+      });
+      
+      // Parse and set the AI-generated rotations
+      setAIRotations(response.data.rotations || {});
+      
+    } catch (err) {
+      console.error("Error generating AI rotation:", err);
+      setAIError("Failed to generate AI rotation. Please try again.");
+    } finally {
+      setGeneratingAI(false);
+    }
+  };
+  
+  // Function to apply AI rotations to the actual rotations
+  const handleApplyAIRotation = () => {
+    // Apply the AI rotations to our state
+    setRotations(aiRotations);
+    
+    // Close the modal
+    setShowAIModal(false);
+    
+    // Run validation
+    setTimeout(() => validateRotations(), 0);
+    
+    // Show success message
+    setSuccess("AI-generated rotations applied successfully. Review and save to confirm.");
+  };
 
   if (loading) {
     return <div className="text-center mt-3"><div className="spinner-border"></div></div>;
@@ -454,6 +516,12 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
             onClick={autoAssignAllInnings}
           >
             Auto-Assign All Innings
+          </button>
+          <button 
+            className="btn btn-outline-success me-2"
+            onClick={() => setShowAIModal(true)}
+          >
+            <i className="bi bi-robot me-1"></i> Generate AI Rotation
           </button>
           <button 
             className="btn btn-primary me-2"
@@ -739,6 +807,116 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
           </div>
         </div>
       ) : null}
+      
+      {/* AI Rotation Modal */}
+      {showAIModal && (
+        <div className="modal-overlay">
+          <div className="modal" tabIndex="-1" style={{ display: 'block' }}>
+            <div className="modal-dialog modal-xl">
+              <div className="modal-content">
+                <div className="modal-header bg-success text-white">
+                  <h5 className="modal-title">AI Fielding Rotation Generator</h5>
+                  <button 
+                    type="button" 
+                    className="btn-close btn-close-white" 
+                    onClick={() => setShowAIModal(false)}
+                    aria-label="Close"
+                  ></button>
+                </div>
+                <div className="modal-body">
+                  {aiError && <div className="alert alert-danger">{aiError}</div>}
+                  
+                  <p className="mb-3">
+                    The AI will create a fielding rotation plan that follows these rules:
+                  </p>
+                  <ul className="mb-4">
+                    <li>All positions must be filled in every inning</li>
+                    <li>Players will not play the same position more than once</li>
+                    <li>Players should not play infield or outfield in consecutive innings</li>
+                    <li>Playing time will be balanced as evenly as possible</li>
+                  </ul>
+                  
+                  {Object.keys(aiRotations).length === 0 ? (
+                    <div className="text-center my-5">
+                      <button 
+                        className="btn btn-success btn-lg"
+                        onClick={handleGenerateAIRotation}
+                        disabled={generatingAI}
+                      >
+                        {generatingAI ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            Generating AI Rotation...
+                          </>
+                        ) : (
+                          <>
+                            <i className="bi bi-robot me-2"></i>
+                            Generate AI Rotation
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="ai-rotations-preview">
+                      <h5 className="mb-3">AI-Generated Fielding Rotation</h5>
+                      <div className="table-responsive">
+                        <table className="table table-striped table-bordered">
+                          <thead>
+                            <tr>
+                              <th>Position</th>
+                              {inningsArray.map(inning => (
+                                <th key={inning}>Inning {inning}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {FIELD_POSITIONS.map(position => (
+                              <tr key={position}>
+                                <th>{position}</th>
+                                {inningsArray.map(inning => {
+                                  const inningRotation = aiRotations[inning] || {};
+                                  const playerId = inningRotation[position];
+                                  const player = playerId 
+                                    ? availablePlayers.find(p => p.id === playerId) 
+                                    : null;
+                                  
+                                  return (
+                                    <td key={inning} className="text-center">
+                                      {player ? `#${player.jersey_number} ${player.name}` : '-'}
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="modal-footer">
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    onClick={() => setShowAIModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  {Object.keys(aiRotations).length > 0 && (
+                    <button 
+                      type="button" 
+                      className="btn btn-success"
+                      onClick={handleApplyAIRotation}
+                    >
+                      Apply AI Rotation
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

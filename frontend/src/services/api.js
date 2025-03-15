@@ -176,4 +176,9 @@ export const batchSavePlayerAvailability = (gameId, availabilityData) => {
   return api.post(`/games/${gameId}/player-availability/batch`, availabilityData);
 };
 
+// AI Fielding Rotation Generation
+export const generateAIFieldingRotation = (gameId, rotationData) => {
+  return api.post(`/games/${gameId}/ai-fielding-rotation`, rotationData);
+};
+
 export default api;

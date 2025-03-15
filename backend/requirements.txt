@@ -11,3 +11,4 @@ marshmallow>=3.26.0
 apispec>=6.0.0
 apispec-webframeworks>=0.5.2
 marshmallow-sqlalchemy>=0.30.0
+anthropic>=0.16.0
