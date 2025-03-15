@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "../services/AuthContext";
 
@@ -19,7 +19,7 @@ const Login = () => {
     
     try {
       await login(email, password);
-      navigate("/");
+      navigate("/dashboard");
     } catch (err) {
       setError(err.response?.data?.error || "Login failed. Please try again.");
     } finally {
@@ -66,13 +66,16 @@ const Login = () => {
                 />
               </div>
               
-              <button 
-                type="submit" 
-                className="btn btn-primary"
-                disabled={loading}
-              >
-                {loading ? "Logging in..." : "Login"}
-              </button>
+              <div className="d-flex justify-content-between align-items-center">
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  disabled={loading}
+                >
+                  {loading ? "Logging in..." : "Login"}
+                </button>
+                <Link to="/" className="btn btn-link">Back to Home</Link>
+              </div>
             </form>
           </div>
         </div>

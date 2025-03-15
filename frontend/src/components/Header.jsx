@@ -9,7 +9,7 @@ const Header = () => {
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
       <div className="container">
-        <Link className="navbar-brand" to="/">
+        <Link className="navbar-brand" to={currentUser ? "/dashboard" : "/"}>
           LineupBoss
         </Link>
         <button
@@ -26,11 +26,13 @@ const Header = () => {
         <div className="collapse navbar-collapse" id="navbarNav">
           <ul className="navbar-nav me-auto">
             {currentUser && (
-              <li className="nav-item">
-                <Link className="nav-link" to="/">
-                  Teams
-                </Link>
-              </li>
+              <>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/dashboard">
+                    Teams
+                  </Link>
+                </li>
+              </>
             )}
           </ul>
           <ul className="navbar-nav">

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "../services/AuthContext";
 
@@ -28,7 +28,7 @@ const Register = () => {
       console.log("Starting registration with email:", email);
       const response = await register(email, password);
       console.log("Registration successful:", response);
-      navigate("/");
+      navigate("/dashboard");
     } catch (err) {
       console.error("Registration error:", err);
       setError(err.response?.data?.error || "Registration failed. Please try again.");
@@ -90,13 +90,16 @@ const Register = () => {
                 />
               </div>
               
-              <button 
-                type="submit" 
-                className="btn btn-primary"
-                disabled={loading}
-              >
-                {loading ? "Registering..." : "Register"}
-              </button>
+              <div className="d-flex justify-content-between align-items-center">
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  disabled={loading}
+                >
+                  {loading ? "Registering..." : "Register"}
+                </button>
+                <Link to="/" className="btn btn-link">Back to Home</Link>
+              </div>
             </form>
           </div>
         </div>

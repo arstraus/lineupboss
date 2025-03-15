@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import TeamDetail from "./pages/TeamDetail";
 import GameDetail from "./pages/GameDetail";
 import NotFound from "./pages/NotFound";
+import LandingPage from "./pages/Landing/LandingPage";
 
 // Components
 import Header from "./components/Header";
@@ -19,51 +20,64 @@ const ProtectedRoute = ({ children }) => {
   const { currentUser, loading } = useContext(AuthContext);
   
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="text-center mt-5"><div className="spinner-border"></div></div>;
   }
   
   if (!currentUser) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/" />;
   }
   
   return children;
 };
 
 function App() {
+  const { currentUser } = useContext(AuthContext);
+  
   return (
     <div className="App">
-      <Header />
-      <div className="container mt-4">
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route 
-            path="/" 
-            element={
-              <ProtectedRoute>
+      {/* Don't show header on landing page */}
+      {window.location.pathname !== "/" || currentUser ? <Header /> : null}
+      
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        
+        {/* Protected routes */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <div className="container mt-4">
                 <Dashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/teams/:teamId" 
-            element={
-              <ProtectedRoute>
+              </div>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/teams/:teamId" 
+          element={
+            <ProtectedRoute>
+              <div className="container mt-4">
                 <TeamDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/games/:gameId" 
-            element={
-              <ProtectedRoute>
+              </div>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/games/:gameId" 
+          element={
+            <ProtectedRoute>
+              <div className="container mt-4">
                 <GameDetail />
-              </ProtectedRoute>
-            } 
-          />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </div>
+              </div>
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route path="*" element={<NotFound />} />
+      </Routes>
     </div>
   );
 }
