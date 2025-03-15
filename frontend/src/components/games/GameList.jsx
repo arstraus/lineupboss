@@ -183,8 +183,13 @@ const GameList = ({ teamId }) => {
       )}
 
       {editingGame && (
-        <div className="modal-overlay">
-          <div className="modal show d-block" tabIndex="-1" role="dialog">
+        <div className="modal-overlay" onClick={(e) => {
+          // Only close if clicking directly on the overlay, not its children
+          if (e.target === e.currentTarget) {
+            setEditingGame(null);
+          }
+        }}>
+          <div className="modal show d-block" tabIndex="-1" role="dialog" onClick={(e) => e.stopPropagation()}>
             <div className="modal-dialog" role="document">
               <div className="modal-content">
                 <div className="modal-header">
@@ -205,11 +210,6 @@ const GameList = ({ teamId }) => {
                 </div>
               </div>
             </div>
-            <div 
-              className="modal-backdrop" 
-              style={{ opacity: 0.5 }}
-              onClick={() => setEditingGame(null)}
-            ></div>
           </div>
         </div>
       )}

@@ -19,20 +19,28 @@ code {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 1040;
-}
-
-.modal-overlay .modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #000;
-  opacity: 0.5;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 1040;
 }
 
 .modal-overlay .modal {
   z-index: 1050;
+  position: relative;
+  margin: 0;
+  width: 100%;
+  pointer-events: none;
+}
+
+.modal-overlay .modal-dialog {
+  pointer-events: auto;
+  margin: 1.75rem auto;
+}
+
+.modal-overlay .modal-content {
+  background-color: #fff;
+  border-radius: 0.3rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }

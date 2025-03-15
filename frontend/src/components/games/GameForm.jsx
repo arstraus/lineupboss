@@ -61,10 +61,11 @@ const GameForm = ({ game, onSubmit, onCancel }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
+    console.log(`Field ${name} changed to: ${value}`);
+    setFormData(prevData => ({
+      ...prevData,
       [name]: value
-    });
+    }));
   };
 
   const handleSubmit = async (e) => {
