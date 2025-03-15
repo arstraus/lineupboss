@@ -480,15 +480,15 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       <div className="card mb-4">
         <div className="card-body">
           <div className="table-responsive">
-            <table className="table table-striped">
+            <table className="table table-striped" style={{ fontSize: '0.875rem' }}>
               <thead>
                 <tr>
-                  <th>Batting</th>
-                  <th>#</th>
-                  <th>Player</th>
-                  <th>Summary</th>
+                  <th className="text-nowrap">Batting</th>
+                  <th className="text-nowrap">#</th>
+                  <th className="text-nowrap">Player</th>
+                  <th className="text-nowrap">Summary</th>
                   {inningsArray.map(inning => (
-                    <th key={inning}>
+                    <th key={inning} className="text-nowrap" style={{ minWidth: '140px' }}>
                       Inning {inning}
                       <div className="btn-group btn-group-sm ms-2">
                         <button 
@@ -517,14 +517,14 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                   const positionSummary = getPlayerPositionSummary(player.id);
                   return (
                   <tr key={player.id}>
-                    <td>
+                    <td className="text-nowrap">
                       {getPlayerBattingPosition(player.id) ? 
                         getPlayerBattingPosition(player.id) : 
                         '-'}
                     </td>
-                    <td>{player.jersey_number}</td>
-                    <td>{player.name}</td>
-                    <td>
+                    <td className="text-nowrap">{player.jersey_number}</td>
+                    <td className="text-nowrap">{player.name}</td>
+                    <td className="text-nowrap">
                       <small>
                         IF: {positionSummary.infield} &middot; 
                         OF: {positionSummary.outfield} &middot; 
@@ -589,10 +589,11 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                       }
                       
                       return (
-                        <td key={inning}>
+                        <td key={inning} className="text-nowrap">
                           <select 
                             className={`form-select form-select-sm ${isProblematic ? 'border-danger' : ''}`}
                             value={position || ""}
+                            style={{ fontSize: '0.875rem', minWidth: '120px' }}
                             onChange={(e) => {
                               const newPosition = e.target.value;
                               if (newPosition === "") {
@@ -608,7 +609,7 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                               validateRotations();
                             }}
                           >
-                            <option value="">Not Playing</option>
+                            <option value="">Bench</option>
                             {FIELD_POSITIONS.map(pos => {
                               // Check if this position already appears for this player in the game
                               const isDuplicatePosition = positionSummary.positions[pos] && 
@@ -648,15 +649,15 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
         </div>
         <div className="card-body">
           <div className="table-responsive">
-            <table className="table table-sm">
+            <table className="table table-sm" style={{ fontSize: '0.875rem' }}>
               <thead>
                 <tr>
-                  <th>#</th>
-                  <th>Player</th>
-                  <th>Infield</th>
-                  <th>Outfield</th>
-                  <th>Bench</th>
-                  <th>Positions Played</th>
+                  <th className="text-nowrap">#</th>
+                  <th className="text-nowrap">Player</th>
+                  <th className="text-nowrap">Infield</th>
+                  <th className="text-nowrap">Outfield</th>
+                  <th className="text-nowrap">Bench</th>
+                  <th className="text-nowrap">Positions Played</th>
                 </tr>
               </thead>
               <tbody>
@@ -668,11 +669,11 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                     
                   return (
                     <tr key={player.id}>
-                      <td>{player.jersey_number}</td>
-                      <td>{player.name}</td>
-                      <td>{positionSummary.infield}</td>
-                      <td>{positionSummary.outfield}</td>
-                      <td>{positionSummary.bench}</td>
+                      <td className="text-nowrap">{player.jersey_number}</td>
+                      <td className="text-nowrap">{player.name}</td>
+                      <td className="text-nowrap">{positionSummary.infield}</td>
+                      <td className="text-nowrap">{positionSummary.outfield}</td>
+                      <td className="text-nowrap">{positionSummary.bench}</td>
                       <td><small>{positionsPlayed || 'None'}</small></td>
                     </tr>
                   );
