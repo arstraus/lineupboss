@@ -129,6 +129,8 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
   };
   
   // Validate rotations before saving
+  // Note: We're still using the same validation logic, but now we only use it to update
+  // the validation state for visual cues, not to prevent selections
   const validateRotations = () => {
     const errors = {};
     const playerErrors = {};
@@ -233,6 +235,7 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
     // Combine inning errors and player errors
     setValidationErrors({ innings: errors, players: playerErrors });
     
+    // Return validation status (used only for save functionality now, not for reverting selections)
     return Object.keys(errors).length === 0 && Object.keys(playerErrors).length === 0;
   };
 
@@ -274,17 +277,31 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
     // Create a new rotation for the specified inning if it doesn't exist
     const inningRotation = rotations[inning] || {};
     
-    // Update the position with the player ID
-    const updatedRotation = {
-      ...inningRotation,
-      [position]: player.id
-    };
+    // Check if another player is assigned to this position already
+    const existingPlayerId = inningRotation[position];
+    
+    // Clear the old position for this player if they had one
+    let updatedRotation = { ...inningRotation };
+    
+    // Remove player from any other position in this inning
+    Object.entries(updatedRotation).forEach(([pos, playerId]) => {
+      if (playerId === player.id) {
+        delete updatedRotation[pos];
+      }
+    });
+    
+    // Assign player to the new position
+    updatedRotation[position] = player.id;
     
     // Update the rotations state
     setRotations({
       ...rotations,
       [inning]: updatedRotation
     });
+    
+    // Run validation to update the validation errors state immediately
+    // but don't revert the selection
+    setTimeout(() => validateRotations(), 0);
   };
 
   const handleClearPosition = (inning, position) => {
@@ -299,6 +316,9 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       ...rotations,
       [inning]: inningRotation
     });
+    
+    // Run validation to update the validation errors state immediately
+    setTimeout(() => validateRotations(), 0);
   };
 
   const autoAssignPositions = (inning) => {
@@ -352,6 +372,9 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       ...rotations,
       [inning]: newRotation
     });
+    
+    // Run validation to update the validation errors state immediately
+    setTimeout(() => validateRotations(), 0);
   };
 
   const autoAssignAllInnings = () => {
@@ -362,6 +385,9 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
     inningsArray.forEach(inning => {
       autoAssignPositions(inning);
     });
+    
+    // Run validation after all assignments are complete
+    setTimeout(() => validateRotations(), 0);
   };
 
   const copyFromPreviousInning = (inning) => {
@@ -373,6 +399,9 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
         ...rotations,
         [inning]: { ...previousRotation }
       });
+      
+      // Run validation to update the validation errors state immediately
+      setTimeout(() => validateRotations(), 0);
     }
   };
 
@@ -446,55 +475,6 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
 
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
-
-      {/* Display validation errors */}
-      {(validationErrors.innings && Object.keys(validationErrors.innings).length > 0) || 
-       (validationErrors.players && Object.keys(validationErrors.players).length > 0) ? (
-        <div className="alert alert-warning">
-          <h5>Please fix the following issues:</h5>
-          
-          {/* Inning errors */}
-          {validationErrors.innings && Object.keys(validationErrors.innings).length > 0 && (
-            <div>
-              <h6>Inning Issues:</h6>
-              <ul>
-                {Object.entries(validationErrors.innings).map(([inning, errors]) => (
-                  <li key={inning}>
-                    <strong>Inning {inning}:</strong>
-                    <ul>
-                      {errors.map((err, index) => (
-                        <li key={index}>{err}</li>
-                      ))}
-                    </ul>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          
-          {/* Player errors */}
-          {validationErrors.players && Object.keys(validationErrors.players).length > 0 && (
-            <div>
-              <h6>Player Issues:</h6>
-              <ul>
-                {Object.entries(validationErrors.players).map(([playerId, errors]) => {
-                  const player = availablePlayers.find(p => p.id.toString() === playerId);
-                  return (
-                    <li key={playerId}>
-                      <strong>#{player?.jersey_number} {player?.name}:</strong>
-                      <ul>
-                        {errors.map((err, index) => (
-                          <li key={index}>{err}</li>
-                        ))}
-                      </ul>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-        </div>
-      ) : null}
 
       {/* Position Assignment Table */}
       <div className="card mb-4">
@@ -624,6 +604,8 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                                 // Assign the player to the new position
                                 handlePositionChange(player, inning, newPosition);
                               }
+                              // Run validation immediately
+                              validateRotations();
                             }}
                           >
                             <option value="">Not Playing</option>
@@ -632,13 +614,18 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                               const isDuplicatePosition = positionSummary.positions[pos] && 
                                                         (position !== pos || positionSummary.positions[pos] > 1);
                               
+                              // Check if this position is currently occupied by someone else
+                              const isOccupied = inningRotation[pos] && inningRotation[pos] !== player.id;
+                              
                               return (
                                 <option 
                                   key={pos} 
                                   value={pos}
-                                  className={isDuplicatePosition ? 'text-danger' : ''}
+                                  className={`${isDuplicatePosition ? 'text-danger' : ''} ${isOccupied ? 'text-warning' : ''}`}
                                 >
-                                  {pos}{isDuplicatePosition ? ` (${positionSummary.positions[pos]}×)` : ''}
+                                  {pos}
+                                  {isDuplicatePosition ? ` (${positionSummary.positions[pos]}×)` : ''}
+                                  {isOccupied ? ' (occupied)' : ''}
                                 </option>
                               );
                             })}
@@ -695,6 +682,62 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
           </div>
         </div>
       </div>
+
+      {/* Display validation errors */}
+      {(validationErrors.innings && Object.keys(validationErrors.innings).length > 0) || 
+       (validationErrors.players && Object.keys(validationErrors.players).length > 0) ? (
+        <div className="card mb-4">
+          <div className="card-header bg-warning text-white">
+            <h5 className="mb-0">Validation Issues</h5>
+          </div>
+          <div className="card-body">
+            <div className="alert alert-warning mb-0">
+              <h5>Please consider fixing the following issues:</h5>
+              
+              {/* Inning errors */}
+              {validationErrors.innings && Object.keys(validationErrors.innings).length > 0 && (
+                <div>
+                  <h6>Inning Issues:</h6>
+                  <ul>
+                    {Object.entries(validationErrors.innings).map(([inning, errors]) => (
+                      <li key={inning}>
+                        <strong>Inning {inning}:</strong>
+                        <ul>
+                          {errors.map((err, index) => (
+                            <li key={index}>{err}</li>
+                          ))}
+                        </ul>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {/* Player errors */}
+              {validationErrors.players && Object.keys(validationErrors.players).length > 0 && (
+                <div>
+                  <h6>Player Issues:</h6>
+                  <ul>
+                    {Object.entries(validationErrors.players).map(([playerId, errors]) => {
+                      const player = availablePlayers.find(p => p.id.toString() === playerId);
+                      return (
+                        <li key={playerId}>
+                          <strong>#{player?.jersey_number} {player?.name}:</strong>
+                          <ul>
+                            {errors.map((err, index) => (
+                              <li key={index}>{err}</li>
+                            ))}
+                          </ul>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };
