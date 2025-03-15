@@ -18,7 +18,13 @@ const GameList = ({ teamId }) => {
     try {
       setLoading(true);
       const response = await api.get(`/games/team/${teamId}`);
-      setGames(response.data);
+      
+      // Sort games by game_number
+      const sortedGames = [...response.data].sort((a, b) => {
+        return parseInt(a.game_number) - parseInt(b.game_number);
+      });
+      
+      setGames(sortedGames);
       setError("");
     } catch (err) {
       setError("Failed to load games. Please try again.");
@@ -143,24 +149,14 @@ const GameList = ({ teamId }) => {
           No games scheduled yet. Click "Add Game" to get started.
         </div>
       ) : (
-        <div className="row">
+        <div className="game-list">
           {games.map(game => (
-            <div className="col-md-4 mb-3" key={game.id}>
-              <div className="card h-100">
-                <div className="card-header">
+            <div className="game-list-item mb-3" key={game.id}>
+              <div className="card">
+                <div className="card-header d-flex justify-content-between align-items-center">
                   <h5 className="mb-0">
                     Game #{game.game_number} - {game.opponent}
                   </h5>
-                </div>
-                <div className="card-body">
-                  <p><strong>Date:</strong> {formatDate(game.date)}</p>
-                  <p><strong>Time:</strong> {formatTime(game.time)}</p>
-                  <p><strong>Innings:</strong> {game.innings}</p>
-                </div>
-                <div className="card-footer d-flex justify-content-between">
-                  <Link to={`/games/${game.id}`} className="btn btn-primary btn-sm">
-                    Manage Game
-                  </Link>
                   <div>
                     <button 
                       className="btn btn-outline-secondary btn-sm me-2"
@@ -174,6 +170,20 @@ const GameList = ({ teamId }) => {
                     >
                       Delete
                     </button>
+                  </div>
+                </div>
+                <div className="card-body">
+                  <div className="row">
+                    <div className="col-md-8">
+                      <p><strong>Date:</strong> {formatDate(game.date)}</p>
+                      <p><strong>Time:</strong> {formatTime(game.time)}</p>
+                      <p><strong>Innings:</strong> {game.innings}</p>
+                    </div>
+                    <div className="col-md-4 d-flex align-items-center justify-content-center">
+                      <Link to={`/games/${game.id}`} className="btn btn-primary">
+                        Manage Game
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
