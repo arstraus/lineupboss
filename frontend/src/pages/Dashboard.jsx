@@ -138,6 +138,7 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+      </div>
 
       {/* Teams Section */}
       <div className="teams-section mb-5">
