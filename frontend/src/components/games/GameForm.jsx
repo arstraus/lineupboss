@@ -14,11 +14,15 @@ const GameForm = ({ game, onSubmit, onCancel }) => {
   useEffect(() => {
     if (game) {
       // Format the date for the input field if it exists
-      const formattedDate = game.date ? 
-        (game.date.includes("T") ? 
-          game.date.split("T")[0] : 
-          game.date
-        ) : "";
+      let formattedDate = "";
+      if (game.date) {
+        if (game.date.includes("T")) {
+          formattedDate = game.date.split("T")[0];
+        } else {
+          // Prevent timezone issues: ensure date is interpreted in local timezone
+          formattedDate = game.date;
+        }
+      }
       
       // Format the time for the input field if it exists
       let formattedTime = "";
@@ -61,6 +65,9 @@ const GameForm = ({ game, onSubmit, onCancel }) => {
       // Prepare the data with the proper format for the API
       const gameData = {
         ...formData,
+        // Ensure we're sending the date in the proper ISO format
+        // but without time component to avoid timezone issues
+        date: formData.date || null,
         innings: parseInt(formData.innings, 10)
       };
 

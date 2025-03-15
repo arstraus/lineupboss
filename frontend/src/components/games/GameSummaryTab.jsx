@@ -2,6 +2,19 @@ import React, { useState, useEffect, useRef } from "react";
 import { getBattingOrder, getFieldingRotations, getPlayerAvailability, getTeam } from "../../services/api";
 import html2pdf from "html2pdf.js";
 
+// Helper function to format date properly without timezone issues
+const formatDate = (dateString) => {
+  if (!dateString) return "N/A";
+  const options = { year: 'numeric', month: 'long', day: 'numeric' };
+  
+  // Fix for timezone issue: parse date parts directly to avoid timezone offset
+  const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+  // Month is 0-indexed in JavaScript Date
+  const date = new Date(year, month - 1, day);
+  
+  return date.toLocaleDateString(undefined, options);
+};
+
 const GameSummaryTab = ({ gameId, players, game, innings }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -155,7 +168,7 @@ const GameSummaryTab = ({ gameId, players, game, innings }) => {
               <p className="mb-1"><small><strong>Asst2:</strong> {teamDetails?.assistant_coach2 || 'N/A'}</small></p>
             </div>
             <div className="col-md-3">
-              <p className="mb-1"><small><strong>Date:</strong> {new Date(game.date).toLocaleDateString()}</small></p>
+              <p className="mb-1"><small><strong>Date:</strong> {game.date ? formatDate(game.date) : 'N/A'}</small></p>
               <p className="mb-1"><small><strong>Time:</strong> {game.time ? new Date(`2022-01-01T${game.time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}</small></p>
             </div>
             <div className="col-md-3">

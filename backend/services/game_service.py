@@ -327,7 +327,8 @@ class GameService:
             'id': game.id,
             'team_id': game.team_id,
             'game_number': game.game_number,
-            'date': str(game.date) if game.date else None,
+            # Format date in ISO format with explicit string formatting to avoid timezone issues
+            'date': game.date.isoformat() if game.date else None,
             'time': str(game.time) if game.time else None,
             'opponent': game.opponent,
             'innings': game.innings
