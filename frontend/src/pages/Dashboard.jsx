@@ -97,16 +97,16 @@ const Dashboard = () => {
   return (
     <div className="dashboard">
       {/* Hero Section */}
-      <div className="hero-section mb-5">
+      <div className="hero-section mb-4">
         <div className="hero-content">
-          <h1 className="display-4 text-white">Welcome to Lineup Boss</h1>
-          <p className="lead text-white">The ultimate baseball lineup management application</p>
+          <h1 className="text-white">Welcome to Lineup Boss</h1>
+          <p className="text-white">The ultimate baseball lineup management application</p>
         </div>
       </div>
 
       {/* App Features */}
-      <div className="app-features mb-5">
-        <h2 className="text-center mb-4">Organize Your Team with Ease</h2>
+      <div className="app-features mb-4">
+        <h2 className="text-center mb-3">Organize Your Team with Ease</h2>
         <div className="row text-center">
           <div className="col-md-4 mb-4">
             <div className="feature-card">

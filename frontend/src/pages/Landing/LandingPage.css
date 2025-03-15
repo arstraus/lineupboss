@@ -9,7 +9,7 @@
                     url('https://images.unsplash.com/photo-1562038969-e85c82240086?auto=format&fit=crop&q=80&w=1200');
   background-size: cover;
   background-position: center;
-  height: 400px;
+  height: 300px; /* Reduced from 400px to 300px */
   display: flex;
   align-items: center;
   justify-content: center;
