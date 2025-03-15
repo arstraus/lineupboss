@@ -12,8 +12,8 @@ const LandingPage = () => {
       {/* Hero Section */}
       <div className="hero-section">
         <div className="hero-content">
-          <h1 className="display-3 text-white">Welcome to LineupBoss</h1>
-          <p className="lead text-white mb-4">The ultimate baseball lineup management application</p>
+          <h1 className="text-white">Welcome to LineupBoss</h1>
+          <p className="text-white mb-3">The ultimate baseball lineup management application</p>
           <div className="hero-buttons">
             {currentUser ? (
               <Link to="/dashboard" className="btn btn-primary btn-lg me-3">
@@ -34,9 +34,9 @@ const LandingPage = () => {
       </div>
 
       {/* Features Section */}
-      <div className="features-section py-5">
+      <div className="features-section py-4">
         <div className="container">
-          <h2 className="text-center mb-5">Baseball Lineup Management Made Easy</h2>
+          <h2 className="text-center mb-4">Baseball Lineup Management Made Easy</h2>
           <div className="row text-center">
             <div className="col-md-4 mb-4">
               <div className="feature-card">
