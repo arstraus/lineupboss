@@ -34,7 +34,7 @@ const LandingPage = () => {
       </div>
 
       {/* Features Section */}
-      <div className="features-section py-4">
+      <div className="features-section py-4 mt-3">
         <div className="container">
           <h2 className="text-center mb-4">Baseball Lineup Management Made Easy</h2>
           <div className="row text-center">
