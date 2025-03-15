@@ -43,7 +43,13 @@ const GameDetail = () => {
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
+    
+    // Fix for timezone issue: parse date parts directly to avoid timezone offset
+    const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+    // Month is 0-indexed in JavaScript Date
+    const date = new Date(year, month - 1, day);
+    
+    return date.toLocaleDateString(undefined, options);
   };
 
   // Helper function to format time

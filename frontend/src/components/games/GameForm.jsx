@@ -21,6 +21,10 @@ const GameForm = ({ game, onSubmit, onCancel }) => {
         } else {
           // Prevent timezone issues: ensure date is interpreted in local timezone
           formattedDate = game.date;
+          
+          // Debug log to help identify issues
+          console.log("Original date from server:", game.date);
+          console.log("Formatted date for form:", formattedDate);
         }
       }
       
