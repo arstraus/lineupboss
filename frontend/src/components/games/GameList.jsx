@@ -42,13 +42,20 @@ const GameList = ({ teamId }) => {
 
   const handleUpdateGame = async (gameId, gameData) => {
     try {
-      await api.put(`/games/${gameId}`, gameData);
+      setError("");
+      console.log("Updating game with data:", gameData);
+      const response = await api.put(`/games/${gameId}`, gameData);
+      console.log("Update response:", response);
+      
+      // Close the modal first
       setEditingGame(null);
-      fetchGames();
+      
+      // Then refresh the games list
+      setTimeout(() => fetchGames(), 100);
     } catch (err) {
       setError("Failed to update game. Please try again.");
-      console.error(err);
-      throw err;
+      console.error("Update game error:", err);
+      // Don't throw error here to avoid unhandled promise rejection
     }
   };
 
@@ -176,27 +183,34 @@ const GameList = ({ teamId }) => {
       )}
 
       {editingGame && (
-        <div className="modal show d-block" tabIndex="-1" role="dialog">
-          <div className="modal-dialog" role="document">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Edit Game: vs {editingGame.opponent}</h5>
-                <button 
-                  type="button" 
-                  className="btn-close" 
-                  onClick={() => setEditingGame(null)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <GameForm 
-                  game={editingGame} 
-                  onSubmit={(data) => handleUpdateGame(editingGame.id, data)}
-                  onCancel={() => setEditingGame(null)}
-                />
+        <div className="modal-overlay">
+          <div className="modal show d-block" tabIndex="-1" role="dialog">
+            <div className="modal-dialog" role="document">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Edit Game: vs {editingGame.opponent}</h5>
+                  <button 
+                    type="button" 
+                    className="btn-close" 
+                    onClick={() => setEditingGame(null)}
+                    aria-label="Close"
+                  ></button>
+                </div>
+                <div className="modal-body">
+                  <GameForm 
+                    game={editingGame} 
+                    onSubmit={(data) => handleUpdateGame(editingGame.id, data)}
+                    onCancel={() => setEditingGame(null)}
+                  />
+                </div>
               </div>
             </div>
+            <div 
+              className="modal-backdrop" 
+              style={{ opacity: 0.5 }}
+              onClick={() => setEditingGame(null)}
+            ></div>
           </div>
-          <div className="modal-backdrop show"></div>
         </div>
       )}
     </div>

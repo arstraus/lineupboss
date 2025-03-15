@@ -17,14 +17,21 @@ const GameForm = ({ game, onSubmit, onCancel }) => {
       let formattedDate = "";
       if (game.date) {
         if (game.date.includes("T")) {
+          // ISO date format with time component
           formattedDate = game.date.split("T")[0];
+        } else if (game.date.includes("-")) {
+          // Ensure date is in YYYY-MM-DD format and handle timezone correctly
+          try {
+            // Parse date parts directly to avoid timezone issues
+            const [year, month, day] = game.date.split('-');
+            formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            console.log("Formatted date for input:", formattedDate);
+          } catch (e) {
+            console.error("Error formatting date:", e);
+            formattedDate = game.date;
+          }
         } else {
-          // Prevent timezone issues: ensure date is interpreted in local timezone
           formattedDate = game.date;
-          
-          // Debug log to help identify issues
-          console.log("Original date from server:", game.date);
-          console.log("Formatted date for form:", formattedDate);
         }
       }
       
