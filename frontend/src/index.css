@@ -23,8 +23,7 @@ code {
                     url('https://images.unsplash.com/photo-1562038969-e85c82240086?auto=format&fit=crop&q=80&w=1200');
   background-size: cover;
   background-position: center;
-  height: 300px; /* Reduced from 400px to 300px */
-  border-radius: 0.5rem;
+  height: 300px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -32,6 +31,9 @@ code {
   position: relative;
   overflow: hidden;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  width: 100vw;
 }
 
 .hero-content {

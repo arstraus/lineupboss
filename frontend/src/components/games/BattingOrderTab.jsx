@@ -165,6 +165,54 @@ const BattingOrderTab = ({ gameId, players }) => {
 
       <div className="row">
         <DragDropContext onDragEnd={handleDragEnd}>
+          {/* Available Players Column */}
+          <div className="col-md-6 mb-4">
+            <div className="card h-100">
+              <div className="card-header bg-secondary text-white">
+                <h5 className="mb-0">Available Players</h5>
+              </div>
+              <Droppable droppableId="availablePlayers">
+                {(provided) => (
+                  <div 
+                    className="card-body" 
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    style={{ minHeight: "400px" }}
+                  >
+                    {availablePlayers.length === 0 ? (
+                      <div className="text-center text-muted my-5">
+                        <p>All available players have been added to the batting order</p>
+                      </div>
+                    ) : (
+                      availablePlayers.map((player, index) => (
+                        <Draggable 
+                          key={player.id.toString()} 
+                          draggableId={player.id.toString()} 
+                          index={index}
+                        >
+                          {(provided) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className="card mb-2"
+                            >
+                              <div className="card-body py-2 d-flex align-items-center">
+                                <div className="me-2">#{player.jersey_number}</div>
+                                <div>{player.name}</div>
+                              </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))
+                    )}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </div>
+          </div>
+
           {/* Batting Order Column */}
           <div className="col-md-6 mb-4">
             <div className="card h-100">
@@ -199,54 +247,6 @@ const BattingOrderTab = ({ gameId, players }) => {
                             >
                               <div className="card-body py-2 d-flex align-items-center">
                                 <div className="me-2 fw-bold">{index + 1}.</div>
-                                <div className="me-2">#{player.jersey_number}</div>
-                                <div>{player.name}</div>
-                              </div>
-                            </div>
-                          )}
-                        </Draggable>
-                      ))
-                    )}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </div>
-          </div>
-
-          {/* Available Players Column */}
-          <div className="col-md-6 mb-4">
-            <div className="card h-100">
-              <div className="card-header bg-secondary text-white">
-                <h5 className="mb-0">Available Players</h5>
-              </div>
-              <Droppable droppableId="availablePlayers">
-                {(provided) => (
-                  <div 
-                    className="card-body" 
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    style={{ minHeight: "400px" }}
-                  >
-                    {availablePlayers.length === 0 ? (
-                      <div className="text-center text-muted my-5">
-                        <p>All available players have been added to the batting order</p>
-                      </div>
-                    ) : (
-                      availablePlayers.map((player, index) => (
-                        <Draggable 
-                          key={player.id.toString()} 
-                          draggableId={player.id.toString()} 
-                          index={index}
-                        >
-                          {(provided) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className="card mb-2"
-                            >
-                              <div className="card-body py-2 d-flex align-items-center">
                                 <div className="me-2">#{player.jersey_number}</div>
                                 <div>{player.name}</div>
                               </div>

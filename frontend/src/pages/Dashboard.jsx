@@ -105,38 +105,39 @@ const Dashboard = () => {
       </div>
 
       {/* App Features */}
-      <div className="app-features mb-4">
-        <h2 className="text-center mb-3">Organize Your Team with Ease</h2>
-        <div className="row text-center">
-          <div className="col-md-4 mb-4">
-            <div className="feature-card">
-              <div className="feature-icon">
-                <i className="bi bi-people-fill"></i>
+      <div className="container mt-4">
+        <div className="app-features mb-4">
+          <h2 className="text-center mb-3">Organize Your Team with Ease</h2>
+          <div className="row text-center">
+            <div className="col-md-4 mb-4">
+              <div className="feature-card">
+                <div className="feature-icon">
+                  <i className="bi bi-people-fill"></i>
+                </div>
+                <h3>Team Management</h3>
+                <p>Create and manage multiple teams with detailed rosters</p>
               </div>
-              <h3>Team Management</h3>
-              <p>Create and manage multiple teams with detailed rosters</p>
             </div>
-          </div>
-          <div className="col-md-4 mb-4">
-            <div className="feature-card">
-              <div className="feature-icon">
-                <i className="bi bi-calendar-check"></i>
+            <div className="col-md-4 mb-4">
+              <div className="feature-card">
+                <div className="feature-icon">
+                  <i className="bi bi-calendar-check"></i>
+                </div>
+                <h3>Game Scheduling</h3>
+                <p>Organize your season schedule and track game details</p>
               </div>
-              <h3>Game Scheduling</h3>
-              <p>Organize your season schedule and track game details</p>
             </div>
-          </div>
-          <div className="col-md-4 mb-4">
-            <div className="feature-card">
-              <div className="feature-icon">
-                <i className="bi bi-list-ol"></i>
+            <div className="col-md-4 mb-4">
+              <div className="feature-card">
+                <div className="feature-icon">
+                  <i className="bi bi-list-ol"></i>
+                </div>
+                <h3>Fair Rotations</h3>
+                <p>Create balanced batting orders and field rotations</p>
               </div>
-              <h3>Fair Rotations</h3>
-              <p>Create balanced batting orders and field rotations</p>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Teams Section */}
       <div className="teams-section mb-5">

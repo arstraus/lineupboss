@@ -49,9 +49,7 @@ function App() {
           path="/dashboard" 
           element={
             <ProtectedRoute>
-              <div className="container mt-4">
                 <Dashboard />
-              </div>
             </ProtectedRoute>
           } 
         />
