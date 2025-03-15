@@ -29,7 +29,7 @@ const Header = () => {
               <>
                 <li className="nav-item">
                   <Link className="nav-link" to="/dashboard">
-                    Teams
+                    Dashboard
                   </Link>
                 </li>
               </>

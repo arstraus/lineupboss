@@ -141,24 +141,25 @@ const Dashboard = () => {
       </div>
 
       {/* Teams Section */}
-      <div className="teams-section mb-5">
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h2 className="section-title">
-            <i className="bi bi-trophy"></i> My Teams
-          </h2>
-          <button 
-            className="btn btn-primary" 
-            onClick={() => setShowNewTeamForm(!showNewTeamForm)}
-          >
-            <i className="bi bi-plus-circle me-2"></i>
-            {showNewTeamForm ? "Cancel" : "Add New Team"}
-          </button>
-        </div>
+      <div className="container">
+        <div className="teams-section mb-5">
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <h2 className="section-title">
+              <i className="bi bi-trophy"></i> My Teams
+            </h2>
+            <button 
+              className="btn btn-primary" 
+              onClick={() => setShowNewTeamForm(!showNewTeamForm)}
+            >
+              <i className="bi bi-plus-circle me-2"></i>
+              {showNewTeamForm ? "Cancel" : "Add New Team"}
+            </button>
+          </div>
 
-        {error && <div className="alert alert-danger">{error}</div>}
+          {error && <div className="alert alert-danger">{error}</div>}
 
-        {showNewTeamForm && (
-          <div className="card mb-4 new-team-card">
+          {showNewTeamForm && (
+            <div className="card mb-4 new-team-card">
             <div className="card-header bg-primary text-white">
               <h3 className="mb-0">Create New Team</h3>
             </div>
@@ -206,58 +207,56 @@ const Dashboard = () => {
           </div>
         )}
 
-        {teams.length === 0 ? (
-          <div className="alert alert-info">
-            <i className="bi bi-info-circle-fill me-2"></i>
-            You have not created any teams yet. Click "Add New Team" to get started.
-          </div>
-        ) : (
-          <div className="team-cards">
-            {teams.map((team) => (
-              <div className="team-card" key={team.id}>
-                <div className="team-card-header">
-                  <h3>{team.name}</h3>
+          {teams.length === 0 ? (
+            <div className="alert alert-info">
+              <i className="bi bi-info-circle-fill me-2"></i>
+              You have not created any teams yet. Click "Add New Team" to get started.
+            </div>
+          ) : (
+            <div className="team-cards">
+              {teams.map((team) => (
+                <div className="team-card" key={team.id}>
+                  <div className="team-card-header">
+                    <h3>{team.name}</h3>
+                  </div>
+                  <div className="team-card-body">
+                    {team.league && <p><i className="bi bi-trophy-fill me-2"></i><strong>League:</strong> {team.league}</p>}
+                    {team.head_coach && <p><i className="bi bi-whistle-fill me-2"></i><strong>Head Coach:</strong> {team.head_coach}</p>}
+                  </div>
+                  <div className="team-card-footer">
+                    <Link to={`/teams/${team.id}`} className="btn btn-primary">
+                      <i className="bi bi-clipboard-data me-2"></i>Manage Team
+                    </Link>
+                    <button 
+                      className="btn btn-outline-danger"
+                      onClick={() => handleDeleteTeam(team.id)}
+                    >
+                      <i className="bi bi-trash"></i>
+                    </button>
+                  </div>
                 </div>
-                <div className="team-card-body">
-                  {team.league && <p><i className="bi bi-trophy-fill me-2"></i><strong>League:</strong> {team.league}</p>}
-                  {team.head_coach && <p><i className="bi bi-whistle-fill me-2"></i><strong>Head Coach:</strong> {team.head_coach}</p>}
-                </div>
-                <div className="team-card-footer">
-                  <Link to={`/teams/${team.id}`} className="btn btn-primary">
-                    <i className="bi bi-clipboard-data me-2"></i>Manage Team
-                  </Link>
-                  <button 
-                    className="btn btn-outline-danger"
-                    onClick={() => handleDeleteTeam(team.id)}
-                  >
-                    <i className="bi bi-trash"></i>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
       
       {/* App Info Section */}
-      <div className="app-info mb-5">
-        <div className="row align-items-center">
-          <div className="col-md-6">
-            <h3>Make Game Day a Home Run!</h3>
-            <p>LineupBoss helps coaches create balanced batting orders and field rotations that give every player fair playing time while optimizing your team's performance.</p>
-            <ul className="app-features-list">
-              <li><i className="bi bi-check2-circle"></i> Manage multiple teams in one place</li>
-              <li><i className="bi bi-check2-circle"></i> Create fair batting orders across all games</li>
-              <li><i className="bi bi-check2-circle"></i> Track which players are available for each game</li>
-              <li><i className="bi bi-check2-circle"></i> Generate printable game-day lineup sheets</li>
-            </ul>
-          </div>
-          <div className="col-md-6">
-            <div className="app-screenshot">
-              {/* Placeholder for app screenshot - you can replace this with an actual image */}
-              <div className="screenshot-placeholder">
-                <i className="bi bi-phone"></i>
-                <p>LineupBoss works great on mobile and desktop!</p>
+      <div className="container">
+        <div className="app-info mb-5">
+          <div className="row align-items-center">
+            <div className="col-12">
+              <h3 className="text-center">Make Game Day a Home Run!</h3>
+              <p className="text-center">LineupBoss helps coaches create balanced batting orders and field rotations that give every player fair playing time while optimizing your team's performance.</p>
+              <div className="row mt-4">
+                <div className="col-md-6 mx-auto">
+                  <ul className="app-features-list">
+                    <li><i className="bi bi-check2-circle"></i> Manage multiple teams in one place</li>
+                    <li><i className="bi bi-check2-circle"></i> Create fair batting orders across all games</li>
+                    <li><i className="bi bi-check2-circle"></i> Track which players are available for each game</li>
+                    <li><i className="bi bi-check2-circle"></i> Generate printable game-day lineup sheets</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
