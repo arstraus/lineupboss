@@ -201,11 +201,23 @@ const AdminDashboard = () => {
           <i className="bi bi-shield-lock me-2"></i>
           Admin Dashboard
         </h2>
-        {pendingCount > 0 && (
-          <span className="badge bg-danger">
-            {pendingCount} pending {pendingCount === 1 ? 'approval' : 'approvals'}
-          </span>
-        )}
+        <div className="d-flex align-items-center">
+          {pendingCount > 0 && (
+            <span className="badge bg-danger me-3">
+              {pendingCount} pending {pendingCount === 1 ? 'approval' : 'approvals'}
+            </span>
+          )}
+          <button 
+            className="btn btn-outline-primary" 
+            onClick={() => {
+              setLoading(true);
+              fetchUsers();
+              fetchPendingCount();
+            }}
+          >
+            <i className="bi bi-arrow-clockwise me-1"></i> Refresh
+          </button>
+        </div>
       </div>
       
       {error && <div className="alert alert-danger">{error}</div>}

@@ -155,17 +155,23 @@ def serve():
 
 @app.route('/<path:path>')
 def static_proxy(path):
-    # Send any non-api request to the React router
-    if path and not path.startswith('api'):
-        try:
-            if os.path.exists(os.path.join(app.static_folder, 'index.html')):
-                return send_from_directory(app.static_folder, 'index.html')
-            else:
-                return jsonify({'error': 'Frontend not available'}), 404
-        except Exception:
-            return jsonify({'error': 'Not found'}), 404
+    # If path starts with 'api/', pass it through to the API
+    if path.startswith('api/'):
+        # Flask will handle API routes via blueprint
+        return app.view_functions.get(request.endpoint)()
+        
+    # For all other paths (like /admin, /dashboard, etc.)
+    # Return the React app's index.html to handle client-side routing
+    try:
+        if os.path.exists(os.path.join(app.static_folder, 'index.html')):
+            return send_from_directory(app.static_folder, 'index.html')
+        else:
+            return jsonify({'error': 'Frontend not available'}), 404
+    except Exception as e:
+        print(f"Error serving static file: {str(e)}")
+        return jsonify({'error': 'Not found'}), 404
     
-    # Try to serve a static file
+    # If nothing else worked, try to serve as a static file
     try:
         return app.send_static_file(path)
     except Exception:
