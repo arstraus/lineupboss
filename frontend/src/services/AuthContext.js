@@ -21,17 +21,33 @@ export const AuthProvider = ({ children }) => {
           setLoading(false);
         })
         .catch((err) => {
+          console.error("Error getting current user:", err);
           localStorage.removeItem("token");
           setLoading(false);
         });
     } else {
       setLoading(false);
     }
+    
+    // Add event listener for browser close/refresh to automatically log out
+    const handleBeforeUnload = () => {
+      localStorage.removeItem("token");
+    };
+    
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    
+    // Clean up the event listener when component unmounts
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
   }, []);
 
   // Login function - simplified and more reliable
   const handleLogin = async (email, password) => {
     try {
+      // Clear any existing token first to prevent session conflicts
+      localStorage.removeItem("token");
+      
       // Step 1: Attempt to log in and get token
       const response = await login(email, password);
       
