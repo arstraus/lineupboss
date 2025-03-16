@@ -21,7 +21,9 @@ class Config:
         """Get API URL from environment."""
         return cls.API_URL
     
-    # Database configuration
+    # Database configuration - ALWAYS use environment variables for credentials
+    # In production, these should be set in Heroku config vars
+    # NEVER hardcode database credentials in the source code
     DATABASE_URL = os.getenv("DATABASE_URL")
     
     @classmethod

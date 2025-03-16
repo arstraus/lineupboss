@@ -68,6 +68,10 @@ app.config['JWT_COOKIE_CSRF_PROTECT'] = False  # Don't require CSRF tokens for A
 app.config['PROPAGATE_EXCEPTIONS'] = True  # Propagate exceptions from JWT
 app.config['JWT_ERROR_MESSAGE_KEY'] = 'error'  # Use 'error' as the key for error messages
 print(f"JWT configuration complete. Secret key is {'randomly generated' if not os.getenv('JWT_SECRET_KEY') else 'from environment'}.")
+
+# Database configuration - ALWAYS use environment variables for credentials!
+# In production, DATABASE_URL should be set in Heroku config vars
+# NEVER hardcode database credentials in the source code
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///lineup.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 

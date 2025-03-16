@@ -1,6 +1,12 @@
-# Environment variables
+# Environment variables and secrets
 .env
+.env.*
+!.env.example
 .streamlit/secrets.toml
+*secret*
+*credential*
+*.pem
+*.key
 
 # Python
 __pycache__/
@@ -88,8 +94,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Environment variables
-.env
+# Already included at the top of the file
 
 # Database
 *.db

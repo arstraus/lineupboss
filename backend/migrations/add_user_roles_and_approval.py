@@ -16,8 +16,8 @@ sys.path.insert(0, root_dir)
 # Import models directly
 from shared.models import Base, User
 
-# Set the database URL (using your PostgreSQL database)
-DATABASE_URL = "postgresql://Lineup_owner:npg_SyQnjbA8v2Yp@ep-hidden-pond-a6lv5bdn-pooler.us-west-2.aws.neon.tech/Lineup?sslmode=require"
+# Get database URL from environment variable - never hardcode credentials
+DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///lineup.db')
 
 # Handle Postgres URL format (for Heroku)
 if DATABASE_URL.startswith('postgres://'):
