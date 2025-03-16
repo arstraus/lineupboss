@@ -119,8 +119,16 @@ export const AuthProvider = ({ children }) => {
       // Step 1: Attempt to register and get token
       const response = await register(email, password);
       
-      // Step 2: Validate token
+      // Step 2: Check if token was received (it won't be if user needs approval)
       const token = response.data.access_token;
+      
+      // If user is pending and no token, handle as a special case
+      if (!token && response.data.status === 'pending') {
+        setError(null);
+        setCurrentUser(null);
+        return response; // Return response so component can handle the pending message
+      }
+      
       if (!token) {
         setError("Registration failed: No token received");
         throw new Error("Registration failed: No token received");

@@ -96,7 +96,9 @@ def register():
                 user.status = 'pending'
                 db.commit()
                 send_admin_notification(user)
-                message = 'User created successfully. An administrator will review your account.'
+                # Don't return an access token if user is pending
+                access_token = None
+                message = 'User created successfully. An administrator will review your account. You will receive an email when your account is approved.'
             else:
                 # If no admins exist yet, automatically approve the user
                 user.status = 'approved'

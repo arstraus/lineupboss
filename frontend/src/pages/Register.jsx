@@ -9,6 +9,7 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [pendingMessage, setPendingMessage] = useState("");
   
   const navigate = useNavigate();
   const { register } = useContext(AuthContext);
@@ -28,7 +29,13 @@ const Register = () => {
       console.log("Starting registration with email:", email);
       const response = await register(email, password);
       console.log("Registration successful:", response);
-      navigate("/dashboard");
+      
+      // Check if the user is pending approval
+      if (response.data.status === 'pending') {
+        setPendingMessage(response.data.message || "Thank you for registering. Your account is pending administrator approval. You will receive an email when your account is approved.");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err) {
       console.error("Registration error:", err);
       setError(err.response?.data?.error || "Registration failed. Please try again.");
@@ -46,8 +53,16 @@ const Register = () => {
           </div>
           <div className="card-body">
             {error && <div className="alert alert-danger">{error}</div>}
+            {pendingMessage && (
+              <div className="alert alert-info">
+                {pendingMessage}
+                <div className="mt-3">
+                  <Link to="/login" className="btn btn-primary">Go to Login</Link>
+                </div>
+              </div>
+            )}
             
-            <form onSubmit={handleSubmit}>
+            {!pendingMessage && <form onSubmit={handleSubmit}>
               <div className="mb-3">
                 <label htmlFor="email" className="form-label">
                   Email
@@ -100,7 +115,7 @@ const Register = () => {
                 </button>
                 <Link to="/" className="btn btn-link">Back to Home</Link>
               </div>
-            </form>
+            </form>}
           </div>
         </div>
       </div>
