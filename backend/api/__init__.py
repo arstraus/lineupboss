@@ -28,6 +28,12 @@ try:
     api.register_blueprint(games, url_prefix='/games')
 except ImportError as e:
     print(f"Could not import games module: {e}")
+    
+try:
+    from api.admin import admin
+    api.register_blueprint(admin, url_prefix='/admin')
+except ImportError as e:
+    print(f"Could not import admin module: {e}")
 
 # Try to import docs with special handling for apispec dependency
 try:

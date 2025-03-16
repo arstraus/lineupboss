@@ -3,8 +3,59 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from database import get_db
 from services.auth_service import AuthService
+from sqlalchemy import and_
+import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 auth = Blueprint('auth', __name__)
+
+def send_admin_notification(new_user):
+    """Send email notification to admin users about new registration."""
+    # Get email settings from environment variables
+    smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+    smtp_port = int(os.getenv('SMTP_PORT', 587))
+    smtp_user = os.getenv('SMTP_USER', '')
+    smtp_password = os.getenv('SMTP_PASSWORD', '')
+    from_email = os.getenv('FROM_EMAIL', 'arstraus@gmail.com')
+    admin_email = os.getenv('ADMIN_EMAIL', 'arstraus@gmail.com')
+    
+    # Skip if email settings are not configured
+    if not smtp_user or not smtp_password or not admin_email:
+        print("Admin notification skipped: Email credentials not configured")
+        return False
+    
+    try:
+        # Create message
+        msg = MIMEMultipart()
+        msg['From'] = from_email
+        msg['To'] = admin_email
+        msg['Subject'] = 'New User Registration Requires Approval'
+        
+        # Add message body
+        message = f"""
+A new user has registered for LineupBoss and requires your approval:
+
+Email: {new_user.email}
+User ID: {new_user.id}
+Registered: {new_user.created_at}
+
+Please log in to the admin dashboard to approve or reject this user.
+"""
+        msg.attach(MIMEText(message, 'plain'))
+        
+        # Connect to SMTP server and send email
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_password)
+            server.send_message(msg)
+            
+        print(f"Admin notification sent to {admin_email}")
+        return True
+    except Exception as e:
+        print(f"Failed to send admin notification: {e}")
+        return False
 
 @auth.route('/register', methods=['POST'])
 def register():
@@ -29,10 +80,36 @@ def register():
         user, access_token = AuthService.register_user(db, data['email'], data['password'])
         print(f"User registered successfully with ID: {user.id}")
         
+        # Send notification to admins
+        try:
+            # Get admin users
+            admin_users = db.query(AuthService.User).filter(
+                and_(
+                    AuthService.User.role == 'admin',
+                    AuthService.User.status == 'approved'
+                )
+            ).all()
+            
+            # If at least one admin exists, set status to pending
+            if admin_users:
+                user.status = 'pending'
+                db.commit()
+                send_admin_notification(user)
+                message = 'User created successfully. An administrator will review your account.'
+            else:
+                # If no admins exist yet, automatically approve the user
+                user.status = 'approved'
+                db.commit()
+                message = 'User created successfully.'
+        except Exception as e:
+            print(f"Error notifying admins: {e}")
+            message = 'User created successfully.'
+        
         return jsonify({
-            'message': 'User created successfully',
+            'message': message,
             'access_token': access_token,
-            'user_id': user.id
+            'user_id': user.id,
+            'status': user.status
         }), 201
     except Exception as e:
         print(f"Error during registration: {str(e)}")
@@ -50,14 +127,28 @@ def login():
     db = get_db()
     try:
         # Login user via service
-        user, access_token = AuthService.login_user(db, data['email'], data['password'])
+        result = AuthService.login_user(db, data['email'], data['password'])
         
+        # Unpack result based on number of return values
+        if len(result) == 3:
+            user, access_token, status_message = result
+            # User exists but is not approved
+            return jsonify({
+                'error': status_message,
+                'status': user.status,
+                'user_id': user.id
+            }), 403
+        else:
+            user, access_token = result
+            
         if not user or not access_token:
             return jsonify({'error': 'Invalid email or password'}), 401
         
         return jsonify({
             'access_token': access_token,
-            'user_id': user.id
+            'user_id': user.id,
+            'role': user.role,
+            'status': user.status
         }), 200
     except Exception as e:
         print(f"Error during login: {str(e)}")

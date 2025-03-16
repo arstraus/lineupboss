@@ -11,13 +11,34 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Fetch pending user count for admin users
+  const fetchPendingCount = async (userData) => {
+    if (userData && userData.role === 'admin') {
+      try {
+        const response = await axios.get('/api/admin/pending-count', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          }
+        });
+        setCurrentUser(prev => ({
+          ...prev,
+          pendingCount: response.data.pending_count || 0
+        }));
+      } catch (err) {
+        console.error("Error fetching pending count:", err);
+      }
+    }
+  };
+
   // Check if user is already logged in
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
       getCurrentUser()
         .then((response) => {
-          setCurrentUser(response.data);
+          const userData = response.data;
+          setCurrentUser(userData);
+          fetchPendingCount(userData);
           setLoading(false);
         })
         .catch((err) => {

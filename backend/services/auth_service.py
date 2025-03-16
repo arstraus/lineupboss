@@ -53,6 +53,7 @@ class AuthService:
             
         Returns:
             Tuple of (user, access_token) if credentials are valid, None otherwise
+            Returns (user, None, "status_message") if user exists but is not approved
         """
         # Check user credentials
         user = db.query(User).filter(User.email == email).first()
@@ -64,6 +65,12 @@ class AuthService:
         if not user.check_password(password):
             print(f"Login failed: Invalid password for user {email}")
             return None, None
+            
+        # Check user status (unless they're an admin)
+        if user.role != "admin" and user.status != "approved":
+            status_message = f"Your account is {user.status}. Please wait for administrator approval."
+            print(f"Login rejected: User {email} is {user.status}")
+            return user, None, status_message
         
         # Create access token with 30-day expiration - convert user ID to string
         access_token = create_access_token(
@@ -116,5 +123,9 @@ class AuthService:
         """
         return {
             'id': user.id,
-            'email': user.email
+            'email': user.email,
+            'role': user.role,
+            'status': user.status,
+            'created_at': user.created_at.isoformat() if user.created_at else None,
+            'approved_at': user.approved_at.isoformat() if user.approved_at else None
         }

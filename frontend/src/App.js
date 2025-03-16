@@ -11,6 +11,7 @@ import TeamDetail from "./pages/TeamDetail";
 import GameDetail from "./pages/GameDetail";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/Landing/LandingPage";
+import AdminDashboard from "./pages/AdminDashboard";
 
 // Components
 import Header from "./components/Header";
@@ -25,6 +26,25 @@ const ProtectedRoute = ({ children }) => {
   
   if (!currentUser) {
     return <Navigate to="/" />;
+  }
+  
+  return children;
+};
+
+// Admin Route component
+const AdminRoute = ({ children }) => {
+  const { currentUser, loading } = useContext(AuthContext);
+  
+  if (loading) {
+    return <div className="text-center mt-5"><div className="spinner-border"></div></div>;
+  }
+  
+  if (!currentUser) {
+    return <Navigate to="/" />;
+  }
+  
+  if (currentUser.role !== 'admin') {
+    return <Navigate to="/dashboard" />;
   }
   
   return children;
@@ -71,6 +91,16 @@ function App() {
                 <GameDetail />
               </div>
             </ProtectedRoute>
+          } 
+        />
+        
+        {/* Admin routes */}
+        <Route 
+          path="/admin" 
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
           } 
         />
         

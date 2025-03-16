@@ -32,6 +32,9 @@ const api = axios.create({
   },
 });
 
+// Export for direct use in components
+export { api };
+
 // Add request interceptor to include auth token - simplified and more reliable approach
 api.interceptors.request.use(
   (config) => {

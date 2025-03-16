@@ -32,6 +32,17 @@ const Header = () => {
                     Dashboard
                   </Link>
                 </li>
+                {currentUser.role === 'admin' && (
+                  <li className="nav-item">
+                    <Link className="nav-link" to="/admin">
+                      <i className="bi bi-shield-lock me-1"></i>
+                      Admin
+                      {currentUser.pendingCount > 0 && (
+                        <span className="badge rounded-pill bg-danger ms-2">{currentUser.pendingCount}</span>
+                      )}
+                    </Link>
+                  </li>
+                )}
               </>
             )}
           </ul>

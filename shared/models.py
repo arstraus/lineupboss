@@ -22,10 +22,17 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     password_hash = Column(String, nullable=False)
     salt = Column(String, nullable=False)
+    role = Column(String, default="user", nullable=False)  # "admin", "user"
+    status = Column(String, default="pending", nullable=False)  # "pending", "approved", "rejected"
     created_at = Column(sa.DateTime, server_default=sa.func.now())
+    approved_at = Column(sa.DateTime, nullable=True)
+    approved_by = Column(Integer, ForeignKey('users.id'), nullable=True)
     
     # Relationships
     teams = relationship("Team", back_populates="user", cascade="all, delete-orphan")
+    approved_users = relationship("User", 
+                              foreign_keys=[approved_by],
+                              backref=sa.orm.backref("approved_by_user", remote_side=[id]))
     
     def set_password(self, password):
         """Hash password with salt"""
