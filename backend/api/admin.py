@@ -13,6 +13,7 @@ from email.mime.multipart import MIMEMultipart
 from functools import wraps
 
 from services.auth_service import AuthService
+from shared.models import User
 
 admin = Blueprint('admin', __name__)
 
@@ -94,14 +95,14 @@ def get_users():
     
     db = get_db()
     try:
-        query = db.query(AuthService.User)
+        query = db.query(User)
         
         # Apply status filter if provided
         if status_filter:
-            query = query.filter(AuthService.User.status == status_filter)
+            query = query.filter(User.status == status_filter)
             
         # Order by newest first
-        query = query.order_by(desc(AuthService.User.created_at))
+        query = query.order_by(desc(User.created_at))
         
         users = query.all()
         result = [AuthService.serialize_user(user) for user in users]
@@ -273,7 +274,7 @@ def get_pending_count():
     """Get the count of pending user registrations."""
     db = get_db()
     try:
-        count = db.query(AuthService.User).filter(AuthService.User.status == 'pending').count()
+        count = db.query(User).filter(User.status == 'pending').count()
         
         return jsonify({
             'pending_count': count
