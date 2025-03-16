@@ -10,6 +10,7 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from functools import wraps
 
 from services.auth_service import AuthService
 
@@ -19,7 +20,8 @@ admin = Blueprint('admin', __name__)
 def admin_required(fn):
     """Decorator to verify the user has admin role."""
     @jwt_required()
-    def wrapper(*args, **kwargs):
+    @wraps(fn)  # Preserve the original function's name and metadata
+    def admin_check(*args, **kwargs):
         user_id = get_jwt_identity()
         
         try:
@@ -42,7 +44,7 @@ def admin_required(fn):
         finally:
             db.close()
             
-    return wrapper
+    return admin_check
 
 def send_email_notification(recipient_email, subject, message):
     """
