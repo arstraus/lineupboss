@@ -268,6 +268,45 @@ def update_user_role(user_id):
     finally:
         db.close()
 
+@admin.route('/users/<int:user_id>', methods=['DELETE'])
+@admin_required
+def delete_user(user_id):
+    """Delete a user account."""
+    admin_id = get_jwt_identity()
+    
+    try:
+        if isinstance(admin_id, str):
+            admin_id = int(admin_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid admin ID format'}), 400
+        
+    db = get_db()
+    try:
+        # Get the user to delete
+        user = AuthService.get_user_by_id(db, user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+            
+        # Don't allow admin to delete themselves
+        if user_id == admin_id:
+            return jsonify({'error': 'Cannot delete your own account'}), 403
+            
+        # Delete user
+        db.delete(user)
+        db.commit()
+        
+        return jsonify({
+            'message': 'User deleted successfully',
+            'user_id': user_id
+        }), 200
+    except Exception as e:
+        db.rollback()
+        print(f"Error deleting user: {e}")
+        return jsonify({'error': f'Failed to delete user: {str(e)}'}), 500
+    finally:
+        db.close()
+
 @admin.route('/pending-count', methods=['GET'])
 @admin_required
 def get_pending_count():

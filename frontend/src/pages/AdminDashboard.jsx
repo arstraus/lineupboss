@@ -134,6 +134,28 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   };
+  
+  const handleDelete = async (userId) => {
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      await api.delete(`/admin/users/${userId}`);
+      
+      // Remove user from the list
+      setUsers(users.filter(user => user.id !== userId));
+      
+      setSuccess(`User deleted successfully`);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Error deleting user:", err);
+      setError("Failed to delete user. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Format date helpers
   const formatDate = (dateString) => {
@@ -289,6 +311,18 @@ const AdminDashboard = () => {
                           disabled={loading}
                         >
                           <i className="bi bi-arrow-down"></i> Remove Admin
+                        </button>
+                      )}
+                      
+                      {/* Don't allow deleting self or user ID 1 (initial admin) */}
+                      {user.id !== 1 && (
+                        <button 
+                          className="btn btn-danger ms-1"
+                          onClick={() => handleDelete(user.id)}
+                          disabled={loading}
+                          title="Delete user"
+                        >
+                          <i className="bi bi-trash"></i> Delete
                         </button>
                       )}
                     </div>

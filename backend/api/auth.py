@@ -4,6 +4,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from database import get_db
 from services.auth_service import AuthService
 from sqlalchemy import and_
+from shared.models import User
 import os
 import smtplib
 from email.mime.text import MIMEText
@@ -83,10 +84,10 @@ def register():
         # Send notification to admins
         try:
             # Get admin users
-            admin_users = db.query(AuthService.User).filter(
+            admin_users = db.query(User).filter(
                 and_(
-                    AuthService.User.role == 'admin',
-                    AuthService.User.status == 'approved'
+                    User.role == 'admin',
+                    User.status == 'approved'
                 )
             ).all()
             

@@ -21,7 +21,12 @@ const Login = () => {
       await login(email, password);
       navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.error || "Login failed. Please try again.");
+      // Check if this is a pending user
+      if (err.response?.status === 403 && err.response?.data?.status === 'pending') {
+        setError("Your account is pending administrator approval. Please contact the LineupBoss admin.");
+      } else {
+        setError(err.response?.data?.error || "Login failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

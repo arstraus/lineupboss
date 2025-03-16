@@ -93,7 +93,9 @@ export const AuthProvider = ({ children }) => {
         console.warn("Couldn't get full user details, using minimal user object");
         setCurrentUser({ 
           id: response.data.user_id, 
-          email: email 
+          email: email,
+          role: response.data.role || 'user',
+          status: response.data.status || 'approved'
         });
       }
       
@@ -106,8 +108,8 @@ export const AuthProvider = ({ children }) => {
       const errorMessage = err.response?.data?.error || "Login failed";
       setError(errorMessage);
       
-      // Re-throw for component handling
-      throw new Error(errorMessage);
+      // Re-throw the original error to preserve response data
+      throw err;
     }
   };
 
@@ -137,7 +139,9 @@ export const AuthProvider = ({ children }) => {
         console.warn("Couldn't get full user details after registration, using minimal user object");
         setCurrentUser({ 
           id: response.data.user_id, 
-          email: email 
+          email: email,
+          role: response.data.role || 'user',
+          status: response.data.status || 'pending'
         });
       }
       
@@ -150,8 +154,8 @@ export const AuthProvider = ({ children }) => {
       const errorMessage = err.response?.data?.error || "Registration failed";
       setError(errorMessage);
       
-      // Re-throw for component handling
-      throw new Error(errorMessage);
+      // Re-throw the original error to preserve response data
+      throw err;
     }
   };
 
