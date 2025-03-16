@@ -3,6 +3,8 @@ AI service for generating fielding rotations.
 """
 import os
 import json
+import random
+import time
 from typing import Dict, List, Any
 import logging
 from anthropic import Anthropic
@@ -53,9 +55,16 @@ class AIService:
             # Prepare the data for the prompt
             players_json = json.dumps(players, indent=2)
             
+            # Generate a random seed to ensure different rotations each time
+            random_seed = random.randint(1, 10000)
+            timestamp = int(time.time())
+            
             # Create the prompt
             prompt = f"""
             You are an expert baseball coach assistant that specializes in creating fair and balanced fielding rotations.
+            
+            IMPORTANT: Use the random seed {random_seed} and timestamp {timestamp} to generate a unique rotation.
+            If you've given a rotation for this team before, create a different valid rotation this time.
 
             Please analyze the following data and create a fielding rotation plan with these STRICT requirements:
 
@@ -98,7 +107,7 @@ class AIService:
             response = anthropic.messages.create(
                 model="claude-3-opus-20240229",
                 max_tokens=4000,
-                temperature=0.1,
+                temperature=0.7,  # Higher temperature for more variability
                 system="You are an expert baseball coach assistant that creates fielding rotations. Respond only with JSON.",
                 messages=[
                     {"role": "user", "content": prompt}

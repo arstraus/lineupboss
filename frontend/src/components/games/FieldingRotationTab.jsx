@@ -859,35 +859,162 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                   ) : (
                     <div className="ai-rotations-preview">
                       <h5 className="mb-3">AI-Generated Fielding Rotation</h5>
-                      <div className="table-responsive">
-                        <table className="table table-striped table-bordered">
+                      
+                      {/* Player-centric view (similar to main table) */}
+                      <div className="table-responsive mb-4">
+                        <table className="table table-striped" style={{ fontSize: '0.875rem' }}>
                           <thead>
                             <tr>
-                              <th>Position</th>
+                              <th className="text-nowrap">Batting</th>
+                              <th className="text-nowrap">#</th>
+                              <th className="text-nowrap">Player</th>
+                              <th className="text-nowrap">Summary</th>
                               {inningsArray.map(inning => (
-                                <th key={inning}>Inning {inning}</th>
+                                <th key={inning} className="text-nowrap">
+                                  Inning {inning}
+                                </th>
                               ))}
                             </tr>
                           </thead>
                           <tbody>
-                            {FIELD_POSITIONS.map(position => (
-                              <tr key={position}>
-                                <th>{position}</th>
-                                {inningsArray.map(inning => {
-                                  const inningRotation = aiRotations[inning] || {};
-                                  const playerId = inningRotation[position];
-                                  const player = playerId 
-                                    ? availablePlayers.find(p => p.id === playerId) 
-                                    : null;
-                                  
-                                  return (
-                                    <td key={inning} className="text-center">
-                                      {player ? `#${player.jersey_number} ${player.name}` : '-'}
-                                    </td>
-                                  );
-                                })}
-                              </tr>
-                            ))}
+                            {sortedPlayers.map(player => {
+                              // Calculate position summary for this player in AI rotation
+                              const summary = {
+                                infield: 0,
+                                outfield: 0,
+                                bench: 0,
+                                positions: {}
+                              };
+                              
+                              inningsArray.forEach(inning => {
+                                const inningRotation = aiRotations[inning] || {};
+                                let found = false;
+                                let position = null;
+                                
+                                for (const [pos, pid] of Object.entries(inningRotation)) {
+                                  if (pid === player.id) {
+                                    position = pos;
+                                    found = true;
+                                    
+                                    if (INFIELD.includes(pos)) {
+                                      summary.infield++;
+                                    } else if (OUTFIELD.includes(pos)) {
+                                      summary.outfield++;
+                                    }
+                                    
+                                    summary.positions[pos] = (summary.positions[pos] || 0) + 1;
+                                    
+                                    break;
+                                  }
+                                }
+                                
+                                if (!found) {
+                                  summary.bench++;
+                                }
+                              });
+                              
+                              return (
+                                <tr key={player.id}>
+                                  <td className="text-nowrap">
+                                    {getPlayerBattingPosition(player.id) ? 
+                                      getPlayerBattingPosition(player.id) : 
+                                      '-'}
+                                  </td>
+                                  <td className="text-nowrap">{player.jersey_number}</td>
+                                  <td className="text-nowrap">{player.name}</td>
+                                  <td className="text-nowrap">
+                                    <small>
+                                      IF: {summary.infield} &middot; 
+                                      OF: {summary.outfield} &middot; 
+                                      Bench: {summary.bench}
+                                    </small>
+                                  </td>
+                                  {inningsArray.map(inning => {
+                                    const inningRotation = aiRotations[inning] || {};
+                                    let position = null;
+                                    
+                                    for (const [pos, pid] of Object.entries(inningRotation)) {
+                                      if (pid === player.id) {
+                                        position = pos;
+                                        break;
+                                      }
+                                    }
+                                    
+                                    return (
+                                      <td key={inning} className="text-nowrap text-center">
+                                        {position || <span className="text-muted">Bench</span>}
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      
+                      {/* Position Summary Table */}
+                      <h5 className="mb-3">AI-Generated Position Summaries</h5>
+                      <div className="table-responsive">
+                        <table className="table table-sm" style={{ fontSize: '0.875rem' }}>
+                          <thead>
+                            <tr>
+                              <th className="text-nowrap">#</th>
+                              <th className="text-nowrap">Player</th>
+                              <th className="text-nowrap">Infield</th>
+                              <th className="text-nowrap">Outfield</th>
+                              <th className="text-nowrap">Bench</th>
+                              <th className="text-nowrap">Positions Played</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sortedPlayers.map(player => {
+                              // Calculate position summary for this player in AI rotation
+                              const summary = {
+                                infield: 0,
+                                outfield: 0,
+                                bench: 0,
+                                positions: {}
+                              };
+                              
+                              inningsArray.forEach(inning => {
+                                const inningRotation = aiRotations[inning] || {};
+                                let found = false;
+                                
+                                for (const [pos, pid] of Object.entries(inningRotation)) {
+                                  if (pid === player.id) {
+                                    if (INFIELD.includes(pos)) {
+                                      summary.infield++;
+                                    } else if (OUTFIELD.includes(pos)) {
+                                      summary.outfield++;
+                                    }
+                                    
+                                    summary.positions[pos] = (summary.positions[pos] || 0) + 1;
+                                    found = true;
+                                    break;
+                                  }
+                                }
+                                
+                                if (!found) {
+                                  summary.bench++;
+                                }
+                              });
+                              
+                              const positionsPlayed = Object.entries(summary.positions)
+                                .map(([position, count]) => `${position}${count > 1 ? ` (${count}×)` : ''}`)
+                                .join(', ');
+                              
+                              return (
+                                <tr key={player.id}>
+                                  <td className="text-nowrap">{player.jersey_number}</td>
+                                  <td className="text-nowrap">{player.name}</td>
+                                  <td className="text-nowrap">{summary.infield}</td>
+                                  <td className="text-nowrap">{summary.outfield}</td>
+                                  <td className="text-nowrap">{summary.bench}</td>
+                                  <td><small>{positionsPlayed || 'None'}</small></td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
@@ -903,13 +1030,33 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                     Cancel
                   </button>
                   {Object.keys(aiRotations).length > 0 && (
-                    <button 
-                      type="button" 
-                      className="btn btn-success"
-                      onClick={handleApplyAIRotation}
-                    >
-                      Apply AI Rotation
-                    </button>
+                    <>
+                      <button 
+                        type="button" 
+                        className="btn btn-outline-primary"
+                        onClick={handleGenerateAIRotation}
+                        disabled={generatingAI}
+                      >
+                        {generatingAI ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <i className="bi bi-shuffle me-2"></i>
+                            Generate New Rotation
+                          </>
+                        )}
+                      </button>
+                      <button 
+                        type="button" 
+                        className="btn btn-success"
+                        onClick={handleApplyAIRotation}
+                      >
+                        Apply AI Rotation
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
