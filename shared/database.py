@@ -55,78 +55,15 @@ def create_engine_from_url(database_url=None):
         print("Using in-memory SQLite database as fallback. Most operations will fail.")
         return create_engine('sqlite:///:memory:')
 
-# Define engine retry mechanism
-def get_engine_with_retry(max_retries=3, retry_interval=2):
-    """
-    Create database engine with retry logic
-    
-    Args:
-        max_retries: Maximum number of connection attempts
-        retry_interval: Seconds to wait between retries
-        
-    Returns:
-        SQLAlchemy engine
-    """
-    retry_count = 0
-    last_error = None
-    
-    while retry_count < max_retries:
-        try:
-            engine = create_engine_from_url()
-            
-            # Test the connection
-            connection = engine.connect()
-            connection.close()
-            
-            logger.info("Database connection established successfully")
-            
-            # Set up event listeners for connection pool events
-            @event.listens_for(engine, "connect")
-            def connect(dbapi_connection, connection_record):
-                logger.info("New database connection established")
-            
-            @event.listens_for(engine, "checkout")
-            def checkout(dbapi_connection, connection_record, connection_proxy):
-                logger.debug("Database connection checked out from pool")
-            
-            @event.listens_for(engine, "checkin")
-            def checkin(dbapi_connection, connection_record):
-                logger.debug("Database connection returned to pool")
-                
-            @event.listens_for(engine, "engine_connect")
-            def ping_connection(connection, branch):
-                if branch:
-                    # Don't test connections for each "sub-connection" of a connection branch
-                    return
-
-                # Test the connection using a small query
-                try:
-                    # Use the correct SQLAlchemy text() function for SQL statements
-                    connection.scalar(text("SELECT 1"))
-                except Exception as e:
-                    logger.error(f"Connection test failed: {str(e)}")
-                    # Reconnect on invalid connections
-                    connection.invalidate()
-                    raise
-            
-            return engine
-            
-        except (OperationalError, DisconnectionError) as e:
-            retry_count += 1
-            last_error = e
-            logger.warning(f"Database connection failed (attempt {retry_count}/{max_retries}): {str(e)}")
-            
-            if retry_count < max_retries:
-                logger.info(f"Retrying in {retry_interval} seconds...")
-                time.sleep(retry_interval)
-            
-    # If we get here, all retries failed
-    logger.error(f"Failed to connect to database after {max_retries} attempts: {str(last_error)}")
-    raise last_error
-
-# Create SQLAlchemy engine with retry mechanism
+# Create a simpler, more stable database engine
 try:
-    engine = get_engine_with_retry()
+    # Create database engine with proper configuration
+    engine = create_engine_from_url()
+    
+    # Verify the connection works
+    with engine.connect() as connection:
+        connection.execute(text("SELECT 1"))
+        logger.info("Database connection established successfully")
 except Exception as e:
     logger.error(f"Fatal database connection error: {str(e)}")
     # Fall back to in-memory SQLite in case of fatal error
@@ -141,16 +78,12 @@ def create_tables():
     """Create all database tables."""
     Base.metadata.create_all(engine)
 
-# Get database session with retry mechanism for transient errors
-def get_db_session(max_retries=3, retry_interval=2):
-    """Returns a database session with retry logic for transient errors.
+# Simple and reliable database session function
+def get_db_session():
+    """Returns a database session.
     
     This function must be used within a try/finally block 
     with session.close() in the finally clause to ensure the session is properly closed.
-    
-    Args:
-        max_retries: Maximum number of connection attempts
-        retry_interval: Seconds to wait between retries
     
     Example usage:
     
@@ -169,44 +102,13 @@ def get_db_session(max_retries=3, retry_interval=2):
         result = session.query(Model).all()
         return result
     """
-    retry_count = 0
-    last_error = None
-    
-    while retry_count < max_retries:
-        try:
-            # Create a new session
-            session = SessionLocal()
-            
-            # Test the connection with a simple query
-            session.execute(text("SELECT 1"))
-            
-            return session
-            
-        except (OperationalError, DisconnectionError) as e:
-            # These are potentially transient errors
-            if hasattr(session, 'close'):
-                try:
-                    session.close()
-                except:
-                    pass
-                    
-            retry_count += 1
-            last_error = e
-            logger.warning(f"Database session error (attempt {retry_count}/{max_retries}): {str(e)}")
-            
-            if retry_count < max_retries:
-                logger.info(f"Retrying in {retry_interval} seconds...")
-                time.sleep(retry_interval)
-    
-    # If we get here, all retries failed
-    logger.error(f"Failed to create database session after {max_retries} attempts: {str(last_error)}")
-    raise last_error
+    return SessionLocal()
 
-# Context manager for database sessions with retry logic
+# Simple context manager for database sessions
 class db_session:
     """Context manager for database sessions.
     
-    Automatically handles session creation, cleanup, and retries for transient errors.
+    Automatically handles session creation and cleanup.
     
     Example usage:
     
@@ -215,53 +117,19 @@ class db_session:
         result = session.query(Model).all()
         return result
     """
-    def __init__(self, commit_on_exit=False, max_retries=3, retry_interval=2):
+    def __init__(self, commit_on_exit=False):
         """Initialize the context manager.
         
         Args:
             commit_on_exit: Whether to commit changes before exiting
-            max_retries: Maximum number of connection attempts
-            retry_interval: Seconds to wait between retries
         """
         self.commit_on_exit = commit_on_exit
-        self.max_retries = max_retries
-        self.retry_interval = retry_interval
         self.session = None
         
     def __enter__(self):
-        """Create and return a new database session with retry logic."""
-        retry_count = 0
-        last_error = None
-        
-        while retry_count < self.max_retries:
-            try:
-                # Create a new session
-                self.session = SessionLocal()
-                
-                # Test the connection with a simple query
-                self.session.execute(text("SELECT 1"))
-                
-                return self.session
-                
-            except (OperationalError, DisconnectionError) as e:
-                # These are potentially transient errors
-                if self.session is not None:
-                    try:
-                        self.session.close()
-                    except:
-                        pass
-                        
-                retry_count += 1
-                last_error = e
-                logger.warning(f"Database session error (attempt {retry_count}/{self.max_retries}): {str(e)}")
-                
-                if retry_count < self.max_retries:
-                    logger.info(f"Retrying in {self.retry_interval} seconds...")
-                    time.sleep(self.retry_interval)
-        
-        # If we get here, all retries failed
-        logger.error(f"Failed to create database session after {self.max_retries} attempts: {str(last_error)}")
-        raise last_error
+        """Create and return a new database session."""
+        self.session = SessionLocal()
+        return self.session
         
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Clean up the session.
@@ -275,32 +143,13 @@ class db_session:
         try:
             if exc_type is not None:
                 # An exception occurred, roll back changes
-                try:
-                    self.session.rollback()
-                except Exception as e:
-                    logger.warning(f"Error during session rollback: {str(e)}")
+                self.session.rollback()
             elif self.commit_on_exit:
                 # No exception and commit_on_exit is True, commit changes
-                try:
-                    self.session.commit()
-                except Exception as e:
-                    logger.error(f"Error during session commit: {str(e)}")
-                    # Try to rollback if commit fails
-                    try:
-                        self.session.rollback()
-                    except:
-                        pass
-                    # Re-raise the original exception
-                    raise
+                self.session.commit()
         finally:
-            # Always try to close the session
-            try:
-                self.session.close()
-            except Exception as e:
-                logger.warning(f"Error during session close: {str(e)}")
-                
-            # Set session to None to avoid double-closing
-            self.session = None
+            # Always close the session
+            self.session.close()
 
 # Model serialization functions
 def serialize_player(player):
