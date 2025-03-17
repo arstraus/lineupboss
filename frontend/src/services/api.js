@@ -2,13 +2,20 @@ import axios from 'axios';
 
 // Configure axios with base settings
 axios.defaults.baseURL = process.env.REACT_APP_API_URL || '';
+console.log(`Axios base URL: ${axios.defaults.baseURL}`);
 
 // Add request interceptor to automatically add token to requests
 axios.interceptors.request.use(
   config => {
+    console.log(`Request URL before token: ${config.url}`);
+    console.log(`Request method: ${config.method}`);
+    
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('Added authorization token to request');
+    } else {
+      console.log('No token found in localStorage');
     }
     return config;
   },
@@ -17,19 +24,44 @@ axios.interceptors.request.use(
 
 // Utility function to handle API paths correctly
 const apiPath = (path) => {
+  console.log(`Original path: ${path}`);
+  
   // If baseURL already includes /api, remove the leading /api from the path
   if (axios.defaults.baseURL && axios.defaults.baseURL.endsWith('/api')) {
     // Remove leading /api if present to avoid double prefix
-    return path.startsWith('/api/') ? path.substring(4) : path;
+    const newPath = path.startsWith('/api/') ? path.substring(4) : path;
+    console.log(`Modified path (baseURL has /api): ${newPath}`);
+    return newPath;
   }
+  
+  console.log(`Using original path: ${path}`);
   return path;
 };
 
 // Create wrapped API methods that use apiPath
-const wrappedGet = (url, config) => axios.get(apiPath(url), config);
-const wrappedPost = (url, data, config) => axios.post(apiPath(url), data, config);
-const wrappedPut = (url, data, config) => axios.put(apiPath(url), data, config);
-const wrappedDelete = (url, config) => axios.delete(apiPath(url), config);
+const wrappedGet = (url, config) => {
+  const processedUrl = apiPath(url);
+  console.log(`Making GET request to: ${processedUrl}`);
+  return axios.get(processedUrl, config);
+};
+
+const wrappedPost = (url, data, config) => {
+  const processedUrl = apiPath(url);
+  console.log(`Making POST request to: ${processedUrl}`);
+  return axios.post(processedUrl, data, config);
+};
+
+const wrappedPut = (url, data, config) => {
+  const processedUrl = apiPath(url);
+  console.log(`Making PUT request to: ${processedUrl}`);
+  return axios.put(processedUrl, data, config);
+};
+
+const wrappedDelete = (url, config) => {
+  const processedUrl = apiPath(url);
+  console.log(`Making DELETE request to: ${processedUrl}`);
+  return axios.delete(processedUrl, config);
+};
 
 // Export api object for named import
 export const api = {
@@ -63,14 +95,20 @@ export const getCurrentUser = () => {
 
 // USER PROFILE API
 export const getUserProfile = () => {
+  // Log the API call
+  console.log("Calling getUserProfile API endpoint");
   return wrappedGet('/api/user/profile');
 };
 
 export const updateUserProfile = (profileData) => {
+  // Log the API call and data
+  console.log("Calling updateUserProfile API endpoint", profileData);
   return wrappedPut('/api/user/profile', profileData);
 };
 
 export const updatePassword = (currentPassword, newPassword) => {
+  // Log the API call
+  console.log("Calling updatePassword API endpoint");
   return wrappedPut('/api/user/password', {
     current_password: currentPassword,
     new_password: newPassword
@@ -78,6 +116,8 @@ export const updatePassword = (currentPassword, newPassword) => {
 };
 
 export const getUserSubscription = () => {
+  // Log the API call
+  console.log("Calling getUserSubscription API endpoint");
   return wrappedGet('/api/user/subscription');
 };
 

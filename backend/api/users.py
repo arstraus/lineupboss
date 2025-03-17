@@ -27,7 +27,10 @@ def get_user_profile():
             "email": user.email,
             "first_name": user.first_name,
             "last_name": user.last_name,
-            "location": user.location,
+            "city": user.city,
+            "state": user.state,
+            "country": user.country,
+            "zip_code": user.zip_code,
             "role": user.role,
             "subscription_tier": user.subscription_tier,
             "created_at": user.created_at.isoformat() if user.created_at else None
@@ -55,8 +58,14 @@ def update_user_profile():
             user.first_name = data['first_name']
         if 'last_name' in data:
             user.last_name = data['last_name']
-        if 'location' in data:
-            user.location = data['location']
+        if 'city' in data:
+            user.city = data['city']
+        if 'state' in data:
+            user.state = data['state']
+        if 'country' in data:
+            user.country = data['country']
+        if 'zip_code' in data:
+            user.zip_code = data['zip_code']
         if 'email' in data:
             # Check if email is already taken
             existing_user = session.query(User).filter(
@@ -76,7 +85,10 @@ def update_user_profile():
             "email": user.email,
             "first_name": user.first_name,
             "last_name": user.last_name,
-            "location": user.location,
+            "city": user.city,
+            "state": user.state,
+            "country": user.country,
+            "zip_code": user.zip_code,
             "role": user.role,
             "subscription_tier": user.subscription_tier,
             "created_at": user.created_at.isoformat() if user.created_at else None
@@ -149,3 +161,9 @@ def get_tier_features(tier):
     }
     
     return features.get(tier, features["rookie"])
+
+# Add a simple test endpoint to verify the users blueprint is registered correctly
+@users_bp.route('/test', methods=['GET'])
+def test_users_endpoint():
+    """Test endpoint to verify users blueprint is registered correctly."""
+    return jsonify({"message": "Users API is working"})

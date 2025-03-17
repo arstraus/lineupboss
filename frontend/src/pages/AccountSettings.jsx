@@ -9,7 +9,10 @@ const AccountSettings = () => {
     firstName: '',
     lastName: '',
     email: '',
-    location: '',
+    city: '',
+    state: '',
+    country: 'USA',
+    zipCode: '',
   });
   
   const [passwordData, setPasswordData] = useState({
@@ -38,7 +41,10 @@ const AccountSettings = () => {
           firstName: userData.first_name || '',
           lastName: userData.last_name || '',
           email: userData.email || '',
-          location: userData.location || '',
+          city: userData.city || '',
+          state: userData.state || '',
+          country: userData.country || 'USA',
+          zipCode: userData.zip_code || '',
         });
         
         // Get subscription details
@@ -52,7 +58,10 @@ const AccountSettings = () => {
             firstName: currentUser.first_name || '',
             lastName: currentUser.last_name || '',
             email: currentUser.email || '',
-            location: currentUser.location || '',
+            city: currentUser.city || '',
+            state: currentUser.state || '',
+            country: currentUser.country || 'USA',
+            zipCode: currentUser.zip_code || '',
           });
         }
       }
@@ -83,21 +92,53 @@ const AccountSettings = () => {
     setSuccessMessage('');
     setErrorMessage('');
 
+    console.log('Submitting profile update with data:', {
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      email: formData.email,
+      city: formData.city,
+      state: formData.state,
+      country: formData.country,
+      zip_code: formData.zipCode,
+    });
+
     try {
       const response = await updateUserProfile({
         first_name: formData.firstName,
         last_name: formData.lastName,
         email: formData.email,
-        location: formData.location,
+        city: formData.city,
+        state: formData.state,
+        country: formData.country,
+        zip_code: formData.zipCode,
       });
       
+      console.log('Profile update response:', response);
       setSuccessMessage('Profile updated successfully!');
       
       // Refresh user data in the auth context
       if (refreshUser) {
+        console.log('Refreshing user data');
         refreshUser();
       }
     } catch (error) {
+      console.error('Profile update error:', error);
+      
+      // Detailed error logging
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+        console.error('Error response headers:', error.response.headers);
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error('Error request:', error.request);
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error('Error message:', error.message);
+      }
+      
       setErrorMessage(
         error.response?.data?.error || 
         'An error occurred while updating your profile. Please try again.'
@@ -198,16 +239,59 @@ const AccountSettings = () => {
                   />
                 </Form.Group>
 
-                <Form.Group className="mb-3">
-                  <Form.Label>Location</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleInputChange}
-                    placeholder="City, State"
-                  />
-                </Form.Group>
+                <Row>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>City</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="city"
+                        value={formData.city}
+                        onChange={handleInputChange}
+                        placeholder="City"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>State</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="state"
+                        value={formData.state}
+                        onChange={handleInputChange}
+                        placeholder="State"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Row>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Country</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="country"
+                        value={formData.country}
+                        onChange={handleInputChange}
+                        placeholder="Country"
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Zip Code</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="zipCode"
+                        value={formData.zipCode}
+                        onChange={handleInputChange}
+                        placeholder="Zip Code"
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
 
                 <div className="d-grid gap-2 mt-4">
                   <Button 

@@ -22,7 +22,10 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
-    location = Column(String, nullable=True)
+    city = Column(String, nullable=True)
+    state = Column(String, nullable=True)
+    country = Column(String, default="USA", nullable=True)
+    zip_code = Column(String, nullable=True)
     password_hash = Column(String, nullable=False)
     salt = Column(String, nullable=False)
     role = Column(String, default="user", nullable=False)  # "admin", "user"
