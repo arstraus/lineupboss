@@ -15,6 +15,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 
 // Components
 import Header from "./components/Header";
+import Footer from "./components/Footer";
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -54,58 +55,63 @@ function App() {
   const { currentUser } = useContext(AuthContext);
   
   return (
-    <div className="App">
+    <div className="App d-flex flex-column min-vh-100">
       {/* Don't show header on landing page */}
       {window.location.pathname !== "/" || currentUser ? <Header /> : null}
       
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        
-        {/* Protected routes */}
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute>
-                <Dashboard />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/teams/:teamId" 
-          element={
-            <ProtectedRoute>
-              <div className="container mt-4">
-                <TeamDetail />
-              </div>
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/games/:gameId" 
-          element={
-            <ProtectedRoute>
-              <div className="container mt-4">
-                <GameDetail />
-              </div>
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Admin routes */}
-        <Route 
-          path="/admin" 
-          element={
-            <AdminRoute>
-              <AdminDashboard />
-            </AdminRoute>
-          } 
-        />
-        
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <div className="flex-grow-1">
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          
+          {/* Protected routes */}
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute>
+                  <Dashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/teams/:teamId" 
+            element={
+              <ProtectedRoute>
+                <div className="container mt-4">
+                  <TeamDetail />
+                </div>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/games/:gameId" 
+            element={
+              <ProtectedRoute>
+                <div className="container mt-4">
+                  <GameDetail />
+                </div>
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Admin routes */}
+          <Route 
+            path="/admin" 
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            } 
+          />
+          
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </div>
+      
+      {/* Add Footer to all pages */}
+      <Footer />
     </div>
   );
 }

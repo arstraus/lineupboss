@@ -245,3 +245,20 @@ code {
   border-radius: 0.3rem;
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }
+
+/* Footer styles */
+.footer {
+  margin-top: 2rem;
+  padding: 1.5rem 0;
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+}
+
+.footer a {
+  color: #0d6efd;
+  text-decoration: none;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
