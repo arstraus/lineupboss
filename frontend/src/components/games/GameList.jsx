@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import api from "../../services/api";
+import { get, post, put, del as deleteMethod } from "../../services/api";
 import GameForm from "./GameForm";
 
 const GameList = ({ teamId }) => {
@@ -17,7 +17,7 @@ const GameList = ({ teamId }) => {
   const fetchGames = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/games/team/${teamId}`);
+      const response = await get(`/games/team/${teamId}`);
       
       // Sort games by game_number
       const sortedGames = [...response.data].sort((a, b) => {
@@ -36,7 +36,7 @@ const GameList = ({ teamId }) => {
 
   const handleAddGame = async (gameData) => {
     try {
-      await api.post(`/games/team/${teamId}`, gameData);
+      await post(`/games/team/${teamId}`, gameData);
       setShowAddForm(false);
       fetchGames();
     } catch (err) {
@@ -50,7 +50,7 @@ const GameList = ({ teamId }) => {
     try {
       setError("");
       console.log("Updating game with data:", gameData);
-      const response = await api.put(`/games/${gameId}`, gameData);
+      const response = await put(`/games/${gameId}`, gameData);
       console.log("Update response:", response);
       
       // Close the modal first
@@ -68,7 +68,7 @@ const GameList = ({ teamId }) => {
   const handleDeleteGame = async (gameId) => {
     if (window.confirm("Are you sure you want to delete this game? This action cannot be undone.")) {
       try {
-        await api.delete(`/games/${gameId}`);
+        await deleteMethod(`/games/${gameId}`);
         fetchGames();
       } catch (err) {
         setError("Failed to delete game. Please try again.");

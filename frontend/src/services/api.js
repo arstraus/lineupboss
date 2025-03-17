@@ -17,6 +17,19 @@ axios.interceptors.request.use(
 
 // Direct axios method exports
 export const post = axios.post;
+export const get = axios.get;
+export const put = axios.put;
+export const del = axios.delete;
+
+// Default export for backward compatibility
+const api = {
+  get: axios.get,
+  post: axios.post,
+  put: axios.put,
+  delete: axios.delete
+};
+
+export default api;
 
 // AUTH API
 export const login = (email, password) => {

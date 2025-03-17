@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import api from "../../services/api";
+import { get, post, put, del as deleteMethod } from "../../services/api";
 import PlayerForm from "./PlayerForm";
 
 const PlayerList = ({ teamId }) => {
@@ -17,7 +17,7 @@ const PlayerList = ({ teamId }) => {
   const fetchPlayers = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/players/team/${teamId}`);
+      const response = await get(`/players/team/${teamId}`);
       setPlayers(response.data);
       setError("");
     } catch (err) {
@@ -30,7 +30,7 @@ const PlayerList = ({ teamId }) => {
 
   const handleAddPlayer = async (playerData) => {
     try {
-      await api.post(`/players/team/${teamId}`, playerData);
+      await post(`/players/team/${teamId}`, playerData);
       setShowAddForm(false);
       fetchPlayers();
     } catch (err) {
@@ -42,7 +42,7 @@ const PlayerList = ({ teamId }) => {
 
   const handleUpdatePlayer = async (playerId, playerData) => {
     try {
-      await api.put(`/players/${playerId}`, playerData);
+      await put(`/players/${playerId}`, playerData);
       setEditingPlayer(null);
       fetchPlayers();
     } catch (err) {
@@ -55,7 +55,7 @@ const PlayerList = ({ teamId }) => {
   const handleDeletePlayer = async (playerId) => {
     if (window.confirm("Are you sure you want to delete this player? This action cannot be undone.")) {
       try {
-        await api.delete(`/players/${playerId}`);
+        await deleteMethod(`/players/${playerId}`);
         fetchPlayers();
       } catch (err) {
         setError("Failed to delete player. Please try again.");
