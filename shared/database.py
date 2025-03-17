@@ -7,7 +7,7 @@ for the application backend.
 import logging
 import sys
 import time
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, DisconnectionError
 
@@ -101,7 +101,8 @@ def get_engine_with_retry(max_retries=3, retry_interval=2):
 
                 # Test the connection using a small query
                 try:
-                    connection.scalar("""SELECT 1""")
+                    # Use the correct SQLAlchemy text() function for SQL statements
+                    connection.scalar(text("SELECT 1"))
                 except Exception as e:
                     logger.error(f"Connection test failed: {str(e)}")
                     # Reconnect on invalid connections
@@ -177,7 +178,7 @@ def get_db_session(max_retries=3, retry_interval=2):
             session = SessionLocal()
             
             # Test the connection with a simple query
-            session.execute("SELECT 1")
+            session.execute(text("SELECT 1"))
             
             return session
             
@@ -238,7 +239,7 @@ class db_session:
                 self.session = SessionLocal()
                 
                 # Test the connection with a simple query
-                self.session.execute("SELECT 1")
+                self.session.execute(text("SELECT 1"))
                 
                 return self.session
                 
