@@ -15,6 +15,9 @@ axios.interceptors.request.use(
   error => Promise.reject(error)
 );
 
+// Direct axios method exports
+export const post = axios.post;
+
 // AUTH API
 export const login = (email, password) => {
   return axios.post('/api/auth/login', { email, password });
@@ -147,6 +150,10 @@ export const getFieldingRotations = (gameId) => {
 
 export const updateFieldingRotation = (gameId, inning, positionsData) => {
   return axios.put(`/api/games/${gameId}/fielding-rotations/${inning}`, positionsData);
+};
+
+export const saveFieldingRotation = (gameId, inning, positions) => {
+  return axios.post(`/api/games/${gameId}/fielding-rotations/${inning}`, { positions });
 };
 
 export const getPlayerAvailability = (gameId) => {
