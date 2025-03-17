@@ -137,6 +137,10 @@ export const updateBattingOrder = (gameId, orderData) => {
   return axios.put(`/api/games/${gameId}/batting-order`, orderData);
 };
 
+export const saveBattingOrder = (gameId, orderData) => {
+  return axios.post(`/api/games/${gameId}/batting-order`, { order_data: orderData });
+};
+
 export const getFieldingRotations = (gameId) => {
   return axios.get(`/api/games/${gameId}/fielding-rotations`);
 };
