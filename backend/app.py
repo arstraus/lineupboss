@@ -120,7 +120,13 @@ def token_verification_failed_callback():
 
 # Configure CORS to allow requests from the frontend with proper headers
 CORS(app, 
-     resources={r"/api/*": {"origins": "*"}}, 
+     resources={r"/api/*": {"origins": [
+         "https://lineupboss.app",
+         "https://www.lineupboss.app", 
+         "https://lineupboss-7fbdffdfe200.herokuapp.com",
+         "http://localhost:3000",  # For local development
+         "http://127.0.0.1:3000"   # Also for local development
+     ]}}, 
      supports_credentials=True,
      allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
      expose_headers=["Authorization", "Content-Type"],

@@ -39,7 +39,8 @@ const api = axios.create({
   },
   // Add timeout to prevent hanging requests
   timeout: 10000,
-  // Add withCredentials to help with CORS issues when using custom domains
+  // withCredentials: true is needed if you're using cookies or sessions
+  // But for JWT token auth in headers, this should be false
   withCredentials: false
 });
 
