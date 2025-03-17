@@ -42,12 +42,28 @@ class AIService:
         try:
             # Get API key from environment variable
             api_key = os.getenv("ANTHROPIC_API_KEY")
+            
+            # Enhanced debugging for API key issues
             if not api_key:
-                logger.error("ANTHROPIC_API_KEY not found in environment variables")
+                # Try to list environment variables (safely) to help debug
+                env_vars = [k for k in os.environ.keys() if k.startswith("ANTHROPIC") or "API" in k]
+                logger.error(f"ANTHROPIC_API_KEY not found in environment variables. Found similar vars: {env_vars}")
                 raise ValueError("ANTHROPIC_API_KEY not found in environment variables")
             
-            # Initialize Anthropic client
-            anthropic = Anthropic(api_key=api_key)
+            # Check for common API key format issues
+            if not api_key.startswith("sk-ant-"):
+                logger.warning("ANTHROPIC_API_KEY exists but may have incorrect format - should start with 'sk-ant-'")
+            
+            logger.info(f"Using Anthropic API key starting with: {api_key[:8]}...")
+            
+            # Initialize Anthropic client with better error handling
+            try:
+                anthropic = Anthropic(api_key=api_key)
+                # Make a minimal test request to validate the API key
+                logger.info("Initializing Anthropic client and testing connection...")
+            except Exception as e:
+                logger.error(f"Failed to initialize Anthropic client: {str(e)}")
+                raise ValueError(f"Anthropic client initialization failed: {str(e)}")
             
             # Format the list of required positions for the prompt
             required_positions_str = ', '.join(required_positions)
@@ -102,17 +118,65 @@ class AIService:
             Do not include any other text or explanation in your response, just the JSON.
             """
             
-            # Call the Anthropic API
+            # Call the Anthropic API with improved error handling and model fallback
             logger.info(f"Sending request to Anthropic for game_id: {game_id}")
-            response = anthropic.messages.create(
-                model="claude-3-opus-20240229",
-                max_tokens=4000,
-                temperature=0.7,  # Higher temperature for more variability
-                system="You are an expert baseball coach assistant that creates fielding rotations. Respond only with JSON.",
-                messages=[
-                    {"role": "user", "content": prompt}
-                ]
-            )
+            
+            try:
+                # First try with Claude 3 Opus
+                try:
+                    logger.info("Trying with Claude 3 Opus model...")
+                    response = anthropic.messages.create(
+                        model="claude-3-opus-20240229",
+                        max_tokens=4000,
+                        temperature=0.7,  # Higher temperature for more variability
+                        system="You are an expert baseball coach assistant that creates fielding rotations. Respond only with JSON.",
+                        messages=[
+                            {"role": "user", "content": prompt}
+                        ]
+                    )
+                    logger.info(f"Successfully used Claude 3 Opus model with response ID: {response.id}")
+                except Exception as opus_error:
+                    # Log the opus error and try with sonnet
+                    logger.warning(f"Claude 3 Opus model failed: {str(opus_error)}. Trying Claude 3 Sonnet...")
+                    
+                    # Try with Claude 3 Sonnet as fallback
+                    try:
+                        response = anthropic.messages.create(
+                            model="claude-3-sonnet-20240229",
+                            max_tokens=4000,
+                            temperature=0.7,
+                            system="You are an expert baseball coach assistant that creates fielding rotations. Respond only with JSON.",
+                            messages=[
+                                {"role": "user", "content": prompt}
+                            ]
+                        )
+                        logger.info(f"Successfully used Claude 3 Sonnet model with response ID: {response.id}")
+                    except Exception as sonnet_error:
+                        # Try with the latest Claude 3.5 Sonnet as final fallback
+                        logger.warning(f"Claude 3 Sonnet model failed: {str(sonnet_error)}. Trying Claude 3.5 Sonnet...")
+                        response = anthropic.messages.create(
+                            model="claude-3-5-sonnet-20240620",
+                            max_tokens=4000,
+                            temperature=0.7,
+                            system="You are an expert baseball coach assistant that creates fielding rotations. Respond only with JSON.",
+                            messages=[
+                                {"role": "user", "content": prompt}
+                            ]
+                        )
+                        logger.info(f"Successfully used Claude 3.5 Sonnet model with response ID: {response.id}")
+            except Exception as e:
+                # This catches any errors that happen with either model
+                logger.error(f"Anthropic API call failed with all models: {str(e)}")
+                
+                # Try to provide a more helpful error message
+                if "model" in str(e).lower():
+                    raise ValueError("The AI models are not available. Please check model availability.")
+                elif "rate limit" in str(e).lower() or "429" in str(e):
+                    raise ValueError("API rate limit exceeded. Please try again later.")
+                elif "authentication" in str(e).lower() or "401" in str(e) or "403" in str(e):
+                    raise ValueError("Authentication error. API key may be invalid or expired.")
+                else:
+                    raise ValueError(f"Error calling Anthropic API: {str(e)}")
             
             # Extract and parse the response
             content = response.content[0].text
@@ -139,4 +203,19 @@ class AIService:
                 
         except Exception as e:
             logger.error(f"Error generating fielding rotation: {str(e)}")
-            raise
+            # Add more context to the error message
+            if "ANTHROPIC_API_KEY" in str(e):
+                raise ValueError("ANTHROPIC_API_KEY is configured but might be invalid or improperly formatted")
+            elif "status_code=401" in str(e) or "status_code=403" in str(e):
+                raise ValueError("Authentication error with Anthropic API. Please check that the API key is valid")
+            elif "status_code=429" in str(e):
+                raise ValueError("Rate limit exceeded with Anthropic API. Please try again later")
+            elif "status_code=" in str(e):
+                # Extract the status code for more informative error
+                import re
+                status_match = re.search(r'status_code=(\d+)', str(e))
+                status_code = status_match.group(1) if status_match else "unknown"
+                raise ValueError(f"Anthropic API error with status code {status_code}")
+            else:
+                # Pass through the original error with more context
+                raise ValueError(f"Error connecting to Anthropic API: {str(e)}")

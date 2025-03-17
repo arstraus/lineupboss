@@ -446,7 +446,18 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       
     } catch (err) {
       console.error("Error generating AI rotation:", err);
-      setAIError("Failed to generate AI rotation. Please try again.");
+      
+      // Display a more specific error message
+      if (err.response && err.response.data && err.response.data.error) {
+        // Use the error from the API response
+        setAIError(`AI Rotation Failed: ${err.response.data.error}`);
+      } else if (err.message) {
+        // Use the error message from the exception
+        setAIError(`AI Rotation Failed: ${err.message}`);
+      } else {
+        // Fallback to a generic message
+        setAIError("Failed to generate AI rotation. Please try again later.");
+      }
     } finally {
       setGeneratingAI(false);
     }
