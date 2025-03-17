@@ -365,21 +365,65 @@ def app_get_subscription():
     from flask_jwt_extended import get_jwt_identity
     from shared.models import User
     from shared.database import db_session
-    from api.users import get_tier_features
+    import logging
     
-    user_id = get_jwt_identity()
+    # Log detailed information
+    print("*** SUBSCRIPTION INFO REQUEST STARTED ***")
+    print(f"Request method: {request.method}")
+    print(f"Request path: {request.path}")
+    print(f"Request headers: {dict(request.headers)}")
     
-    with db_session() as session:
-        user = session.query(User).filter(User.id == user_id).first()
+    try:
+        user_id = get_jwt_identity()
+        print(f"User ID from JWT: {user_id}")
         
-        if not user:
-            return jsonify({"error": "User not found"}), 404
+        with db_session() as session:
+            print("Database session created")
+            user = session.query(User).filter(User.id == user_id).first()
             
-        # For now, we're just returning basic subscription info
-        return jsonify({
-            "tier": user.subscription_tier,
-            "features": get_tier_features(user.subscription_tier)
-        })
+            if not user:
+                print(f"Error: User {user_id} not found")
+                return jsonify({"error": "User not found"}), 404
+                
+            print(f"Found user: {user.email} with subscription tier: {user.subscription_tier}")
+            
+            # Define features directly in this endpoint to avoid import issues
+            def get_tier_features(tier):
+                """Get the features available for a subscription tier."""
+                tier = str(tier).lower() if tier else "rookie"
+                
+                features = {
+                    "rookie": {
+                        "name": "Rookie",
+                        "max_teams": 2,
+                        "advanced_stats": False,
+                        "team_collaboration": False,
+                        "price": 0
+                    },
+                    "pro": {
+                        "name": "Pro",
+                        "max_teams": 999,  # Unlimited for practical purposes
+                        "advanced_stats": True,
+                        "team_collaboration": True,
+                        "price": 9.99  # Monthly price in USD
+                    }
+                }
+                
+                return features.get(tier, features["rookie"])
+            
+            # For now, we're just returning basic subscription info
+            response_data = {
+                "tier": user.subscription_tier,
+                "features": get_tier_features(user.subscription_tier)
+            }
+            print(f"Response data: {response_data}")
+            print("*** SUBSCRIPTION INFO REQUEST COMPLETED SUCCESSFULLY ***")
+            return jsonify(response_data)
+    except Exception as e:
+        print(f"*** SUBSCRIPTION INFO REQUEST ERROR: {str(e)} ***")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 # Test database endpoint
 @app.route('/api/test-db')

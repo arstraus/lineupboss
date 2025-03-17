@@ -23,11 +23,13 @@ const AccountSettings = () => {
   
   const [loading, setLoading] = useState(false);
   const [loadingPassword, setLoadingPassword] = useState(false);
+  const [loadingSubscription, setLoadingSubscription] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [subscription, setSubscription] = useState({});
+  const [subscriptionError, setSubscriptionError] = useState('');
+  const [subscription, setSubscription] = useState({ tier: 'rookie' });
 
   // Load user data when component mounts
   useEffect(() => {
@@ -48,8 +50,21 @@ const AccountSettings = () => {
         });
         
         // Get subscription details
-        const subscriptionResponse = await getUserSubscription();
-        setSubscription(subscriptionResponse.data);
+        setLoadingSubscription(true);
+        setSubscriptionError('');
+        try {
+          console.log('Fetching subscription details');
+          const subscriptionResponse = await getUserSubscription();
+          console.log('Subscription response:', subscriptionResponse);
+          setSubscription(subscriptionResponse.data);
+        } catch (subscriptionError) {
+          console.error('Failed to load subscription data:', subscriptionError);
+          setSubscriptionError('Failed to load subscription information. Please try again later.');
+          // Set default subscription
+          setSubscription({ tier: currentUser?.subscription_tier || 'rookie' });
+        } finally {
+          setLoadingSubscription(false);
+        }
       } catch (error) {
         console.error('Failed to load user data:', error);
         // Fallback to using context data
@@ -378,21 +393,42 @@ const AccountSettings = () => {
           <Card className="shadow-sm">
             <Card.Body>
               <h2 className="h4 mb-3">Subscription Details</h2>
-              <div className="d-flex align-items-center mb-3">
-                <span className="badge bg-info me-2">
-                  {currentUser?.subscription_tier ? currentUser.subscription_tier.charAt(0).toUpperCase() + currentUser.subscription_tier.slice(1) : 'Rookie'}
-                </span>
-                <span>Current Plan</span>
-              </div>
-              <p className="text-muted small">
-                You are currently on the Rookie plan. Manage your subscription in the Billing section.
-              </p>
-              <div className="d-grid gap-2 mt-4">
-                <Button as="a" href="/billing" variant="outline-secondary">
-                  <i className="bi bi-credit-card me-2"></i>
-                  Manage Billing
-                </Button>
-              </div>
+              
+              {subscriptionError && (
+                <Alert variant="warning" onClose={() => setSubscriptionError('')} dismissible>
+                  {subscriptionError}
+                </Alert>
+              )}
+              
+              {loadingSubscription ? (
+                <div className="text-center py-3">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  <p className="mt-2">Loading subscription details...</p>
+                </div>
+              ) : (
+                <>
+                  <div className="d-flex align-items-center mb-3">
+                    <span className="badge bg-info me-2">
+                      {subscription?.tier ? subscription.tier.charAt(0).toUpperCase() + subscription.tier.slice(1) : 
+                       currentUser?.subscription_tier ? currentUser.subscription_tier.charAt(0).toUpperCase() + currentUser.subscription_tier.slice(1) : 
+                       'Rookie'}
+                    </span>
+                    <span>Current Plan</span>
+                  </div>
+                  <p className="text-muted small">
+                    You are currently on the {subscription?.tier?.charAt(0).toUpperCase() + subscription?.tier?.slice(1) || 'Rookie'} plan. 
+                    Manage your subscription in the Billing section.
+                  </p>
+                  <div className="d-grid gap-2 mt-4">
+                    <Button as="a" href="/billing" variant="outline-secondary">
+                      <i className="bi bi-credit-card me-2"></i>
+                      Manage Billing
+                    </Button>
+                  </div>
+                </>
+              )}
             </Card.Body>
           </Card>
 
