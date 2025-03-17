@@ -5,7 +5,14 @@ let API_URL = '';
 try {
   // First try environment variable
   if (process.env.REACT_APP_API_URL) {
-    API_URL = process.env.REACT_APP_API_URL;
+    // Check if it's a relative path (starting with /)
+    if (process.env.REACT_APP_API_URL.startsWith('/')) {
+      // Use the current domain with the relative path
+      API_URL = process.env.REACT_APP_API_URL;
+    } else {
+      // Use absolute URL as provided
+      API_URL = process.env.REACT_APP_API_URL;
+    }
   } 
   // Then try window.location as fallback
   else if (window.location && window.location.origin) {
@@ -41,20 +48,18 @@ api.interceptors.request.use(
     // Get token from localStorage for each request (always fresh)
     const token = localStorage.getItem("token");
     
-    // Only log in development
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`Request to: ${config.method?.toUpperCase()} ${config.url}`);
-    }
+    // Enhanced logging in development and production for troubleshooting
+    console.log(`Request to: ${config.method?.toUpperCase()} ${config.url}`);
+    console.log(`API Base URL: ${config.baseURL}`);
+    console.log(`Full URL: ${config.baseURL}${config.url}`);
     
     // If we have a token, add it to this specific request only
     if (token) {
       // Set Authorization header for this request only
       config.headers.Authorization = `Bearer ${token}`;
-      
-      // Log token for debugging (only in development)
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`Using token: ${token.substring(0, 10)}...`);
-      }
+      console.log(`Using token: ${token.substring(0, 10)}...`);
+    } else {
+      console.warn("No authentication token found!");
     }
     
     return config;
@@ -62,6 +67,22 @@ api.interceptors.request.use(
   (error) => {
     // Log the error and reject the promise
     console.error("API request preparation failed:", error.message);
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for debugging
+api.interceptors.response.use(
+  (response) => {
+    console.log(`Response from ${response.config.url}: Status ${response.status}`);
+    return response;
+  },
+  (error) => {
+    console.error("API request failed:", error.message);
+    if (error.response) {
+      console.error(`Status: ${error.response.status}`);
+      console.error("Response data:", error.response.data);
+    }
     return Promise.reject(error);
   }
 );

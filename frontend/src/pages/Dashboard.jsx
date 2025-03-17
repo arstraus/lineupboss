@@ -32,11 +32,38 @@ const Dashboard = () => {
       setError("");
     } catch (err) {
       console.error("Error fetching teams:", err);
+      
+      let errorMessage = "Failed to load teams. ";
+      
       if (err.response) {
         console.error("Response status:", err.response.status);
         console.error("Response data:", err.response.data);
+        
+        // Add more specific error information based on status code
+        if (err.response.status === 401) {
+          errorMessage += "Authentication error. Please try logging out and logging in again.";
+        } else if (err.response.status === 404) {
+          errorMessage += "API endpoint not found. This might be a configuration issue.";
+        } else if (err.response.status >= 500) {
+          errorMessage += "Server error. Please try again later.";
+        } else {
+          errorMessage += `Error code: ${err.response.status}`;
+        }
+        
+        // Add specific error message from API if available
+        if (err.response.data && err.response.data.error) {
+          errorMessage += ` (${err.response.data.error})`;
+        }
+      } else if (err.request) {
+        // Request was made but no response received (network error)
+        console.error("No response received from server");
+        errorMessage += "Could not connect to the server. Please check your internet connection.";
+      } else {
+        // Something else happened while setting up the request
+        errorMessage += err.message || "Unknown error occurred";
       }
-      setError("Failed to load teams. Please try again.");
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
