@@ -21,14 +21,15 @@ export const get = axios.get;
 export const put = axios.put;
 export const del = axios.delete;
 
-// Default export for backward compatibility
-const api = {
+// Export api object for named import
+export const api = {
   get: axios.get,
   post: axios.post,
   put: axios.put,
   delete: axios.delete
 };
 
+// Default export for backward compatibility
 export default api;
 
 // AUTH API
@@ -144,6 +145,20 @@ export const getPendingCount = () => {
   return axios.get('/api/admin/pending-count');
 };
 
+// SYSTEM API
+export const checkApiHealth = async () => {
+  try {
+    const response = await axios.get('/api', { timeout: 5000 });
+    return { status: 'ok', message: response.data?.message || 'API is available', data: response.data };
+  } catch (error) {
+    return { 
+      status: 'error', 
+      message: error.message, 
+      isNetworkError: !error.response
+    };
+  }
+};
+
 // LINEUP API
 export const getBattingOrder = (gameId) => {
   return axios.get(`/api/games/${gameId}/batting-order`);
@@ -175,4 +190,8 @@ export const getPlayerAvailability = (gameId) => {
 
 export const updatePlayerAvailability = (gameId, availabilityData) => {
   return axios.put(`/api/games/${gameId}/player-availability`, availabilityData);
+};
+
+export const batchSavePlayerAvailability = (gameId, playerAvailabilityArray) => {
+  return axios.post(`/api/games/${gameId}/player-availability/batch`, { players: playerAvailabilityArray });
 };
