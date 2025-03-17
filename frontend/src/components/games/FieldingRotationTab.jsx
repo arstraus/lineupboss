@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { getFieldingRotations, saveFieldingRotation, getPlayerAvailability, getBattingOrder, generateAIFieldingRotation } from "../../services/api";
+import { getFieldingRotations, saveFieldingRotation, getPlayerAvailability, getBattingOrder, api } from "../../services/api";
 
 // Constants from constants.js
 const POSITIONS = ["Pitcher", "Catcher", "1B", "2B", "3B", "SS", "LF", "RF", "LC", "RC", "Bench"];
@@ -432,14 +432,24 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       // Prepare required positions
       const requiredPositions = FIELD_POSITIONS;
       
-      // Send request to generate AI rotation
-      const response = await generateAIFieldingRotation(gameId, {
-        players: playersData,
-        innings: innings,
-        required_positions: requiredPositions,
-        infield_positions: INFIELD,
-        outfield_positions: OUTFIELD
-      });
+      // Show a user-friendly message about AI generation
+      setAIError("AI is generating rotations. This may take 1-2 minutes...");
+      
+      // Custom API call with longer timeout specifically for AI operations
+      const response = await api.post(
+        `/games/${gameId}/ai-fielding-rotation`, 
+        {
+          players: playersData,
+          innings: innings,
+          required_positions: requiredPositions,
+          infield_positions: INFIELD,
+          outfield_positions: OUTFIELD
+        },
+        { timeout: 120000 } // 2 minute timeout for AI operations
+      );
+      
+      // Clear the "generating" message
+      setAIError("");
       
       // Parse and set the AI-generated rotations
       setAIRotations(response.data.rotations || {});
@@ -850,7 +860,7 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                   {Object.keys(aiRotations).length === 0 ? (
                     <div className="text-center my-5">
                       <button 
-                        className="btn btn-success btn-lg"
+                        className="btn btn-success btn-lg mb-3"
                         onClick={handleGenerateAIRotation}
                         disabled={generatingAI}
                       >
@@ -866,6 +876,13 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                           </>
                         )}
                       </button>
+                      
+                      {generatingAI && (
+                        <div className="alert alert-info mt-3">
+                          <i className="bi bi-info-circle-fill me-2"></i>
+                          AI generation may take 1-2 minutes. The AI is creating a balanced rotation that follows all the rules. Please be patient!
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="ai-rotations-preview">

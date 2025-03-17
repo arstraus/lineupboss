@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="96" cy="96" r="90" fill="#FFFFFF"/>
+  
+  <!-- Baseball Seams -->
+  <path d="M57 39C45 51 36 66 33 84" stroke="#D43A33" stroke-width="7" stroke-linecap="round"/>
+  <path d="M135 39C147 51 156 66 159 84" stroke="#D43A33" stroke-width="7" stroke-linecap="round"/>
+  <path d="M57 153C45 141 36 126 33 108" stroke="#D43A33" stroke-width="7" stroke-linecap="round"/>
+  <path d="M135 153C147 141 156 126 159 108" stroke="#D43A33" stroke-width="7" stroke-linecap="round"/>
+  
+  <!-- LB Text -->
+  <path d="M72 120V72H82V110H110V120H72Z" fill="#0D6EFD"/>
+  <path d="M110 96C110 89.3726 115.373 84 122 84H124C130.627 84 136 89.3726 136 96V96C136 102.627 130.627 108 124 108H122C115.373 108 110 102.627 110 96ZM110 96C110 89.3726 115.373 84 122 84H124C130.627 84 136 89.3726 136 96V96C136 102.627 130.627 108 124 108H122" fill="#0D6EFD"/>
+  
+  <!-- Outer Circle -->
+  <circle cx="96" cy="96" r="90" stroke="#333333" stroke-width="9" fill="none"/>
+</svg>

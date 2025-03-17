@@ -37,8 +37,8 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  // Add timeout to prevent hanging requests
-  timeout: 10000,
+  // Add timeout to prevent hanging requests (60 seconds for AI operations)
+  timeout: 60000,
   // withCredentials: true is needed if you're using cookies or sessions
   // But for JWT token auth in headers, this should be false
   withCredentials: false
