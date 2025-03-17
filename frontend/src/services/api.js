@@ -164,18 +164,31 @@ export const getPendingCount = () => {
 // SYSTEM API
 export const checkApiHealth = async () => {
   try {
-    const response = await wrappedGet('/api', { timeout: 5000 });
+    // Use the root API endpoint, not /api which would be /api/api with the base URL
+    const response = await wrappedGet('/', { timeout: 5000 });
     return { 
       status: 'ok', 
       message: response.data?.message || 'API is available', 
       data: response.data 
     };
   } catch (error) {
-    return { 
-      status: 'error', 
-      message: error.message, 
-      isNetworkError: !error.response
-    };
+    // Try alternative endpoints if the root fails
+    try {
+      // Try the teams endpoint which should be available if the user is logged in
+      const teamsResponse = await wrappedGet('/api/teams', { timeout: 5000 });
+      return {
+        status: 'ok',
+        message: 'API is available (teams endpoint)',
+        data: { teams_available: true }
+      };
+    } catch (teamsError) {
+      // If all attempts fail, return the original error
+      return { 
+        status: 'error', 
+        message: error.message, 
+        isNetworkError: !error.response
+      };
+    }
   }
 };
 

@@ -6,11 +6,11 @@ This module provides API endpoints for user profile management.
 from flask import Blueprint, request, jsonify, g
 from shared.models import User
 from shared.database import db_session
-from backend.api.auth import token_required
+from api.auth import token_required
 
 users_bp = Blueprint('users', __name__)
 
-@users_bp.route('/api/user/profile', methods=['GET'])
+@users_bp.route('/profile', methods=['GET'])
 @token_required
 def get_user_profile():
     """Get the current user's profile information."""
@@ -33,7 +33,7 @@ def get_user_profile():
             "created_at": user.created_at.isoformat() if user.created_at else None
         })
 
-@users_bp.route('/api/user/profile', methods=['PUT'])
+@users_bp.route('/profile', methods=['PUT'])
 @token_required
 def update_user_profile():
     """Update the current user's profile information."""
@@ -82,7 +82,7 @@ def update_user_profile():
             "created_at": user.created_at.isoformat() if user.created_at else None
         })
 
-@users_bp.route('/api/user/password', methods=['PUT'])
+@users_bp.route('/password', methods=['PUT'])
 @token_required
 def update_password():
     """Update the current user's password."""
@@ -109,7 +109,7 @@ def update_password():
         
         return jsonify({"message": "Password updated successfully"})
 
-@users_bp.route('/api/user/subscription', methods=['GET'])
+@users_bp.route('/subscription', methods=['GET'])
 @token_required
 def get_subscription():
     """Get the current user's subscription information."""

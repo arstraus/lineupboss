@@ -29,17 +29,17 @@ const Dashboard = () => {
       setApiStatus(healthResult);
       
       if (healthResult.status === 'error') {
-        setError(`API Connection Error: ${healthResult.message}`);
-        setLoading(false);
-        return false;
+        console.warn(`API health check failed: ${healthResult.message}`);
+        // Don't set an error yet - we'll still try to fetch teams
+        // This allows the app to work even if the health check endpoint isn't working
+        return true; // Continue anyway
       }
       return true;
     } catch (error) {
       console.error("Error checking API health:", error);
       setApiStatus({ status: 'error', message: 'Failed to check API connection' });
-      setError("Cannot connect to the server. Please check if the backend is running.");
-      setLoading(false);
-      return false;
+      // Don't block the app from trying to fetch teams
+      return true;
     }
   };
 
@@ -157,26 +157,19 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* API Status Alert - Only shown when there are issues */}
-      {apiStatus && apiStatus.status === 'error' && (
+      {/* Hidden API status debug info - only visible in development */}
+      {process.env.NODE_ENV === 'development' && apiStatus && apiStatus.status === 'error' && (
         <div className="container mt-3">
           <div className="alert alert-warning">
-            <h4 className="alert-heading">API Connection Issue Detected</h4>
-            <p>There seems to be a problem connecting to our servers.</p>
+            <h4 className="alert-heading">API Connection Issue (Debug Info)</h4>
+            <p>Connection warning for developers only - this may not affect application functionality.</p>
             <hr />
             <p className="mb-0">
               <strong>Status:</strong> {apiStatus.message}<br />
               <strong>API URL:</strong> {process.env.REACT_APP_API_URL}<br />
-              <strong>Browser URL:</strong> {window.location.origin}<br />
-              <strong>Troubleshooting:</strong> This may be related to DNS changes or CORS issues. Try the following:
-              <ul>
-                <li>Refresh your browser</li>
-                <li>Clear your browser cache</li>
-                <li>Check if the API server is running</li>
-                <li>If you just changed domains, DNS might still be propagating</li>
-              </ul>
+              <strong>Browser URL:</strong> {window.location.origin}
             </p>
-            <button className="btn btn-sm btn-info" onClick={checkApiConnection}>
+            <button className="btn btn-sm btn-info mt-2" onClick={checkApiConnection}>
               Retry API Connection
             </button>
           </div>

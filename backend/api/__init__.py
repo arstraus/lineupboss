@@ -37,7 +37,8 @@ except ImportError as e:
     
 try:
     from api.users import users_bp
-    api.register_blueprint(users_bp)
+    api.register_blueprint(users_bp, url_prefix='/user')  # Add url_prefix to match frontend endpoints
+    print("Registered users blueprint with URL prefix /user")
 except ImportError as e:
     print(f"Could not import users module: {e}")
 
