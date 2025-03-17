@@ -20,10 +20,14 @@ class User(Base):
     
     id = Column(Integer, primary_key=True)
     email = Column(String, unique=True, nullable=False)
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
+    location = Column(String, nullable=True)
     password_hash = Column(String, nullable=False)
     salt = Column(String, nullable=False)
     role = Column(String, default="user", nullable=False)  # "admin", "user"
     status = Column(String, default="pending", nullable=False)  # "pending", "approved", "rejected"
+    subscription_tier = Column(String, default="rookie", nullable=False)  # "rookie", "pro"
     created_at = Column(sa.DateTime, server_default=sa.func.now())
     approved_at = Column(sa.DateTime, nullable=True)
     approved_by = Column(Integer, ForeignKey('users.id'), nullable=True)

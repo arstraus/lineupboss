@@ -9,27 +9,30 @@ const LandingPage = () => {
 
   return (
     <div className="landing-page">
+      {/* Auth Buttons in Top-Right Corner */}
+      {!currentUser && (
+        <div className="landing-auth-buttons">
+          <Link to="/register" className="btn btn-outline-primary me-2">
+            Sign Up
+          </Link>
+          <Link to="/login" className="btn btn-primary">
+            Login
+          </Link>
+        </div>
+      )}
+      
       {/* Hero Section */}
       <div className="hero-section">
         <div className="hero-content">
           <h1 className="text-white">Welcome to LineupBoss</h1>
           <p className="text-white mb-3">The ultimate baseball lineup management application</p>
-          <div className="hero-buttons">
-            {currentUser ? (
+          {currentUser && (
+            <div className="hero-buttons">
               <Link to="/dashboard" className="btn btn-primary btn-lg me-3">
                 Go to My Teams
               </Link>
-            ) : (
-              <>
-                <Link to="/login" className="btn btn-primary btn-lg me-3">
-                  Login
-                </Link>
-                <Link to="/register" className="btn btn-outline-light btn-lg">
-                  Sign Up Free
-                </Link>
-              </>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 

@@ -34,6 +34,12 @@ try:
     api.register_blueprint(admin, url_prefix='/admin')
 except ImportError as e:
     print(f"Could not import admin module: {e}")
+    
+try:
+    from api.users import users_bp
+    api.register_blueprint(users_bp)
+except ImportError as e:
+    print(f"Could not import users module: {e}")
 
 # Try to import docs with special handling for apispec dependency
 try:

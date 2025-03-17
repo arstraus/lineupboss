@@ -12,6 +12,8 @@ import GameDetail from "./pages/GameDetail";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/Landing/LandingPage";
 import AdminDashboard from "./pages/AdminDashboard";
+import AccountSettings from "./pages/AccountSettings";
+import Billing from "./pages/Billing";
 
 // Components
 import Header from "./components/Header";
@@ -103,6 +105,25 @@ function App() {
               <AdminRoute>
                 <AdminDashboard />
               </AdminRoute>
+            } 
+          />
+          
+          {/* User account routes */}
+          <Route 
+            path="/account" 
+            element={
+              <ProtectedRoute>
+                <AccountSettings />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/billing" 
+            element={
+              <ProtectedRoute>
+                <Billing />
+              </ProtectedRoute>
             } 
           />
           

@@ -173,13 +173,25 @@ export const AuthProvider = ({ children }) => {
     setCurrentUser(null);
   };
 
+  // Refresh user data
+  const refreshUser = async () => {
+    try {
+      const response = await getCurrentUser();
+      setCurrentUser(response.data);
+      fetchPendingCount(response.data);
+    } catch (err) {
+      console.error("Error refreshing user data:", err);
+    }
+  };
+
   const value = {
     currentUser,
     loading,
     error,
     login: handleLogin,
     register: handleRegister,
-    logout: handleLogout
+    logout: handleLogout,
+    refreshUser
   };
 
   return (

@@ -124,8 +124,12 @@ class AuthService:
         return {
             'id': user.id,
             'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'location': user.location,
             'role': user.role,
             'status': user.status,
+            'subscription_tier': user.subscription_tier,
             'created_at': user.created_at.isoformat() if user.created_at else None,
             'approved_at': user.approved_at.isoformat() if user.approved_at else None
         }

@@ -1,6 +1,37 @@
 /* Landing Page Styles */
 .landing-page {
   margin-top: -1.5rem;
+  position: relative;
+}
+
+/* Auth Buttons in Top-Right Corner */
+.landing-auth-buttons {
+  position: absolute;
+  top: 1.5rem;
+  right: 2rem;
+  z-index: 1000;
+}
+
+.landing-auth-buttons .btn-primary {
+  background-color: #0d6efd;
+  color: white;
+  font-weight: 600;
+  border-radius: 20px;
+  padding: 0.375rem 1.5rem;
+}
+
+.landing-auth-buttons .btn-outline-primary {
+  color: #0d6efd;
+  border-color: #0d6efd;
+  font-weight: 600;
+  background-color: white;
+  border-radius: 20px;
+  padding: 0.375rem 1.5rem;
+}
+
+.landing-auth-buttons .btn-outline-primary:hover {
+  background-color: #e6f0ff;
+  color: #0d6efd;
 }
 
 /* Hero Section */
@@ -9,7 +40,7 @@
                     url('https://images.unsplash.com/photo-1562038969-e85c82240086?auto=format&fit=crop&q=80&w=1200');
   background-size: cover;
   background-position: center;
-  height: 300px; /* Reduced from 400px to 300px */
+  height: 250px; /* Reduced from 300px to 250px */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -137,7 +168,7 @@
 /* Media Queries */
 @media (max-width: 768px) {
   .hero-section {
-    height: 500px;
+    height: 300px;
   }
   
   .hero-content h1 {
@@ -147,11 +178,16 @@
   .hero-content p {
     font-size: 1.2rem;
   }
+  
+  .landing-auth-buttons {
+    top: 1rem;
+    right: 1rem;
+  }
 }
 
 @media (max-width: 576px) {
   .hero-section {
-    height: 400px;
+    height: 250px;
   }
   
   .hero-buttons .btn {
@@ -162,5 +198,15 @@
   
   .hero-buttons .btn:not(:last-child) {
     margin-right: 0;
+  }
+  
+  .landing-auth-buttons {
+    top: 0.75rem;
+    right: 0.75rem;
+  }
+  
+  .landing-auth-buttons .btn {
+    padding: 0.25rem 1rem;
+    font-size: 0.875rem;
   }
 }
