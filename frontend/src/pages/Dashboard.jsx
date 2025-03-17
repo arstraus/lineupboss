@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { getTeams, createTeam, deleteTeam } from "../services/api";
+import { getTeams, createTeam, deleteTeam, checkApiHealth } from "../services/api";
 
 const Dashboard = () => {
   const [teams, setTeams] = useState([]);
@@ -13,9 +13,35 @@ const Dashboard = () => {
     head_coach: ""
   });
 
+  const [apiStatus, setApiStatus] = useState(null);
+
   useEffect(() => {
-    fetchTeams();
+    // First check API health, then fetch teams if API is available
+    checkApiConnection().then(() => {
+      fetchTeams();
+    });
   }, []);
+
+  // Function to check if the API is accessible
+  const checkApiConnection = async () => {
+    try {
+      const healthResult = await checkApiHealth();
+      setApiStatus(healthResult);
+      
+      if (healthResult.status === 'error') {
+        setError(`API Connection Error: ${healthResult.message}`);
+        setLoading(false);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("Error checking API health:", error);
+      setApiStatus({ status: 'error', message: 'Failed to check API connection' });
+      setError("Cannot connect to the server. Please check if the backend is running.");
+      setLoading(false);
+      return false;
+    }
+  };
 
   const fetchTeams = async () => {
     try {
@@ -131,6 +157,32 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* API Status Alert - Only shown when there are issues */}
+      {apiStatus && apiStatus.status === 'error' && (
+        <div className="container mt-3">
+          <div className="alert alert-warning">
+            <h4 className="alert-heading">API Connection Issue Detected</h4>
+            <p>There seems to be a problem connecting to our servers.</p>
+            <hr />
+            <p className="mb-0">
+              <strong>Status:</strong> {apiStatus.message}<br />
+              <strong>API URL:</strong> {process.env.REACT_APP_API_URL}<br />
+              <strong>Browser URL:</strong> {window.location.origin}<br />
+              <strong>Troubleshooting:</strong> This may be related to DNS changes or CORS issues. Try the following:
+              <ul>
+                <li>Refresh your browser</li>
+                <li>Clear your browser cache</li>
+                <li>Check if the API server is running</li>
+                <li>If you just changed domains, DNS might still be propagating</li>
+              </ul>
+            </p>
+            <button className="btn btn-sm btn-info" onClick={checkApiConnection}>
+              Retry API Connection
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* App Features */}
       <div className="container mt-4">
         <div className="app-features mb-4">
@@ -177,13 +229,14 @@ const Dashboard = () => {
             <button 
               className="btn btn-primary" 
               onClick={() => setShowNewTeamForm(!showNewTeamForm)}
+              disabled={apiStatus && apiStatus.status === 'error'}
             >
               <i className="bi bi-plus-circle me-2"></i>
               {showNewTeamForm ? "Cancel" : "Add New Team"}
             </button>
           </div>
 
-          {error && <div className="alert alert-danger">{error}</div>}
+          {error && !apiStatus && <div className="alert alert-danger">{error}</div>}
 
           {showNewTeamForm && (
             <div className="card mb-4 new-team-card">

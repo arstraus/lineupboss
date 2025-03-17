@@ -31,12 +31,16 @@ if (process.env.NODE_ENV !== 'production') {
   console.log("API URL:", API_URL);
 }
 
-// Create axios instance
+// Create axios instance with better defaults for reliability
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
   },
+  // Add timeout to prevent hanging requests
+  timeout: 10000,
+  // Add withCredentials to help with CORS issues when using custom domains
+  withCredentials: false
 });
 
 // Export for direct use in components
@@ -203,6 +207,42 @@ export const batchSavePlayerAvailability = (gameId, availabilityData) => {
 // AI Fielding Rotation Generation
 export const generateAIFieldingRotation = (gameId, rotationData) => {
   return api.post(`/games/${gameId}/ai-fielding-rotation`, rotationData);
+};
+
+// API Health Check - Use this to test connectivity
+export const checkApiHealth = async () => {
+  try {
+    // Try the API root endpoint which should be accessible without authentication
+    const response = await api.get('/');
+    console.log('API Health Check Success:', response.data);
+    return {
+      status: 'success',
+      data: response.data,
+      message: 'Connected to API successfully'
+    };
+  } catch (error) {
+    console.error('API Health Check Error:', error);
+    
+    let message = 'Could not connect to the API server.';
+    
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      message = `Server responded with error: ${error.response.status}`;
+    } else if (error.request) {
+      // The request was made but no response was received
+      message = 'No response received from the server. Check network or CORS issues.';
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      message = `Request setup error: ${error.message}`;
+    }
+    
+    return {
+      status: 'error',
+      message: message,
+      error: error
+    };
+  }
 };
 
 export default api;
