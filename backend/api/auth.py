@@ -317,23 +317,47 @@ def get_user_info():
     print(f"GET /me: User ID from JWT: {user_id} (type: {type(user_id).__name__})")
     
     try:
-        # Using read_only mode but explicitly disabled to avoid SET TRANSACTION READ ONLY errors
-        with db_session(read_only=False) as session:
-            # Get the user directly using the service
-            from shared.models import User
+        # Temporarily bypass database session for debugging
+        from shared.models import User
+        # Try direct database connection
+        try:
+            from sqlalchemy import create_engine
+            from sqlalchemy.orm import sessionmaker
+            from shared.config import config
             
-            # Get user without using db_get_or_404 to avoid abort() calls
-            user = AuthService.get_user_by_id(session, user_id)
-            if not user:
-                print(f"Error: User not found with ID: {user_id}")
-                return jsonify({'error': 'User not found'}), 404
+            print("Attempting direct database access...")
             
-            # Serialize user object
-            result = AuthService.serialize_user(user)
-            print(f"Returning user data for ID {user_id}")
+            # Get database URL from configuration
+            database_url = config.get_database_url()
             
-            # Add token refresh info
-            try:
+            if database_url:
+                # Handle Postgres URL format conversion
+                if database_url.startswith('postgres://'):
+                    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+                
+                print(f"Got database URL, creating engine...")
+                engine = create_engine(database_url)
+                SessionDirect = sessionmaker(bind=engine)
+                
+                # Use a direct session without transaction management
+                session = SessionDirect()
+                print(f"Created direct session, querying user ID: {user_id}")
+                
+                # Query directly
+                user = session.query(User).filter(User.id == user_id).first()
+                
+                if not user:
+                    print(f"Error: User not found with ID: {user_id}")
+                    session.close()
+                    return jsonify({'error': 'User not found'}), 404
+                
+                # Serialize user object
+                result = AuthService.serialize_user(user)
+                print(f"Got user data, closing session")
+                session.close()
+                print(f"Returning user data for ID {user_id}")
+                
+                # Add token refresh info
                 jwt_data = get_jwt()
                 exp_timestamp = jwt_data.get('exp')
                 if exp_timestamp:
@@ -347,10 +371,49 @@ def get_user_info():
                         result['token_expires_at'] = exp_time.isoformat()
                     else:
                         result['token_expires_soon'] = False
-            except Exception as e:
-                print(f"Error calculating token expiry: {e}")
+                
+                return jsonify(result), 200
+                
+            else:
+                raise Exception("No database URL found in configuration")
+                
+        except Exception as direct_db_error:
+            # Log the error from direct access attempt
+            print(f"Direct database access error: {str(direct_db_error)}")
+            import traceback
+            print(traceback.format_exc())
             
-            return jsonify(result), 200
+            # Fall back to original method with explicit non-read-only session
+            print("Falling back to db_session approach...")
+            with db_session(read_only=False) as session:
+                user = AuthService.get_user_by_id(session, user_id)
+                if not user:
+                    print(f"Error: User not found with ID: {user_id}")
+                    return jsonify({'error': 'User not found'}), 404
+                
+                # Serialize user object
+                result = AuthService.serialize_user(user)
+                print(f"Returning user data for ID {user_id}")
+                
+                # Add token refresh info
+                try:
+                    jwt_data = get_jwt()
+                    exp_timestamp = jwt_data.get('exp')
+                    if exp_timestamp:
+                        exp_time = datetime.fromtimestamp(exp_timestamp, timezone.utc)
+                        current_time = datetime.now(timezone.utc)
+                        time_until_expiry = exp_time - current_time
+                        
+                        # Add refresh hint if token will expire soon
+                        if time_until_expiry <= REFRESH_MARGIN:
+                            result['token_expires_soon'] = True
+                            result['token_expires_at'] = exp_time.isoformat()
+                        else:
+                            result['token_expires_soon'] = False
+                except Exception as e:
+                    print(f"Error calculating token expiry: {e}")
+                
+                return jsonify(result), 200
             
     except Exception as e:
         import traceback

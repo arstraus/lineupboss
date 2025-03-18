@@ -171,8 +171,9 @@ class ApiTester:
 
         # Authentication endpoints
         print_section("Authentication Endpoints")
-        # Skip login test since we already have a token
+        # Skip login/register tests since we already have a token
         #self.test_endpoint("/auth/login", method="POST", data={"email": "test@example.com", "password": "password"})
+        #self.test_endpoint("/auth/register", method="POST", data={"email": "test@example.com", "password": "password"})
         self.test_endpoint("/auth/me")
         self.test_endpoint("/auth/refresh", method="POST", data={})
         
@@ -187,6 +188,7 @@ class ApiTester:
         print_section("User Endpoints")
         self.test_endpoint("/user/profile")
         self.test_endpoint("/user/subscription")
+        self.test_endpoint("/user/test")  # Test endpoint
         # Add password update endpoint but skip actual test to avoid changing password
         # self.test_endpoint("/user/password", method="PUT", data={"current_password": "old", "new_password": "new"})
         
@@ -236,10 +238,19 @@ class ApiTester:
                 # Test specific fielding rotation by inning
                 self.test_endpoint(f"/games/{game_id}/fielding-rotations/1")
                 
+                # Test individual player availability
+                if player_id:
+                    self.test_endpoint(f"/games/{game_id}/player-availability/{player_id}")
+                
+                # Test AI endpoint
+                self.test_endpoint(f"/games/{game_id}/ai-fielding-rotation", method="POST", 
+                                 data={"team_id": team_id, "game_id": game_id})
+                
                 # Test lineup update endpoints but don't execute
                 # self.test_endpoint(f"/games/{game_id}/batting-order", method="PUT", data={"order_data": []})
                 # self.test_endpoint(f"/games/{game_id}/fielding-rotations/1", method="PUT", data={"positions": {}})
                 # self.test_endpoint(f"/games/{game_id}/player-availability", method="PUT", data={"players": []})
+                # self.test_endpoint(f"/games/{game_id}/player-availability/batch", method="POST", data={"players": []})
         
         # Admin endpoints
         print_section("Admin Endpoints")
@@ -249,7 +260,8 @@ class ApiTester:
         
         # Test user management but don't execute
         # self.test_endpoint("/admin/users/2/approve", method="POST")
-        # self.test_endpoint("/admin/users/2/reject", method="POST")
+        # self.test_endpoint("/admin/users/2/reject", method="POST") 
+        # self.test_endpoint("/admin/users/2/role", method="PUT", data={"role": "user"})
         # self.test_endpoint("/admin/users/2", method="DELETE")
         
         # Print summary
