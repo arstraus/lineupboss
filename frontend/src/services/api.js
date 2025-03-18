@@ -309,16 +309,52 @@ export const updatePassword = (currentPassword, newPassword) => {
 };
 
 export const getUserSubscription = () => {
-  return wrappedGet('/user/subscription');
+  console.log('[API-DEBUG] getUserSubscription called');
+  const rawPath = '/user/subscription';
+  const processedPath = apiPath(rawPath);
+  
+  // Extra safety measure - force the correct path if double prefix is detected
+  const finalPath = processedPath.replace('/api/api/', '/api/');
+  
+  if (finalPath !== processedPath) {
+    console.warn(`[API-DEBUG] Extra safety correction in getUserSubscription: ${processedPath} → ${finalPath}`);
+    return axios.get(finalPath);
+  }
+  
+  return wrappedGet(rawPath);
 };
 
 // TEAMS API
 export const getTeams = () => {
-  return wrappedGet('/teams');
+  console.log('[API-DEBUG] getTeams called');
+  const rawPath = '/teams';
+  const processedPath = apiPath(rawPath);
+  
+  // Extra safety measure - force the correct path if double prefix is detected
+  const finalPath = processedPath.replace('/api/api/', '/api/');
+  
+  if (finalPath !== processedPath) {
+    console.warn(`[API-DEBUG] Extra safety correction in getTeams: ${processedPath} → ${finalPath}`);
+    return axios.get(finalPath);
+  }
+  
+  return wrappedGet(rawPath);
 };
 
 export const getTeam = (teamId) => {
-  return wrappedGet(`/teams/${teamId}`);
+  console.log(`[API-DEBUG] getTeam called with ID: ${teamId}`);
+  const rawPath = `/teams/${teamId}`;
+  const processedPath = apiPath(rawPath);
+  
+  // Extra safety measure - force the correct path if double prefix is detected
+  const finalPath = processedPath.replace('/api/api/', '/api/');
+  
+  if (finalPath !== processedPath) {
+    console.warn(`[API-DEBUG] Extra safety correction in getTeam: ${processedPath} → ${finalPath}`);
+    return axios.get(finalPath);
+  }
+  
+  return wrappedGet(rawPath);
 };
 
 export const createTeam = (teamData) => {
