@@ -208,7 +208,22 @@ def static_proxy(path):
         # Check if we have an endpoint
         if request.endpoint:
             # Flask will handle API routes via blueprint
-            return app.view_functions.get(request.endpoint)()
+            try:
+                # The endpoint function may or may not expect a path parameter
+                endpoint_function = app.view_functions.get(request.endpoint)
+                import inspect
+                sig = inspect.signature(endpoint_function)
+                if 'path' in sig.parameters:
+                    # If the function expects a path parameter, pass it
+                    return endpoint_function(path)
+                else:
+                    # Otherwise just call it with no arguments
+                    return endpoint_function()
+            except Exception as e:
+                print(f"Error calling endpoint function: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({'error': f'Error processing request: {str(e)}'}), 500
         else:
             # If we don't have an endpoint, this could be a routing issue
             print(f"ERROR: No endpoint found for /{path}")
@@ -457,6 +472,48 @@ def fix_double_api_prefix_get_player_availability(game_id):
     g.user_id = get_jwt_identity()
     # Route to player-availability/<int:game_id> in the games blueprint
     return get_player_availability(game_id)
+
+@app.route('/api/api/games/<int:game_id>/player-availability/<int:player_id>', methods=['GET'])
+@jwt_required()
+def fix_double_api_prefix_get_player_availability_by_id(game_id, player_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/games/{game_id}/player-availability/{player_id} GET request")
+    from api.games import player_availability_by_id
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return player_availability_by_id(game_id, player_id)
+
+# Legacy endpoints with team/id pattern (old style routes)
+@app.route('/api/api/players/team/<int:team_id>', methods=['GET'])
+@jwt_required()
+def fix_double_api_prefix_get_players_legacy(team_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/players/team/{team_id} GET request")
+    from api.players import get_players
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return get_players(team_id)
+
+@app.route('/api/api/games/team/<int:team_id>', methods=['GET'])
+@jwt_required()
+def fix_double_api_prefix_get_games_legacy(team_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/games/team/{team_id} GET request")
+    from api.games import get_games_legacy
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return get_games_legacy(team_id)
+
+# AI-powered fielding rotation endpoint
+@app.route('/api/api/games/<int:game_id>/ai-fielding-rotation', methods=['POST'])
+@jwt_required()
+def fix_double_api_prefix_generate_ai_fielding_rotation(game_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/games/{game_id}/ai-fielding-rotation POST request")
+    from api.games import generate_ai_fielding_rotation
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return generate_ai_fielding_rotation(game_id)
 
 # ===================================================================
 # DEPRECATED ENDPOINTS - WILL BE REMOVED IN A FUTURE RELEASE
