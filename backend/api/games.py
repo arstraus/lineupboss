@@ -8,9 +8,20 @@ from services.game_service import GameService
 from services.ai_service import AIService
 from shared.models import Game, Team
 
+# Main games blueprint
 games = Blueprint("games", __name__)
 
+# Nested routes blueprint for team-specific game operations
+games_nested = Blueprint("games_nested", __name__)
+
+# Keep the original route for backward compatibility
 @games.route('/team/<int:team_id>', methods=['GET'])
+@jwt_required()
+def get_games_legacy(team_id):
+    return get_games(team_id)
+
+# Add a properly nested route
+@games_nested.route('/<int:team_id>/games', methods=['GET'])
 @jwt_required()
 def get_games(team_id):
     """Get all games for a specific team.

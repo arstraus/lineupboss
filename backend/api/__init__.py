@@ -59,6 +59,22 @@ register_blueprint(api, 'players', 'players', '/players')
 # Register games blueprint (for game management)
 register_blueprint(api, 'games', 'games', '/games')
 
+# Register players nested-route blueprint
+try:
+    from api.games import games_nested
+    api.register_blueprint(games_nested, url_prefix='/teams')
+    print("Registered games_nested blueprint with URL prefix /teams")
+except Exception as e:
+    print(f"Error registering games_nested blueprint: {e}")
+
+# Register games nested-route blueprint
+try:
+    from api.players import players_nested
+    api.register_blueprint(players_nested, url_prefix='/teams')
+    print("Registered players_nested blueprint with URL prefix /teams")
+except Exception as e:
+    print(f"Error registering players_nested blueprint: {e}")
+
 # Register admin blueprint (for admin functions)
 register_blueprint(api, 'admin', 'admin', '/admin')
 

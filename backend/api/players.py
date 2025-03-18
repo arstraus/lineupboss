@@ -6,9 +6,20 @@ from services.team_service import TeamService
 from services.player_service import PlayerService
 from shared.models import Player, Team
 
+# Main players blueprint
 players = Blueprint("players", __name__)
 
+# Nested routes blueprint for team-specific player operations
+players_nested = Blueprint("players_nested", __name__)
+
+# Keep the original route for backward compatibility
 @players.route('/team/<int:team_id>', methods=['GET'])
+@jwt_required()
+def get_players_legacy(team_id):
+    return get_players(team_id)
+
+# Add a properly nested route
+@players_nested.route('/<int:team_id>/players', methods=['GET'])
 @jwt_required()
 def get_players(team_id):
     """Get all players for a specific team.

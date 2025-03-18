@@ -317,22 +317,16 @@ def get_user_info():
     print(f"GET /me: User ID from JWT: {user_id} (type: {type(user_id).__name__})")
     
     try:
-        # Using read_only mode since this is just a query operation
-        with db_session(read_only=True) as session:
-            # Try to use the utility function to get the user
-            from shared.database import db_get_or_404
+        # Using read_only mode but explicitly disabled to avoid SET TRANSACTION READ ONLY errors
+        with db_session(read_only=False) as session:
+            # Get the user directly using the service
             from shared.models import User
             
-            try:
-                # This will automatically return 404 if user not found
-                user = db_get_or_404(session, User, user_id, "User not found")
-            except Exception:
-                # If db_get_or_404 aborts, we need to handle it here
-                # Fall back to manual checking to return proper JSON response
-                user = AuthService.get_user_by_id(session, user_id)
-                if not user:
-                    print(f"Error: User not found with ID: {user_id}")
-                    return jsonify({'error': 'User not found'}), 404
+            # Get user without using db_get_or_404 to avoid abort() calls
+            user = AuthService.get_user_by_id(session, user_id)
+            if not user:
+                print(f"Error: User not found with ID: {user_id}")
+                return jsonify({'error': 'User not found'}), 404
             
             # Serialize user object
             result = AuthService.serialize_user(user)
