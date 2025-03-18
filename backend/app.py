@@ -166,10 +166,24 @@ def serve():
 
 @app.route('/<path:path>')
 def static_proxy(path):
+    # Check for problematic double API prefixes and log warnings
+    if path.startswith('api/api/'):
+        print(f"WARNING: Detected double API prefix in request path: /{path}")
+        # Continue processing to let the request flow through normal routing
+    
     # If path starts with 'api/', pass it through to the API
     if path.startswith('api/'):
-        # Flask will handle API routes via blueprint
-        return app.view_functions.get(request.endpoint)()
+        # Log the API request for debugging
+        print(f"API request: /{path} => {request.method} {request.endpoint or 'no endpoint'}")
+        
+        # Check if we have an endpoint
+        if request.endpoint:
+            # Flask will handle API routes via blueprint
+            return app.view_functions.get(request.endpoint)()
+        else:
+            # If we don't have an endpoint, this could be a routing issue
+            print(f"ERROR: No endpoint found for /{path}")
+            return jsonify({'error': f'No route matches: /{path}'}), 404
         
     # For all other paths (like /admin, /dashboard, etc.)
     # Return the React app's index.html to handle client-side routing
@@ -188,64 +202,94 @@ def static_proxy(path):
     except Exception:
         return jsonify({'error': f'Path {path} not found'}), 404
 
-# API root route
+# DEPRECATED: Root API route - will be moved to a system blueprint in a future update
 @app.route('/api')
 def hello():
+    print("[API] WARNING: Using deprecated direct route /api")
+    print("[API] This will be moved to a blueprint in a future update")
     return jsonify({'message': 'Welcome to Lineup API'})
 
-# Test JWT route
+# DEPRECATED: Test JWT route - will be moved to a system blueprint in a future update
 @app.route('/api/test-jwt')
 @jwt_required()
 def test_jwt():
+    print("[API] WARNING: Using deprecated direct route /api/test-jwt")
+    print("[API] This will be moved to a blueprint in a future update")
     current_user_id = get_jwt_identity()
     auth_header = request.headers.get('Authorization', 'None')
     print(f"Authorization header: {auth_header}")
     print(f"Current user ID from JWT: {current_user_id}")
     return jsonify({'message': 'JWT is valid', 'user_id': current_user_id})
 
-# Define an endpoint mapping from app.py to blueprint routes
-# This ensures all endpoints are consistently reachable
-# Both direct (at /api/user/...) and through blueprint (at /api/user/...)
+# Route Management Documentation
+"""
+ROUTE ARCHITECTURE
+------------------
+All LineupBoss API routes should be defined in their respective blueprints:
+- /api/auth/... - Authentication endpoints in api/auth.py
+- /api/user/... - User profile endpoints in api/users.py
+- /api/teams/... - Team management in api/teams.py
+- /api/players/... - Player management in api/players.py
+- /api/games/... - Game management in api/games.py
+- /api/admin/... - Admin functions in api/admin.py
+
+These blueprints are registered in api/__init__.py with the appropriate prefixes.
+Direct route registration in app.py should be avoided to prevent inconsistencies.
+
+The following routes used to be defined directly in app.py but have been deprecated
+in favor of using the blueprint-based routes exclusively. They are kept here 
+temporarily as forwarding routes with deprecation warnings to give clients time
+to update their implementations.
+"""
+
+# DEPRECATED: The following routes are deprecated and will be removed in a future release.
+# They are maintained only for backward compatibility.
+# Use the blueprint routes instead (/api/user/... etc.)
+
+def handle_deprecated_route(path, handler_func):
+    """Common handler for deprecated routes that logs a warning and forwards to the blueprint handler"""
+    print(f"[API] WARNING: Deprecated direct route accessed: {path}")
+    print(f"[API] This route will be removed in a future release.")
+    print(f"[API] Please use the blueprint route instead.")
+    
+    # Use Flask's g object to store the JWT identity, which token_required expects
+    g.user_id = get_jwt_identity()
+    
+    return handler_func()
+
 @app.route('/api/user/profile', methods=['GET'])
 @jwt_required()
 def redirect_user_profile_get():
-    """Forward user profile GET requests to the blueprint handler"""
-    print("[API] Forwarding profile GET request to users_bp.get_user_profile")
+    """DEPRECATED: Forward user profile GET requests to the blueprint handler"""
     from api.users import get_user_profile
-    # Use Flask's g object to store the JWT identity, which token_required expects
-    g.user_id = get_jwt_identity()
-    return get_user_profile()
+    return handle_deprecated_route('/api/user/profile [GET]', get_user_profile)
 
 @app.route('/api/user/profile', methods=['PUT'])
 @jwt_required()
 def redirect_user_profile_put():
-    """Forward user profile PUT requests to the blueprint handler"""
-    print("[API] Forwarding profile PUT request to users_bp.update_user_profile")
+    """DEPRECATED: Forward user profile PUT requests to the blueprint handler"""
     from api.users import update_user_profile
-    g.user_id = get_jwt_identity()
-    return update_user_profile()
+    return handle_deprecated_route('/api/user/profile [PUT]', update_user_profile)
 
 @app.route('/api/user/password', methods=['PUT'])
 @jwt_required()
 def redirect_user_password_put():
-    """Forward user password PUT requests to the blueprint handler"""
-    print("[API] Forwarding password PUT request to users_bp.update_password")
+    """DEPRECATED: Forward user password PUT requests to the blueprint handler"""
     from api.users import update_password
-    g.user_id = get_jwt_identity()
-    return update_password()
+    return handle_deprecated_route('/api/user/password [PUT]', update_password)
 
 @app.route('/api/user/subscription', methods=['GET'])
 @jwt_required()
 def redirect_user_subscription_get():
-    """Forward user subscription GET requests to the blueprint handler"""
-    print("[API] Forwarding subscription GET request to users_bp.get_subscription")
+    """DEPRECATED: Forward user subscription GET requests to the blueprint handler"""
     from api.users import get_subscription
-    g.user_id = get_jwt_identity()
-    return get_subscription()
+    return handle_deprecated_route('/api/user/subscription [GET]', get_subscription)
 
-# Test database endpoint
+# DEPRECATED: Test database endpoint - will be moved to a system blueprint in a future update
 @app.route('/api/test-db')
 def test_db():
+    print("[API] WARNING: Using deprecated direct route /api/test-db")
+    print("[API] This will be moved to a blueprint in a future update")
     try:
         # Using standardized database access patterns
         from shared.database import db_session

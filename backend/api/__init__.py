@@ -1,46 +1,66 @@
 
+"""
+API Blueprint Registration
+
+This module registers all API blueprints with the main API blueprint.
+All routes should be defined in the respective blueprint modules and
+registered here with the appropriate URL prefix.
+
+- /api/system/... - System-wide endpoints
+- /api/auth/... - Authentication endpoints
+- /api/user/... - User profile endpoints
+- /api/teams/... - Team management
+- /api/players/... - Player management
+- /api/games/... - Game management
+- /api/admin/... - Admin functions
+
+Routes defined directly in app.py are deprecated and will be removed in a future release.
+"""
 from flask import Blueprint
 import importlib
 
+# Main API blueprint with /api prefix
 api = Blueprint('api', __name__, url_prefix='/api')
 
-# Try to import each module separately
-try:
-    from api.auth import auth
-    api.register_blueprint(auth, url_prefix='/auth')
-except ImportError as e:
-    print(f"Could not import auth module: {e}")
+# Helper function to register a blueprint
+def register_blueprint(parent, module_name, blueprint_name, url_prefix):
+    """Register a blueprint with error handling and logging."""
+    try:
+        module = importlib.import_module(f'api.{module_name}')
+        blueprint = getattr(module, blueprint_name)
+        parent.register_blueprint(blueprint, url_prefix=url_prefix)
+        print(f"Registered {module_name} blueprint with URL prefix {url_prefix}")
+        return True
+    except ImportError as e:
+        print(f"Could not import {module_name} module: {e}")
+        return False
+    except AttributeError as e:
+        print(f"Could not find blueprint {blueprint_name} in {module_name} module: {e}")
+        return False
+    except Exception as e:
+        print(f"Error registering {module_name} blueprint: {e}")
+        return False
 
-try:
-    from api.teams import teams
-    api.register_blueprint(teams, url_prefix='/teams')
-except ImportError as e:
-    print(f"Could not import teams module: {e}")
+# Register system blueprint (for core API functionality)
+register_blueprint(api, 'system', 'system', '/')
 
-try:
-    from api.players import players
-    api.register_blueprint(players, url_prefix='/players')
-except ImportError as e:
-    print(f"Could not import players module: {e}")
+# Register auth blueprint (for authentication)
+register_blueprint(api, 'auth', 'auth', '/auth')
 
-try:
-    from api.games import games
-    api.register_blueprint(games, url_prefix='/games')
-except ImportError as e:
-    print(f"Could not import games module: {e}")
-    
-try:
-    from api.admin import admin
-    api.register_blueprint(admin, url_prefix='/admin')
-except ImportError as e:
-    print(f"Could not import admin module: {e}")
-    
-try:
-    from api.users import users_bp
-    api.register_blueprint(users_bp, url_prefix='/user')  # Add url_prefix to match frontend endpoints
-    print("Registered users blueprint with URL prefix /user")
-except ImportError as e:
-    print(f"Could not import users module: {e}")
+# Register users blueprint (for user profile management)
+register_blueprint(api, 'users', 'users_bp', '/user')
+
+# Register teams blueprint (for team management)
+register_blueprint(api, 'teams', 'teams', '/teams')
+
+# Register players blueprint (for player management)
+register_blueprint(api, 'players', 'players', '/players')
+
+# Register games blueprint (for game management)
+register_blueprint(api, 'games', 'games', '/games')
+
+# Register admin blueprint (for admin functions)
+register_blueprint(api, 'admin', 'admin', '/admin')
 
 # Try to import docs with special handling for apispec dependency
 try:
@@ -49,6 +69,7 @@ try:
     if spec_loader is not None:
         from api.docs import docs
         api.register_blueprint(docs, url_prefix='/docs')
+        print("Registered docs blueprint with URL prefix /docs")
     else:
         print("apispec module not found, skipping docs module")
 except ImportError as e:

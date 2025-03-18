@@ -115,8 +115,15 @@ async function refreshTokenIfNeeded() {
   isRefreshing = true;
   
   try {
+    // Use properly processed URL
+    const refreshUrl = apiPath('/auth/refresh');
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[API] Attempting token refresh: POST ${refreshUrl}`);
+    }
+    
     const response = await axios.post(
-      apiPath('/auth/refresh'),
+      refreshUrl,
       {},
       {
         headers: {
@@ -149,49 +156,81 @@ async function refreshTokenIfNeeded() {
   }
 }
 
-// Simplified utility function to handle API paths correctly
+// Enhanced utility function to handle API paths correctly
 const apiPath = (path) => {
-  // Ensure path starts with a slash
-  const pathWithSlash = path.startsWith('/') ? path : `/${path}`;
+  // Handle null or undefined
+  if (!path) return '/api';
   
-  // Ensure path has /api prefix (but only once)
-  if (!pathWithSlash.startsWith('/api/')) {
-    return `/api${pathWithSlash}`;
+  // Trim leading and trailing whitespace
+  const trimmedPath = path.trim();
+  
+  // Remove any accidental double slashes
+  let normalizedPath = trimmedPath.replace(/\/+/g, '/');
+  
+  // Ensure path starts with a slash
+  if (!normalizedPath.startsWith('/')) {
+    normalizedPath = `/${normalizedPath}`;
   }
   
-  return pathWithSlash;
+  // Detect if path already has the /api prefix
+  const hasApiPrefix = normalizedPath.startsWith('/api/') || normalizedPath === '/api';
+  
+  // Add API prefix if needed - prevent double /api/api
+  if (!hasApiPrefix) {
+    return `/api${normalizedPath}`;
+  }
+  
+  // Detect and fix double /api/api prefix
+  if (normalizedPath.startsWith('/api/api/')) {
+    // Log warning in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[API] Detected duplicate API prefix in path: ${normalizedPath}`);
+    }
+    // Fix by removing one /api
+    return normalizedPath.replace('/api/api/', '/api/');
+  }
+  
+  return normalizedPath;
 };
 
 // Create wrapped API methods that use apiPath
 const wrappedGet = (url, config) => {
+  const originalUrl = url;
   const processedUrl = apiPath(url);
+  
   // Only log in development environment
   if (process.env.NODE_ENV === 'development') {
-    console.log(`[API] GET ${processedUrl}`);
+    console.log(`[API] GET ${processedUrl}${originalUrl !== processedUrl ? ` (original: ${originalUrl})` : ''}`);
   }
   return axios.get(processedUrl, config);
 };
 
 const wrappedPost = (url, data, config) => {
+  const originalUrl = url;
   const processedUrl = apiPath(url);
+  
   if (process.env.NODE_ENV === 'development') {
-    console.log(`[API] POST ${processedUrl}`);
+    console.log(`[API] POST ${processedUrl}${originalUrl !== processedUrl ? ` (original: ${originalUrl})` : ''}`);
   }
   return axios.post(processedUrl, data, config);
 };
 
 const wrappedPut = (url, data, config) => {
+  const originalUrl = url;
   const processedUrl = apiPath(url);
+  
   if (process.env.NODE_ENV === 'development') {
-    console.log(`[API] PUT ${processedUrl}`);
+    console.log(`[API] PUT ${processedUrl}${originalUrl !== processedUrl ? ` (original: ${originalUrl})` : ''}`);
   }
   return axios.put(processedUrl, data, config);
 };
 
 const wrappedDelete = (url, config) => {
+  const originalUrl = url;
   const processedUrl = apiPath(url);
+  
   if (process.env.NODE_ENV === 'development') {
-    console.log(`[API] DELETE ${processedUrl}`);
+    console.log(`[API] DELETE ${processedUrl}${originalUrl !== processedUrl ? ` (original: ${originalUrl})` : ''}`);
   }
   return axios.delete(processedUrl, config);
 };

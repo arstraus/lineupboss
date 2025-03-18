@@ -72,6 +72,42 @@ To test the token refresh functionality:
 3. Perform an API call that requires authentication
 4. Verify that the token is refreshed automatically
 
+## API Path Architecture
+
+LineupBoss has a standardized API architecture:
+
+1. **Blueprint-Based Routes**: API endpoints are registered using Flask Blueprints with prefixes:
+   - `/api/` - System endpoints (root, health checks, test endpoints)
+   - `/api/auth/` - Authentication endpoints
+   - `/api/user/` - User profile endpoints
+   - `/api/teams/` - Team management 
+   - `/api/players/` - Player management
+   - `/api/games/` - Game management
+   - `/api/admin/` - Admin functions
+   - `/api/docs/` - API documentation
+
+2. **Frontend Path Normalization**: 
+   - The frontend `apiPath()` function ensures all API calls have the correct `/api` prefix
+   - This function actively detects and corrects duplicate prefixes (`/api/api/`)
+   - Logs original vs. processed paths to help with debugging
+
+3. **Backward Compatibility**:
+   - Legacy direct routes in app.py are maintained with deprecation warnings
+   - These routes forward requests to the blueprint endpoints
+   - They will be removed in a future release
+
+### Deprecated Routes
+
+The following routes are deprecated and will be removed in a future release:
+- `/api` - Root endpoint (use `/api/` system blueprint route instead)
+- `/api/test-jwt` - JWT test endpoint (use `/api/test-jwt` system blueprint route)
+- `/api/test-db` - Database test endpoint (use `/api/test-db` system blueprint route)
+- `/api/user/profile` - User profile endpoints (use `/api/user/profile` blueprint route)
+- `/api/user/password` - Password update endpoint (use `/api/user/password` blueprint route)
+- `/api/user/subscription` - Subscription endpoint (use `/api/user/subscription` blueprint route)
+
+> **Note**: These routes function identically to their blueprint counterparts, but generate deprecation warnings in the server logs.
+
 ## Implementation Details for LineupBoss
 
 ### Configuration Constants
@@ -109,14 +145,20 @@ The token refresh system is stateless and doesn't require any database writes:
 
 ### Common Issues
 
-**Issue**: Users being logged out unexpectedly
+**Issue**: Users being logged out unexpectedly  
 **Solution**: Check if the token_expires_soon flag is being correctly set and detected. Verify the refresh API call is succeeding.
 
-**Issue**: Multiple token refresh requests happening simultaneously
+**Issue**: Multiple token refresh requests happening simultaneously  
 **Solution**: The frontend includes an `isRefreshing` flag to prevent this, but check the browser console for related errors.
 
-**Issue**: Refresh working in development but not production
+**Issue**: Refresh working in development but not production  
 **Solution**: Verify environment configuration, especially concerning CORS settings and API base URLs.
+
+**Issue**: "405 Method Not Allowed" errors during login/refresh  
+**Solution**: This often indicates a duplicate API path prefix (/api/api/). Check the request URL in browser dev tools. The apiPath function has been enhanced to detect and fix this issue automatically.
+
+**Issue**: API calls fail with unexpected paths  
+**Solution**: The enhanced apiPath function now normalizes paths, preventing issues like double slashes or missing prefixes. Check the browser console logs for "original" vs. processed paths to troubleshoot.
 
 ### Debugging Tools
 

@@ -106,14 +106,42 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  // Login function - simplified and more reliable
+  // Login function - simplified and more reliable with error detection
   const handleLogin = async (email, password) => {
     try {
       // Clear any existing token first to prevent session conflicts
       localStorage.removeItem("token");
       
       // Step 1: Attempt to log in and get token
-      const response = await login(email, password);
+      let response;
+      try {
+        response = await login(email, password);
+      } catch (loginErr) {
+        // Check for API path issue (405 Method Not Allowed is likely an incorrect URL)
+        if (loginErr.response && loginErr.response.status === 405) {
+          console.error("LOGIN ERROR: Possible incorrect API path. Check for duplicate /api prefix.");
+          
+          // Try to recover by analyzing the URL
+          const requestUrl = loginErr.response.config?.url;
+          if (requestUrl && requestUrl.includes('/api/api/')) {
+            console.warn("Detected duplicate API path. Attempting to recover...");
+            
+            // Try with fixed URL
+            const fixedUrl = requestUrl.replace('/api/api/', '/api/');
+            try {
+              response = await axios.post(fixedUrl, { email, password });
+              console.log("Recovery successful using fixed URL:", fixedUrl);
+            } catch (recoveryErr) {
+              console.error("Recovery attempt failed:", recoveryErr);
+              throw loginErr; // Throw original error if recovery fails
+            }
+          } else {
+            throw loginErr;
+          }
+        } else {
+          throw loginErr;
+        }
+      }
       
       // Step 2: Validate token
       const token = response.data.access_token;
@@ -150,6 +178,17 @@ export const AuthProvider = ({ children }) => {
       // Set appropriate error message
       const errorMessage = err.response?.data?.error || "Login failed";
       setError(errorMessage);
+      
+      // Add detailed logging in development mode
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Login failure details:", {
+          status: err.response?.status,
+          statusText: err.response?.statusText,
+          url: err.response?.config?.url,
+          data: err.response?.data,
+          message: err.message
+        });
+      }
       
       // Re-throw the original error to preserve response data
       throw err;
