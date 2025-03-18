@@ -150,8 +150,9 @@ class db_session:
         # For read-only operations, set isolation level to ensure no write locks
         if self.read_only:
             # Execute raw SQL to set transaction as read-only
+            # Using text() to properly wrap the SQL statement
             self.session.execute(
-                "SET TRANSACTION READ ONLY"
+                text("SET TRANSACTION READ ONLY")
             )
         
         return self.session
