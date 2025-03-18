@@ -566,7 +566,7 @@ def player_availability_by_id(game_id, player_id):
 def get_player_availability_by_id(game_id, player_id, user_id):
     """Get availability for a specific player in a game."""
     try:
-        # Using read_only mode since this is just a query operation
+        # First, just check if the record exists
         with db_session(read_only=True) as session:
             # Verify game belongs to user's team
             game = GameService.get_game(session, game_id, user_id)
@@ -577,27 +577,34 @@ def get_player_availability_by_id(game_id, player_id, user_id):
             # Get specific player availability
             availability = GameService.get_player_availability_by_id(session, game_id, player_id)
             
-            if not availability:
-                # Check if the player exists for this user
-                from services.player_service import PlayerService
-                player = PlayerService.get_player(session, player_id, user_id)
-                if not player:
-                    return jsonify({'error': f'Player {player_id} not found or unauthorized'}), 404
-                    
-                # Player exists but no availability record - create a default one
-                print(f"No availability record found for player {player_id} in game {game_id}, creating default")
-                availability = GameService.set_player_availability(
-                    session, 
-                    game_id, 
-                    player_id, 
-                    available=True,  # Default to available
-                    can_play_catcher=False  # Default to not playing catcher
-                )
+            # Check if the player exists for this user
+            from services.player_service import PlayerService
+            player = PlayerService.get_player(session, player_id, user_id)
+            if not player:
+                return jsonify({'error': f'Player {player_id} not found or unauthorized'}), 404
+                
+            if availability:
+                # If availability record exists, return it
+                result = GameService.serialize_player_availability(availability, include_player=True)
+                return jsonify(result), 200
+        
+        # If we get here, we need to create a default availability record
+        # Use a separate non-read-only session for this
+        print(f"No availability record found for player {player_id} in game {game_id}, creating default")
+        with db_session(commit=True) as session:
+            # Create a default availability record
+            availability = GameService.set_player_availability(
+                session, 
+                game_id, 
+                player_id, 
+                available=True,  # Default to available
+                can_play_catcher=False  # Default to not playing catcher
+            )
             
-            # Serialize availability
+            # Serialize the newly created availability
             result = GameService.serialize_player_availability(availability, include_player=True)
-            
-            return jsonify(result), 200
+            return jsonify(result), 201  # 201 Created status code
+    
     except Exception as e:
         print(f"Error getting player availability: {str(e)}")
         return db_error_response(e, f"Failed to retrieve availability for player {player_id}")
