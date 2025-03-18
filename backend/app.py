@@ -303,6 +303,48 @@ def fix_double_api_prefix_get_teams():
     g.user_id = get_jwt_identity()
     return get_teams()
 
+@app.route('/api/api/teams/<int:team_id>', methods=['GET'])
+@jwt_required()
+def fix_double_api_prefix_get_team(team_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/teams/{team_id} GET request")
+    from api.teams import get_team
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return get_team(team_id)
+
+# Emergency fix for double-prefixed user subscription endpoint
+@app.route('/api/api/user/subscription', methods=['GET'])
+@jwt_required()
+def fix_double_api_prefix_get_subscription():
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print("[API] EMERGENCY FIX: Handling /api/api/user/subscription GET request")
+    from api.users import get_subscription
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return get_subscription()
+
+# Emergency fix for double-prefixed admin endpoints
+@app.route('/api/api/admin/pending-count', methods=['GET'])
+@jwt_required()
+def fix_double_api_prefix_pending_count():
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print("[API] EMERGENCY FIX: Handling /api/api/admin/pending-count GET request")
+    from api.admin import get_pending_count
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return get_pending_count()
+
+@app.route('/api/api/admin/users', methods=['GET'])
+@jwt_required()
+def fix_double_api_prefix_get_users():
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print("[API] EMERGENCY FIX: Handling /api/api/admin/users GET request")
+    from api.admin import get_users
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return get_users()
+
 # ===================================================================
 # DEPRECATED ENDPOINTS - WILL BE REMOVED IN A FUTURE RELEASE
 # All endpoints below are deprecated and will be removed in a future release
