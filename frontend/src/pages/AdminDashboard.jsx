@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
+import { AuthContext } from "../services/AuthContext";
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
@@ -8,11 +10,62 @@ const AdminDashboard = () => {
   const [success, setSuccess] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
   const [pendingCount, setPendingCount] = useState(0);
+  const [authRetryCount, setAuthRetryCount] = useState(0);
+  
+  const { refreshToken, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchUsers();
-    fetchPendingCount();
-  }, [activeTab]);
+    // Check token and refresh data when component mounts or tab changes
+    const loadData = async () => {
+      try {
+        // Reset auth retry count
+        setAuthRetryCount(0);
+        
+        // Try to refresh token before loading data
+        await refreshToken();
+        
+        // Then fetch data
+        await Promise.all([fetchUsers(), fetchPendingCount()]);
+      } catch (err) {
+        console.error("Error initializing admin dashboard:", err);
+      }
+    };
+    
+    loadData();
+  }, [activeTab, refreshToken]);
+
+  // Handle authentication errors
+  const handleAuthError = async (err) => {
+    console.error("Authentication error:", err);
+    
+    // Only try to refresh the token once to prevent infinite loops
+    if (authRetryCount < 1 && err.response && err.response.status === 401) {
+      setAuthRetryCount(prev => prev + 1);
+      
+      // Try to refresh the token
+      const refreshed = await refreshToken();
+      if (refreshed) {
+        // If token refresh was successful, retry the operation
+        console.log("Token refreshed successfully, retrying operation...");
+        return true;
+      } else {
+        // If token refresh failed, log out and redirect to login
+        console.log("Token refresh failed, redirecting to login...");
+        logout();
+        navigate("/login");
+        return false;
+      }
+    } else if (err.response && err.response.status === 401) {
+      // If we already tried refreshing, just log out
+      logout();
+      navigate("/login");
+      return false;
+    }
+    
+    // For other types of errors, just return false
+    return false;
+  };
 
   const fetchUsers = async () => {
     try {
@@ -26,9 +79,15 @@ const AdminDashboard = () => {
       const response = await api.get(url);
       setUsers(response.data);
       setError("");
+      setAuthRetryCount(0); // Reset retry count on success
     } catch (err) {
       console.error("Error fetching users:", err);
-      setError("Failed to load users. Please try again.");
+      
+      // Try to handle auth errors first
+      const handled = await handleAuthError(err);
+      if (!handled) {
+        setError("Failed to load users. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -40,12 +99,14 @@ const AdminDashboard = () => {
       setPendingCount(response.data.pending_count);
     } catch (err) {
       console.error("Error fetching pending count:", err);
+      await handleAuthError(err);
     }
   };
 
   const handleApprove = async (userId) => {
     try {
       setLoading(true);
+      setError("");
       await api.post(`/admin/users/${userId}/approve`);
       
       // Remove from list if viewing pending users
@@ -63,7 +124,12 @@ const AdminDashboard = () => {
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error("Error approving user:", err);
-      setError("Failed to approve user. Please try again.");
+      
+      // Try to handle auth errors first
+      const handled = await handleAuthError(err);
+      if (!handled) {
+        setError("Failed to approve user. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -72,6 +138,7 @@ const AdminDashboard = () => {
   const handleReject = async (userId, reason = "") => {
     try {
       setLoading(true);
+      setError("");
       await api.post(`/admin/users/${userId}/reject`, { reason });
       
       // Remove from list if viewing pending users
@@ -89,7 +156,12 @@ const AdminDashboard = () => {
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error("Error rejecting user:", err);
-      setError("Failed to reject user. Please try again.");
+      
+      // Try to handle auth errors first
+      const handled = await handleAuthError(err);
+      if (!handled) {
+        setError("Failed to reject user. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -98,6 +170,7 @@ const AdminDashboard = () => {
   const handlePromote = async (userId) => {
     try {
       setLoading(true);
+      setError("");
       await api.put(`/admin/users/${userId}/role`, { role: 'admin' });
       
       // Update role in the list
@@ -109,7 +182,12 @@ const AdminDashboard = () => {
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error("Error promoting user:", err);
-      setError("Failed to promote user. Please try again.");
+      
+      // Try to handle auth errors first
+      const handled = await handleAuthError(err);
+      if (!handled) {
+        setError("Failed to promote user. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -118,6 +196,7 @@ const AdminDashboard = () => {
   const handleDemote = async (userId) => {
     try {
       setLoading(true);
+      setError("");
       await api.put(`/admin/users/${userId}/role`, { role: 'user' });
       
       // Update role in the list
@@ -129,7 +208,12 @@ const AdminDashboard = () => {
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error("Error demoting user:", err);
-      setError("Failed to demote user. Please try again.");
+      
+      // Try to handle auth errors first
+      const handled = await handleAuthError(err);
+      if (!handled) {
+        setError("Failed to demote user. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -142,6 +226,7 @@ const AdminDashboard = () => {
     
     try {
       setLoading(true);
+      setError("");
       await api.delete(`/admin/users/${userId}`);
       
       // Remove user from the list
@@ -151,7 +236,12 @@ const AdminDashboard = () => {
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error("Error deleting user:", err);
-      setError("Failed to delete user. Please try again.");
+      
+      // Try to handle auth errors first
+      const handled = await handleAuthError(err);
+      if (!handled) {
+        setError("Failed to delete user. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -193,6 +283,37 @@ const AdminDashboard = () => {
   if (loading && users.length === 0) {
     return <div className="text-center mt-5"><div className="spinner-border"></div></div>;
   }
+  
+  // Show a special message when we detect an authentication issue
+  if (authRetryCount > 0) {
+    return (
+      <div className="container mt-4">
+        <div className="alert alert-warning">
+          <h4 className="alert-heading">Session Refresh</h4>
+          <p>Your session is being refreshed. Please wait a moment...</p>
+          <div className="d-flex justify-content-center mb-2">
+            <div className="spinner-border" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+          </div>
+          <hr />
+          <p className="mb-0">
+            If you're still seeing this message after a few seconds, please try{" "}
+            <button 
+              className="btn btn-link p-0" 
+              style={{ verticalAlign: 'baseline' }}
+              onClick={() => {
+                setAuthRetryCount(0);
+                window.location.reload();
+              }}
+            >
+              refreshing the page
+            </button> or <a href="/login" className="alert-link">logging in again</a>.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mt-4">
@@ -209,13 +330,37 @@ const AdminDashboard = () => {
           )}
           <button 
             className="btn btn-outline-primary" 
-            onClick={() => {
+            onClick={async () => {
               setLoading(true);
-              fetchUsers();
-              fetchPendingCount();
+              setError("");
+              try {
+                // Reset auth retry count before refreshing
+                setAuthRetryCount(0);
+                
+                // First try to refresh the token proactively
+                await refreshToken();
+                
+                // Then fetch the data
+                await Promise.all([fetchUsers(), fetchPendingCount()]);
+              } catch (err) {
+                console.error("Error refreshing data:", err);
+                setError("Failed to refresh data. Please try again.");
+              } finally {
+                setLoading(false);
+              }
             }}
+            disabled={loading}
           >
-            <i className="bi bi-arrow-clockwise me-1"></i> Refresh
+            {loading ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-arrow-clockwise me-1"></i> Refresh
+              </>
+            )}
           </button>
         </div>
       </div>
