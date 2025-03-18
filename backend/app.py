@@ -385,6 +385,28 @@ def fix_double_api_prefix_reject_user(user_id):
     # Route to /users/<int:user_id>/reject in the admin blueprint
     return reject_user(user_id)
 
+@app.route('/api/api/admin/users/<int:user_id>', methods=['DELETE'])
+@jwt_required()
+def fix_double_api_prefix_delete_user(user_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/admin/users/{user_id} DELETE request")
+    from api.admin import delete_user
+    from flask import g
+    g.user_id = get_jwt_identity()
+    # Route to /users/<int:user_id> in the admin blueprint
+    return delete_user(user_id)
+    
+@app.route('/api/api/admin/users/<int:user_id>/role', methods=['PUT'])
+@jwt_required()
+def fix_double_api_prefix_update_user_role(user_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/admin/users/{user_id}/role PUT request")
+    from api.admin import update_user_role
+    from flask import g
+    g.user_id = get_jwt_identity()
+    # Route to /users/<int:user_id>/role in the admin blueprint
+    return update_user_role(user_id)
+
 # Emergency fix for double-prefixed players endpoints
 @app.route('/api/api/teams/<int:team_id>/players', methods=['GET'])
 @jwt_required()
