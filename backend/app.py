@@ -1,10 +1,11 @@
 
-from flask import Flask, jsonify, send_from_directory, Blueprint, request
+from flask import Flask, jsonify, send_from_directory, Blueprint, request, g
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 import os
 import importlib.util
+import traceback
 
 # Import API but handle missing dependencies gracefully
 from database import init_db, get_db
@@ -269,6 +270,37 @@ def fix_double_api_prefix_refresh():
     print("[API] EMERGENCY FIX: Handling /api/api/auth/refresh request")
     from api.auth import refresh_token
     return refresh_token()
+
+# Additional fixes for user-related double prefix issues
+@app.route('/api/api/user/profile', methods=['GET'])
+@jwt_required()
+def fix_double_api_prefix_get_profile():
+    """Emergency fix for the /api/api/user/profile GET issue."""
+    print("[API] EMERGENCY FIX: Handling /api/api/user/profile GET request")
+    from api.users import get_user_profile
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return get_user_profile()
+
+@app.route('/api/api/user/profile', methods=['PUT'])
+@jwt_required()
+def fix_double_api_prefix_update_profile():
+    """Emergency fix for the /api/api/user/profile PUT issue."""
+    print("[API] EMERGENCY FIX: Handling /api/api/user/profile PUT request")
+    from api.users import update_user_profile
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return update_user_profile()
+
+@app.route('/api/api/teams', methods=['GET'])
+@jwt_required()
+def fix_double_api_prefix_get_teams():
+    """Emergency fix for the /api/api/teams GET issue."""
+    print("[API] EMERGENCY FIX: Handling /api/api/teams GET request")
+    from api.teams import get_teams
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return get_teams()
 
 # DEPRECATED: Root API route - will be moved to a system blueprint in a future update
 @app.route('/api')

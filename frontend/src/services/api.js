@@ -158,6 +158,9 @@ async function refreshTokenIfNeeded() {
 
 // Enhanced utility function to handle API paths correctly
 const apiPath = (path) => {
+  // Add diagnostic logging visible in both development and production
+  console.log(`[API-DEBUG] apiPath called with: ${path}`);
+  
   // Handle null or undefined
   if (!path) return '/api';
   
@@ -177,19 +180,23 @@ const apiPath = (path) => {
   
   // Add API prefix if needed - prevent double /api/api
   if (!hasApiPrefix) {
-    return `/api${normalizedPath}`;
+    const result = `/api${normalizedPath}`;
+    console.log(`[API-DEBUG] Added API prefix: ${result}`);
+    return result;
   }
   
   // Detect and fix double /api/api prefix
   if (normalizedPath.startsWith('/api/api/')) {
-    // Log warning in development mode
-    if (process.env.NODE_ENV === 'development') {
-      console.warn(`[API] Detected duplicate API prefix in path: ${normalizedPath}`);
-    }
+    // Always log warning for this critical fix, even in production
+    console.warn(`[API-DEBUG] Detected duplicate API prefix in path: ${normalizedPath}`);
+    
     // Fix by removing one /api
-    return normalizedPath.replace('/api/api/', '/api/');
+    const fixedPath = normalizedPath.replace('/api/api/', '/api/');
+    console.log(`[API-DEBUG] Fixed duplicate prefix: ${fixedPath}`);
+    return fixedPath;
   }
   
+  console.log(`[API-DEBUG] Path unchanged: ${normalizedPath}`);
   return normalizedPath;
 };
 
@@ -254,7 +261,23 @@ export default api;
 
 // AUTH API
 export const login = (email, password) => {
-  return wrappedPost('/auth/login', { email, password });
+  console.log('[API-DEBUG] Login called with email:', email);
+  
+  // Add explicit diagnostic for the login path
+  const rawPath = '/auth/login';
+  const processedPath = apiPath(rawPath);
+  
+  console.log(`[API-DEBUG] Login path: raw='${rawPath}', processed='${processedPath}'`);
+  
+  // Extra safety measure - force the correct path if double prefix is detected
+  const finalPath = processedPath.replace('/api/api/', '/api/');
+  
+  if (finalPath !== processedPath) {
+    console.warn(`[API-DEBUG] Extra safety correction applied: ${processedPath} → ${finalPath}`);
+    return axios.post(finalPath, { email, password });
+  }
+  
+  return wrappedPost(rawPath, { email, password });
 };
 
 export const register = (email, password) => {
