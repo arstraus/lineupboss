@@ -413,16 +413,10 @@ def get_fielding_rotations(game_id):
         return db_error_response(e, "Failed to retrieve fielding rotations")
 
 
-@games.route('/<int:game_id>/fielding-rotations/<int:inning>', methods=['POST', 'PUT'])
+@games.route('/<int:game_id>/fielding-rotations/<int:inning>', methods=['GET', 'POST', 'PUT']) 
 @jwt_required()
-def save_fielding_rotation(game_id, inning):
-    """Create or update fielding rotation for a specific game and inning.
-    
-    Uses standardized database access patterns:
-    - db_session context manager with automatic commit
-    - Structured error handling with db_error_response
-    - Data validation and transformation
-    """
+def fielding_rotation_by_inning(game_id, inning):
+    """Get, create or update fielding rotation for a specific game and inning."""
     user_id = get_jwt_identity()
     
     # Convert user_id to integer if it's a string
@@ -431,6 +425,48 @@ def save_fielding_rotation(game_id, inning):
             user_id = int(user_id)
     except ValueError:
         return jsonify({'error': 'Invalid user ID format'}), 400
+        
+    # For GET requests, return the specific inning's rotation
+    if request.method == 'GET':
+        return get_fielding_rotation_by_inning(game_id, inning, user_id)
+    # For POST/PUT requests, use the existing save function
+    else:
+        return save_fielding_rotation(game_id, inning, user_id)
+        
+def get_fielding_rotation_by_inning(game_id, inning, user_id):
+    """Get a specific fielding rotation by game ID and inning."""
+    try:
+        # Using read_only mode since this is just a query operation
+        with db_session(read_only=True) as session:
+            # Verify game belongs to user's team
+            game = GameService.get_game(session, game_id, user_id)
+            
+            if not game:
+                return jsonify({'error': 'Game not found or unauthorized'}), 404
+            
+            # Get specific fielding rotation
+            rotation = GameService.get_fielding_rotation_by_inning(session, game_id, inning)
+            
+            if not rotation:
+                return jsonify({'error': f'No fielding rotation found for inning {inning}'}), 404
+            
+            # Serialize rotation
+            result = GameService.serialize_fielding_rotation(rotation)
+            
+            return jsonify(result), 200
+    except Exception as e:
+        print(f"Error getting fielding rotation: {str(e)}")
+        return db_error_response(e, f"Failed to retrieve fielding rotation for inning {inning}")
+
+def save_fielding_rotation(game_id, inning, user_id):
+    """Create or update fielding rotation for a specific game and inning.
+    
+    Uses standardized database access patterns:
+    - db_session context manager with automatic commit
+    - Structured error handling with db_error_response
+    - Data validation and transformation
+    """
+    # User ID is already processed and validated by the parent function
         
     data = request.get_json()
     

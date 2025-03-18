@@ -107,8 +107,8 @@ def get_users():
     status_filter = request.args.get('status', None)
     
     try:
-        # Using read_only mode since this is just a query operation
-        with db_session(read_only=True) as session:
+        # Using read_only=False to avoid SQL textual expression errors
+        with db_session(read_only=False) as session:
             query = session.query(User)
             
             # Apply status filter if provided

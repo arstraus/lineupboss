@@ -174,11 +174,21 @@ class ApiTester:
         # Skip login test since we already have a token
         #self.test_endpoint("/auth/login", method="POST", data={"email": "test@example.com", "password": "password"})
         self.test_endpoint("/auth/me")
+        self.test_endpoint("/auth/refresh", method="POST", data={})
+        
+        # System endpoints
+        print_section("System Endpoints")
+        self.test_endpoint("/")
+        self.test_endpoint("/test-jwt")
+        self.test_endpoint("/test-db")
+        self.test_endpoint("/health")
         
         # User endpoints
         print_section("User Endpoints")
         self.test_endpoint("/user/profile")
         self.test_endpoint("/user/subscription")
+        # Add password update endpoint but skip actual test to avoid changing password
+        # self.test_endpoint("/user/password", method="PUT", data={"current_password": "old", "new_password": "new"})
         
         # Teams endpoints
         print_section("Teams Endpoints")
@@ -190,29 +200,57 @@ class ApiTester:
         if team_id:
             self.test_endpoint(f"/teams/{team_id}")
             
-            # Players endpoints
+            # Players endpoints - test both patterns
             print_section("Players Endpoints")
             self.test_endpoint(f"/teams/{team_id}/players")
+            self.test_endpoint(f"/players/team/{team_id}")
             
             player_id = self._get_player_id(team_id)
             if player_id:
                 self.test_endpoint(f"/players/{player_id}")
+                # Test player update/delete but don't execute
+                # self.test_endpoint(f"/players/{player_id}", method="PUT", data={"first_name": "Test"})
+                # self.test_endpoint(f"/players/{player_id}", method="DELETE")
             
-            # Games endpoints
+            # Test player create but don't execute
+            # self.test_endpoint(f"/teams/{team_id}/players", method="POST", data={"first_name": "New", "last_name": "Player"})
+            
+            # Games endpoints - test both patterns
             print_section("Games Endpoints")
             self.test_endpoint(f"/teams/{team_id}/games")
+            self.test_endpoint(f"/games/team/{team_id}")
             
             game_id = self._get_game_id(team_id)
             if game_id:
                 self.test_endpoint(f"/games/{game_id}")
+                # Test game update/delete but don't execute
+                # self.test_endpoint(f"/games/{game_id}", method="PUT", data={"opponent": "Test Team"})
+                # self.test_endpoint(f"/games/{game_id}", method="DELETE")
+                
+                # Lineup endpoints
+                print_section("Lineup Endpoints")
                 self.test_endpoint(f"/games/{game_id}/batting-order")
                 self.test_endpoint(f"/games/{game_id}/fielding-rotations")
                 self.test_endpoint(f"/games/{game_id}/player-availability")
+                
+                # Test specific fielding rotation by inning
+                self.test_endpoint(f"/games/{game_id}/fielding-rotations/1")
+                
+                # Test lineup update endpoints but don't execute
+                # self.test_endpoint(f"/games/{game_id}/batting-order", method="PUT", data={"order_data": []})
+                # self.test_endpoint(f"/games/{game_id}/fielding-rotations/1", method="PUT", data={"positions": {}})
+                # self.test_endpoint(f"/games/{game_id}/player-availability", method="PUT", data={"players": []})
         
         # Admin endpoints
         print_section("Admin Endpoints")
         self.test_endpoint("/admin/pending-count")
         self.test_endpoint("/admin/users?status=pending")
+        self.test_endpoint("/admin/users")  # All users
+        
+        # Test user management but don't execute
+        # self.test_endpoint("/admin/users/2/approve", method="POST")
+        # self.test_endpoint("/admin/users/2/reject", method="POST")
+        # self.test_endpoint("/admin/users/2", method="DELETE")
         
         # Print summary
         self._print_summary()

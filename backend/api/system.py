@@ -52,7 +52,8 @@ def health_check():
         try:
             with db_session(read_only=True) as session:
                 # Just run a simple query to verify database connection
-                session.execute("SELECT 1").scalar()
+                from sqlalchemy import text
+                session.execute(text("SELECT 1")).scalar()
         except Exception as e:
             db_status = "unhealthy"
             db_message = f"Database error: {str(e)}"

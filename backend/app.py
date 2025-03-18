@@ -437,6 +437,16 @@ def fix_double_api_prefix_get_fielding_rotations(game_id):
     # Route to fielding-rotations/<int:game_id> in the games blueprint
     return get_fielding_rotations(game_id)
 
+@app.route('/api/api/games/<int:game_id>/fielding-rotations/<int:inning>', methods=['GET'])
+@jwt_required()
+def fix_double_api_prefix_get_fielding_rotation_by_inning(game_id, inning):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/games/{game_id}/fielding-rotations/{inning} GET request")
+    from api.games import fielding_rotation_by_inning
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return fielding_rotation_by_inning(game_id, inning)
+
 @app.route('/api/api/games/<int:game_id>/player-availability', methods=['GET'])
 @jwt_required()
 def fix_double_api_prefix_get_player_availability(game_id):
