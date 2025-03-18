@@ -122,55 +122,33 @@ class AIService:
             logger.info(f"Sending request to Anthropic for game_id: {game_id}")
             
             try:
-                # First try with Claude 3 Opus
-                try:
-                    logger.info("Trying with Claude 3 Opus model...")
-                    response = anthropic.messages.create(
-                        model="claude-3-opus-20240229",
-                        max_tokens=4000,
-                        temperature=0.7,  # Higher temperature for more variability
-                        system="You are an expert baseball coach assistant that creates fielding rotations. Respond only with JSON.",
-                        messages=[
-                            {"role": "user", "content": prompt}
-                        ]
-                    )
-                    logger.info(f"Successfully used Claude 3 Opus model with response ID: {response.id}")
-                except Exception as opus_error:
-                    # Log the opus error and try with sonnet
-                    logger.warning(f"Claude 3 Opus model failed: {str(opus_error)}. Trying Claude 3 Sonnet...")
-                    
-                    # Try with Claude 3 Sonnet as fallback
-                    try:
-                        response = anthropic.messages.create(
-                            model="claude-3-sonnet-20240229",
-                            max_tokens=4000,
-                            temperature=0.7,
-                            system="You are an expert baseball coach assistant that creates fielding rotations. Respond only with JSON.",
-                            messages=[
-                                {"role": "user", "content": prompt}
-                            ]
-                        )
-                        logger.info(f"Successfully used Claude 3 Sonnet model with response ID: {response.id}")
-                    except Exception as sonnet_error:
-                        # Try with the latest Claude 3.5 Sonnet as final fallback
-                        logger.warning(f"Claude 3 Sonnet model failed: {str(sonnet_error)}. Trying Claude 3.5 Sonnet...")
-                        response = anthropic.messages.create(
-                            model="claude-3-5-sonnet-20240620",
-                            max_tokens=4000,
-                            temperature=0.7,
-                            system="You are an expert baseball coach assistant that creates fielding rotations. Respond only with JSON.",
-                            messages=[
-                                {"role": "user", "content": prompt}
-                            ]
-                        )
-                        logger.info(f"Successfully used Claude 3.5 Sonnet model with response ID: {response.id}")
+                # Use a simpler approach with just one model and a timeout
+                logger.info("Using Claude 3.5 Sonnet for fielding rotation generation with timeout...")
+                
+                # Set a timeout to avoid long-running requests
+                timeout = 8.0  # 8 seconds timeout to stay within Heroku's limits
+                
+                response = anthropic.messages.create(
+                    model="claude-3-5-sonnet-20240620",  # Use the latest model directly
+                    max_tokens=4000,
+                    temperature=0.7,  # Higher temperature for more variability
+                    system="You are an expert baseball coach assistant that creates fielding rotations. Respond only with JSON.",
+                    messages=[
+                        {"role": "user", "content": prompt}
+                    ],
+                    timeout=timeout  # Add timeout parameter
+                )
+                logger.info(f"Successfully received response with ID: {response.id}")
+                
             except Exception as e:
-                # This catches any errors that happen with either model
-                logger.error(f"Anthropic API call failed with all models: {str(e)}")
+                # This catches any errors that happen with the API call
+                logger.error(f"Anthropic API call failed: {str(e)}")
                 
                 # Try to provide a more helpful error message
-                if "model" in str(e).lower():
-                    raise ValueError("The AI models are not available. Please check model availability.")
+                if "timeout" in str(e).lower():
+                    raise ValueError("Request timed out. The operation took too long to complete.")
+                elif "model" in str(e).lower():
+                    raise ValueError("The AI model is not available. Please check model availability.")
                 elif "rate limit" in str(e).lower() or "429" in str(e):
                     raise ValueError("API rate limit exceeded. Please try again later.")
                 elif "authentication" in str(e).lower() or "401" in str(e) or "403" in str(e):

@@ -242,6 +242,22 @@ class GameService:
             PlayerAvailability.game_id == game_id,
             PlayerAvailability.player_id == player_id
         ).first()
+        
+    @staticmethod
+    def get_player_availability_by_id(db: Session, game_id: int, player_id: int):
+        """
+        Get availability status for a specific player in a game.
+        This is an alias for get_player_availability_by_player for API consistency.
+        
+        Args:
+            db: Database session
+            game_id: Game ID
+            player_id: Player ID
+            
+        Returns:
+            PlayerAvailability object if found, None otherwise
+        """
+        return GameService.get_player_availability_by_player(db, game_id, player_id)
     
     @staticmethod
     def set_player_availability(db: Session, game_id: int, player_id: int, available: bool, can_play_catcher: bool = False):

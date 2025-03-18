@@ -768,17 +768,30 @@ def generate_ai_fielding_rotation(game_id):
             infield_positions = data.get('infield_positions', [])
             outfield_positions = data.get('outfield_positions', [])
             
-            # Use the AI service to generate fielding rotation
-            rotation_result = AIService.generate_fielding_rotation(
-                game_id, 
-                players, 
-                innings,
-                required_positions,
-                infield_positions,
-                outfield_positions
-            )
-            
-            return jsonify(rotation_result), 200
+            try:
+                # Use the AI service to generate fielding rotation with timeout handling
+                rotation_result = AIService.generate_fielding_rotation(
+                    game_id, 
+                    players, 
+                    innings,
+                    required_positions,
+                    infield_positions,
+                    outfield_positions
+                )
+                
+                return jsonify(rotation_result), 200
+            except ValueError as ve:
+                if "timeout" in str(ve).lower():
+                    # If timeout occurs, return an informative message with HTTP 202 Accepted
+                    # This indicates the request was valid but could not be completed in time
+                    return jsonify({
+                        "message": "The AI fielding rotation could not be generated in time. Please try again later or create a manual rotation.",
+                        "error": str(ve),
+                        "success": False
+                    }), 202  # 202 Accepted indicates the request was valid but processing couldn't be completed
+                else:
+                    # For other ValueErrors, pass through to the general error handler
+                    raise ve
     except ValueError as e:
         print(f"Error generating AI fielding rotation: {str(e)}")
         return jsonify({"error": str(e)}), 400
