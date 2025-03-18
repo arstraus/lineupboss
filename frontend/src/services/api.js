@@ -324,7 +324,8 @@ export const deletePlayer = (playerId) => {
 
 // GAMES API
 export const getGames = (teamId) => {
-  return wrappedGet(`/teams/${teamId}/games`);
+  // Change to match the actual legacy route registered in games.py
+  return wrappedGet(`/games/team/${teamId}`);
 };
 
 export const getGame = (gameId) => {
@@ -332,7 +333,9 @@ export const getGame = (gameId) => {
 };
 
 export const createGame = (teamId, gameData) => {
-  return wrappedPost(`/teams/${teamId}/games`, gameData);
+  // Make sure we use the legacy route for games creation
+  console.log(`API: Creating game for team ${teamId} using POST to /games/team/${teamId}`);
+  return wrappedPost(`/games/team/${teamId}`, gameData);
 };
 
 export const updateGame = (gameId, gameData) => {

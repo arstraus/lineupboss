@@ -111,6 +111,15 @@ const Dashboard = () => {
       const token = localStorage.getItem("token");
       console.log("Creating team with token:", token ? "Present" : "Not found");
       
+      // Make sure we have required fields
+      if (!newTeam.name) {
+        setError("Team name is required");
+        return;
+      }
+      
+      // Add debug logging for API URL
+      console.log("Creating team at URL:", "/teams");
+      
       const response = await createTeam(newTeam);
       console.log("Team creation response:", response);
       
@@ -126,8 +135,18 @@ const Dashboard = () => {
       if (err.response) {
         console.error("Response status:", err.response.status);
         console.error("Response data:", err.response.data);
+        
+        // More detailed error message based on status code
+        if (err.response.status === 401) {
+          setError("Authentication error. Please try logging out and logging in again.");
+        } else if (err.response.status === 400) {
+          setError(`Bad request: ${err.response.data.error || 'Please check your input'}`);
+        } else {
+          setError(`Failed to create team: ${err.response.data.error || 'Unknown error'}`);
+        }
+      } else {
+        setError("Failed to create team. Please try again.");
       }
-      setError("Failed to create team. Please try again.");
     }
   };
 

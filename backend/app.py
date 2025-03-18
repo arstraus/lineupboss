@@ -328,6 +328,17 @@ def fix_double_api_prefix_get_team(team_id):
     g.user_id = get_jwt_identity()
     return get_team(team_id)
 
+# Add emergency POST route for team creation
+@app.route('/api/api/teams', methods=['POST'])
+@jwt_required()
+def fix_double_api_prefix_create_team():
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print("[API] EMERGENCY FIX: Handling /api/api/teams POST request")
+    from api.teams import create_team
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return create_team()
+
 # Emergency fix for double-prefixed user subscription endpoint
 @app.route('/api/api/user/subscription', methods=['GET'])
 @jwt_required()
@@ -537,15 +548,20 @@ def fix_double_api_prefix_get_players_legacy(team_id):
     g.user_id = get_jwt_identity()
     return get_players(team_id)
 
-@app.route('/api/api/games/team/<int:team_id>', methods=['GET'])
+@app.route('/api/api/games/team/<int:team_id>', methods=['GET', 'POST'])
 @jwt_required()
-def fix_double_api_prefix_get_games_legacy(team_id):
+def fix_double_api_prefix_games_team_operations(team_id):
     """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
-    print(f"[API] EMERGENCY FIX: Handling /api/api/games/team/{team_id} GET request")
-    from api.games import get_games_legacy
+    print(f"[API] EMERGENCY FIX: Handling /api/api/games/team/{team_id} {request.method} request")
     from flask import g
     g.user_id = get_jwt_identity()
-    return get_games_legacy(team_id)
+    
+    if request.method == 'GET':
+        from api.games import get_games_legacy
+        return get_games_legacy(team_id)
+    else:  # POST
+        from api.games import create_game
+        return create_game(team_id)
 
 # AI-powered fielding rotation endpoint
 @app.route('/api/api/games/<int:game_id>/ai-fielding-rotation', methods=['POST'])

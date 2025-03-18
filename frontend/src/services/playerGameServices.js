@@ -23,6 +23,8 @@ export const deletePlayer = (id) => {
 
 // Game services
 export const getTeamGames = (teamId) => {
+  // Use the legacy route that matches games.py implementation
+  // This explicitly uses the /api/games/team/{teamId} route from line 18 in games.py
   return get(`/games/team/${teamId}`);
 };
 
@@ -31,6 +33,9 @@ export const getGame = (id) => {
 };
 
 export const createGame = (teamId, gameData) => {
+  // Use the route that matches games.py implementation
+  // This uses the /api/games/team/{teamId} POST route from line 100 in games.py
+  console.log(`Creating game for team ${teamId} with data:`, gameData);
   return post(`/games/team/${teamId}`, gameData);
 };
 

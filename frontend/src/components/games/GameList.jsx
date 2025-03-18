@@ -36,6 +36,8 @@ const GameList = ({ teamId }) => {
 
   const handleAddGame = async (gameData) => {
     try {
+      // Use the API path consistent with backend routes in games.py
+      // This uses the /api/games/team/{teamId} route that's properly registered
       await post(`/games/team/${teamId}`, gameData);
       setShowAddForm(false);
       fetchGames();
