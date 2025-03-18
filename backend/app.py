@@ -231,32 +231,32 @@ def static_proxy(path):
     except Exception:
         return jsonify({'error': f'Path {path} not found'}), 404
 
-# Emergency fixes for double API prefix issues
+# ===================================================================
+# TEMPORARY EMERGENCY FIXES FOR DOUBLE API PREFIX ISSUES
+# These routes will be removed once the frontend API client update is deployed
+# They handle the /api/api/ prefixed URLs that may still be requested by clients
+# ===================================================================
+
+# Emergency fix for double-prefixed login/register
 @app.route('/api/api/auth/login', methods=['POST'])
 def fix_double_api_prefix_login():
-    """Emergency fix for the /api/api/auth/login issue.
-    
-    This route directly handles the incorrect double-prefixed login URL
-    that the frontend is sending. It forwards the request to the correct
-    auth.login route in the auth blueprint.
-    """
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
     print("[API] EMERGENCY FIX: Handling /api/api/auth/login request")
-    # Import the login function from the auth module
     from api.auth import login as auth_login
-    # Forward to the proper login handler
     return auth_login()
 
 @app.route('/api/api/auth/register', methods=['POST'])
 def fix_double_api_prefix_register():
-    """Emergency fix for the /api/api/auth/register issue."""
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
     print("[API] EMERGENCY FIX: Handling /api/api/auth/register request")
     from api.auth import register as auth_register
     return auth_register()
 
+# Emergency fix for double-prefixed auth endpoints
 @app.route('/api/api/auth/me', methods=['GET'])
 @jwt_required()
 def fix_double_api_prefix_me():
-    """Emergency fix for the /api/api/auth/me issue."""
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
     print("[API] EMERGENCY FIX: Handling /api/api/auth/me request")
     from api.auth import get_user_info
     from flask import g
@@ -266,16 +266,16 @@ def fix_double_api_prefix_me():
 @app.route('/api/api/auth/refresh', methods=['POST'])
 @jwt_required()
 def fix_double_api_prefix_refresh():
-    """Emergency fix for the /api/api/auth/refresh issue."""
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
     print("[API] EMERGENCY FIX: Handling /api/api/auth/refresh request")
     from api.auth import refresh_token
     return refresh_token()
 
-# Additional fixes for user-related double prefix issues
+# Emergency fix for double-prefixed user endpoints
 @app.route('/api/api/user/profile', methods=['GET'])
 @jwt_required()
 def fix_double_api_prefix_get_profile():
-    """Emergency fix for the /api/api/user/profile GET issue."""
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
     print("[API] EMERGENCY FIX: Handling /api/api/user/profile GET request")
     from api.users import get_user_profile
     from flask import g
@@ -285,43 +285,47 @@ def fix_double_api_prefix_get_profile():
 @app.route('/api/api/user/profile', methods=['PUT'])
 @jwt_required()
 def fix_double_api_prefix_update_profile():
-    """Emergency fix for the /api/api/user/profile PUT issue."""
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
     print("[API] EMERGENCY FIX: Handling /api/api/user/profile PUT request")
     from api.users import update_user_profile
     from flask import g
     g.user_id = get_jwt_identity()
     return update_user_profile()
 
+# Emergency fix for double-prefixed teams endpoints
 @app.route('/api/api/teams', methods=['GET'])
 @jwt_required()
 def fix_double_api_prefix_get_teams():
-    """Emergency fix for the /api/api/teams GET issue."""
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
     print("[API] EMERGENCY FIX: Handling /api/api/teams GET request")
     from api.teams import get_teams
     from flask import g
     g.user_id = get_jwt_identity()
     return get_teams()
 
-# DEPRECATED: Root API route - will be moved to a system blueprint in a future update
+# ===================================================================
+# DEPRECATED ENDPOINTS - WILL BE REMOVED IN A FUTURE RELEASE
+# All endpoints below are deprecated and will be removed in a future release
+# They are maintained for backward compatibility but should not be used
+# ===================================================================
+
+# DEPRECATED: Root API route - use system blueprint instead
 @app.route('/api')
 def hello():
     print("[API] WARNING: Using deprecated direct route /api")
-    print("[API] This will be moved to a blueprint in a future update")
     return jsonify({'message': 'Welcome to Lineup API'})
 
-# DEPRECATED: Test JWT route - will be moved to a system blueprint in a future update
+# DEPRECATED: Test JWT route - use system blueprint instead
 @app.route('/api/test-jwt')
 @jwt_required()
 def test_jwt():
     print("[API] WARNING: Using deprecated direct route /api/test-jwt")
-    print("[API] This will be moved to a blueprint in a future update")
     current_user_id = get_jwt_identity()
-    auth_header = request.headers.get('Authorization', 'None')
-    print(f"Authorization header: {auth_header}")
-    print(f"Current user ID from JWT: {current_user_id}")
     return jsonify({'message': 'JWT is valid', 'user_id': current_user_id})
 
-# Route Management Documentation
+# ===================================================================
+# ROUTE ARCHITECTURE DOCUMENTATION
+# ===================================================================
 """
 ROUTE ARCHITECTURE
 ------------------
@@ -332,75 +336,67 @@ All LineupBoss API routes should be defined in their respective blueprints:
 - /api/players/... - Player management in api/players.py
 - /api/games/... - Game management in api/games.py
 - /api/admin/... - Admin functions in api/admin.py
+- /api/system/... - System endpoints in api/system.py
 
 These blueprints are registered in api/__init__.py with the appropriate prefixes.
 Direct route registration in app.py should be avoided to prevent inconsistencies.
-
-The following routes used to be defined directly in app.py but have been deprecated
-in favor of using the blueprint-based routes exclusively. They are kept here 
-temporarily as forwarding routes with deprecation warnings to give clients time
-to update their implementations.
 """
 
-# DEPRECATED: The following routes are deprecated and will be removed in a future release.
-# They are maintained only for backward compatibility.
-# Use the blueprint routes instead (/api/user/... etc.)
+# ===================================================================
+# DEPRECATED ROUTES - SCHEDULED FOR REMOVAL ON MAY 1, 2025
+# These endpoints are duplicates of blueprint-based routes. Use the blueprint routes instead:
+# - User endpoints: api.users module with route prefix /api/user
+# - System endpoints: api.system module with route prefix /api
+# ===================================================================
 
+# Helper function for deprecated route handlers
 def handle_deprecated_route(path, handler_func):
     """Common handler for deprecated routes that logs a warning and forwards to the blueprint handler"""
     print(f"[API] WARNING: Deprecated direct route accessed: {path}")
-    print(f"[API] This route will be removed in a future release.")
-    print(f"[API] Please use the blueprint route instead.")
     
     # Use Flask's g object to store the JWT identity, which token_required expects
     g.user_id = get_jwt_identity()
     
     return handler_func()
 
+# DEPRECATED USER ENDPOINTS - Use /api/user/profile instead
 @app.route('/api/user/profile', methods=['GET'])
 @jwt_required()
 def redirect_user_profile_get():
-    """DEPRECATED: Forward user profile GET requests to the blueprint handler"""
+    """TO BE REMOVED - Use the users_bp blueprint endpoint /api/user/profile instead"""
     from api.users import get_user_profile
     return handle_deprecated_route('/api/user/profile [GET]', get_user_profile)
 
 @app.route('/api/user/profile', methods=['PUT'])
 @jwt_required()
 def redirect_user_profile_put():
-    """DEPRECATED: Forward user profile PUT requests to the blueprint handler"""
+    """TO BE REMOVED - Use the users_bp blueprint endpoint /api/user/profile instead"""
     from api.users import update_user_profile
     return handle_deprecated_route('/api/user/profile [PUT]', update_user_profile)
 
 @app.route('/api/user/password', methods=['PUT'])
 @jwt_required()
 def redirect_user_password_put():
-    """DEPRECATED: Forward user password PUT requests to the blueprint handler"""
+    """TO BE REMOVED - Use the users_bp blueprint endpoint /api/user/password instead"""
     from api.users import update_password
     return handle_deprecated_route('/api/user/password [PUT]', update_password)
 
 @app.route('/api/user/subscription', methods=['GET'])
 @jwt_required()
 def redirect_user_subscription_get():
-    """DEPRECATED: Forward user subscription GET requests to the blueprint handler"""
+    """TO BE REMOVED - Use the users_bp blueprint endpoint /api/user/subscription instead"""
     from api.users import get_subscription
     return handle_deprecated_route('/api/user/subscription [GET]', get_subscription)
 
-# DEPRECATED: Test database endpoint - will be moved to a system blueprint in a future update
+# DEPRECATED SYSTEM ENDPOINTS - Use /api/test-db instead
 @app.route('/api/test-db')
 def test_db():
+    """TO BE REMOVED - Use the system blueprint endpoint /api/test-db instead"""
     print("[API] WARNING: Using deprecated direct route /api/test-db")
-    print("[API] This will be moved to a blueprint in a future update")
-    try:
-        # Using standardized database access patterns
-        from shared.database import db_session
-        from shared.models import User
-        
-        with db_session(read_only=True) as session:
-            user_count = session.query(User).count()
-            return jsonify({'message': 'Database connection successful', 'user_count': user_count})
-    except Exception as e:
-        from shared.database import db_error_response
-        return db_error_response(e, "Database connection failed")
+    
+    # Forward to the system blueprint implementation
+    from api.system import test_db as system_test_db
+    return system_test_db()
 
 # Initialize database before first request
 def before_first_request():

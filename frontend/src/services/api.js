@@ -158,9 +158,6 @@ async function refreshTokenIfNeeded() {
 
 // Enhanced utility function to handle API paths correctly
 const apiPath = (path) => {
-  // Add diagnostic logging visible in both development and production
-  console.log(`[API-DEBUG] apiPath called with: ${path}`);
-  
   // Handle null or undefined
   if (!path) return '/api';
   
@@ -180,67 +177,54 @@ const apiPath = (path) => {
   
   // Add API prefix if needed - prevent double /api/api
   if (!hasApiPrefix) {
-    const result = `/api${normalizedPath}`;
-    console.log(`[API-DEBUG] Added API prefix: ${result}`);
-    return result;
+    return `/api${normalizedPath}`;
   }
   
   // Detect and fix double /api/api prefix
   if (normalizedPath.startsWith('/api/api/')) {
-    // Always log warning for this critical fix, even in production
-    console.warn(`[API-DEBUG] Detected duplicate API prefix in path: ${normalizedPath}`);
+    // Log warning for this critical fix in development
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[API] Fixing duplicate API prefix in path: ${normalizedPath}`);
+    }
     
     // Fix by removing one /api
-    const fixedPath = normalizedPath.replace('/api/api/', '/api/');
-    console.log(`[API-DEBUG] Fixed duplicate prefix: ${fixedPath}`);
-    return fixedPath;
+    return normalizedPath.replace('/api/api/', '/api/');
   }
   
-  console.log(`[API-DEBUG] Path unchanged: ${normalizedPath}`);
   return normalizedPath;
 };
 
-// Create wrapped API methods that use apiPath
-const wrappedGet = (url, config) => {
-  const originalUrl = url;
-  const processedUrl = apiPath(url);
-  
-  // Only log in development environment
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[API] GET ${processedUrl}${originalUrl !== processedUrl ? ` (original: ${originalUrl})` : ''}`);
-  }
-  return axios.get(processedUrl, config);
+// Enhanced request handler wrapper with double-prefix protection
+const createSafeRequestMethod = (method, axiosMethod) => {
+  return (url, ...args) => {
+    const processedUrl = apiPath(url);
+    
+    // Additional safety check - detect and fix any remaining /api/api/ prefixes
+    // This is a secondary defense after apiPath's own check
+    const finalPath = processedUrl.includes('/api/api/') 
+      ? processedUrl.replace('/api/api/', '/api/') 
+      : processedUrl;
+    
+    // Log API calls in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[API] ${method} ${finalPath}`);
+      
+      // If we had to fix a path, log a warning
+      if (finalPath !== processedUrl) {
+        console.warn(`[API] Fixed duplicate API prefix: ${processedUrl} → ${finalPath}`);
+      }
+    }
+    
+    // Make the actual request with the safe path
+    return axiosMethod(finalPath, ...args);
+  };
 };
 
-const wrappedPost = (url, data, config) => {
-  const originalUrl = url;
-  const processedUrl = apiPath(url);
-  
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[API] POST ${processedUrl}${originalUrl !== processedUrl ? ` (original: ${originalUrl})` : ''}`);
-  }
-  return axios.post(processedUrl, data, config);
-};
-
-const wrappedPut = (url, data, config) => {
-  const originalUrl = url;
-  const processedUrl = apiPath(url);
-  
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[API] PUT ${processedUrl}${originalUrl !== processedUrl ? ` (original: ${originalUrl})` : ''}`);
-  }
-  return axios.put(processedUrl, data, config);
-};
-
-const wrappedDelete = (url, config) => {
-  const originalUrl = url;
-  const processedUrl = apiPath(url);
-  
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[API] DELETE ${processedUrl}${originalUrl !== processedUrl ? ` (original: ${originalUrl})` : ''}`);
-  }
-  return axios.delete(processedUrl, config);
-};
+// Create wrapped API methods that use the enhanced request handler
+const wrappedGet = createSafeRequestMethod('GET', axios.get);
+const wrappedPost = createSafeRequestMethod('POST', (url, data, config) => axios.post(url, data, config));
+const wrappedPut = createSafeRequestMethod('PUT', (url, data, config) => axios.put(url, data, config));
+const wrappedDelete = createSafeRequestMethod('DELETE', axios.delete);
 
 // Export api object for named import
 export const api = {
@@ -261,23 +245,7 @@ export default api;
 
 // AUTH API
 export const login = (email, password) => {
-  console.log('[API-DEBUG] Login called with email:', email);
-  
-  // Add explicit diagnostic for the login path
-  const rawPath = '/auth/login';
-  const processedPath = apiPath(rawPath);
-  
-  console.log(`[API-DEBUG] Login path: raw='${rawPath}', processed='${processedPath}'`);
-  
-  // Extra safety measure - force the correct path if double prefix is detected
-  const finalPath = processedPath.replace('/api/api/', '/api/');
-  
-  if (finalPath !== processedPath) {
-    console.warn(`[API-DEBUG] Extra safety correction applied: ${processedPath} → ${finalPath}`);
-    return axios.post(finalPath, { email, password });
-  }
-  
-  return wrappedPost(rawPath, { email, password });
+  return wrappedPost('/auth/login', { email, password });
 };
 
 export const register = (email, password) => {
@@ -309,52 +277,16 @@ export const updatePassword = (currentPassword, newPassword) => {
 };
 
 export const getUserSubscription = () => {
-  console.log('[API-DEBUG] getUserSubscription called');
-  const rawPath = '/user/subscription';
-  const processedPath = apiPath(rawPath);
-  
-  // Extra safety measure - force the correct path if double prefix is detected
-  const finalPath = processedPath.replace('/api/api/', '/api/');
-  
-  if (finalPath !== processedPath) {
-    console.warn(`[API-DEBUG] Extra safety correction in getUserSubscription: ${processedPath} → ${finalPath}`);
-    return axios.get(finalPath);
-  }
-  
-  return wrappedGet(rawPath);
+  return wrappedGet('/user/subscription');
 };
 
 // TEAMS API
 export const getTeams = () => {
-  console.log('[API-DEBUG] getTeams called');
-  const rawPath = '/teams';
-  const processedPath = apiPath(rawPath);
-  
-  // Extra safety measure - force the correct path if double prefix is detected
-  const finalPath = processedPath.replace('/api/api/', '/api/');
-  
-  if (finalPath !== processedPath) {
-    console.warn(`[API-DEBUG] Extra safety correction in getTeams: ${processedPath} → ${finalPath}`);
-    return axios.get(finalPath);
-  }
-  
-  return wrappedGet(rawPath);
+  return wrappedGet('/teams');
 };
 
 export const getTeam = (teamId) => {
-  console.log(`[API-DEBUG] getTeam called with ID: ${teamId}`);
-  const rawPath = `/teams/${teamId}`;
-  const processedPath = apiPath(rawPath);
-  
-  // Extra safety measure - force the correct path if double prefix is detected
-  const finalPath = processedPath.replace('/api/api/', '/api/');
-  
-  if (finalPath !== processedPath) {
-    console.warn(`[API-DEBUG] Extra safety correction in getTeam: ${processedPath} → ${finalPath}`);
-    return axios.get(finalPath);
-  }
-  
-  return wrappedGet(rawPath);
+  return wrappedGet(`/teams/${teamId}`);
 };
 
 export const createTeam = (teamData) => {
