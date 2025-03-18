@@ -51,6 +51,10 @@ class PlayerService:
             
         Returns:
             Newly created player
+            
+        Note:
+            This method doesn't commit changes to the database.
+            The caller is responsible for committing the transaction.
         """
         player = Player(
             team_id=team_id,
@@ -59,9 +63,10 @@ class PlayerService:
             jersey_number=player_data['jersey_number']
         )
         
+        # Add to session but don't commit - caller will commit
         db.add(player)
-        db.commit()
-        db.refresh(player)
+        # Flush to get the ID generated
+        db.flush()
         
         return player
     
@@ -77,6 +82,10 @@ class PlayerService:
             
         Returns:
             Updated player
+            
+        Note:
+            This method doesn't commit changes to the database.
+            The caller is responsible for committing the transaction.
         """
         if 'first_name' in player_data:
             player.first_name = player_data['first_name']
@@ -85,8 +94,9 @@ class PlayerService:
         if 'jersey_number' in player_data:
             player.jersey_number = player_data['jersey_number']
         
-        db.commit()
-        db.refresh(player)
+        # No commit here - caller will commit
+        # But flush to ensure related objects are updated
+        db.flush()
         
         return player
     
@@ -101,9 +111,13 @@ class PlayerService:
             
         Returns:
             True if successful
+            
+        Note:
+            This method doesn't commit changes to the database.
+            The caller is responsible for committing the transaction.
         """
         db.delete(player)
-        db.commit()
+        # No commit here - caller will commit
         
         return True
     

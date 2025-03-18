@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from "react";
 import axios from "axios";
-import { login, register, getCurrentUser } from "../services/api";
+import { login, register, getCurrentUser, refreshToken } from "../services/api";
 
 // Create Auth Context
 export const AuthContext = createContext();
@@ -30,36 +30,79 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Check if user is already logged in
+  // Check if user is already logged in and handle token management
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      getCurrentUser()
-        .then((response) => {
+    let tokenCheckInterval = null;
+    
+    const checkAndLoadUser = async () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const response = await getCurrentUser();
           const userData = response.data;
           setCurrentUser(userData);
           fetchPendingCount(userData);
+          
+          // Check if token needs refresh (from token_expires_soon flag)
+          if (userData.token_expires_soon) {
+            console.log("Token expiring soon, refreshing...");
+            await handleTokenRefresh();
+          }
+          
           setLoading(false);
-        })
-        .catch((err) => {
+        } catch (err) {
           console.error("Error getting current user:", err);
           localStorage.removeItem("token");
           setLoading(false);
-        });
-    } else {
-      setLoading(false);
-    }
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+    
+    // Initial check
+    checkAndLoadUser();
+    
+    // Set up interval to check token every 15 minutes (900000 ms)
+    // This is a background safety mechanism in addition to the API-driven refresh
+    tokenCheckInterval = setInterval(() => {
+      const token = localStorage.getItem("token");
+      if (token && currentUser) {
+        // Only do the token check if user is logged in
+        getCurrentUser()
+          .then(response => {
+            if (response.data.token_expires_soon) {
+              console.log("Token check interval - refreshing expiring token");
+              handleTokenRefresh();
+            }
+          })
+          .catch(err => {
+            console.error("Error during token check interval:", err);
+            // If the token check fails with 401, clear the token
+            if (err.response && err.response.status === 401) {
+              localStorage.removeItem("token");
+              setCurrentUser(null);
+            }
+          });
+      }
+    }, 900000); // 15 minute interval
     
     // Add event listener for browser close/refresh to automatically log out
+    // This is a conservative security measure - consider removing if users
+    // find it frustrating to log in frequently
     const handleBeforeUnload = () => {
-      localStorage.removeItem("token");
+      // Uncomment to enable automatic logout on page refresh/close
+      // localStorage.removeItem("token");
     };
     
     window.addEventListener("beforeunload", handleBeforeUnload);
     
-    // Clean up the event listener when component unmounts
+    // Clean up the event listener and interval when component unmounts
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
+      if (tokenCheckInterval) {
+        clearInterval(tokenCheckInterval);
+      }
     };
   }, []);
 
@@ -179,8 +222,35 @@ export const AuthProvider = ({ children }) => {
       const response = await getCurrentUser();
       setCurrentUser(response.data);
       fetchPendingCount(response.data);
+      
+      // Check if token needs refresh
+      if (response.data.token_expires_soon) {
+        await handleTokenRefresh();
+      }
     } catch (err) {
       console.error("Error refreshing user data:", err);
+    }
+  };
+  
+  // Handle token refresh
+  const handleTokenRefresh = async () => {
+    try {
+      const response = await refreshToken();
+      
+      // Update token in localStorage if refresh succeeded
+      if (response.data && response.data.access_token) {
+        localStorage.setItem("token", response.data.access_token);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("Error refreshing token:", err);
+      
+      // If refresh fails with 401, token is invalid - log out
+      if (err.response && err.response.status === 401) {
+        handleLogout();
+      }
+      return false;
     }
   };
 
@@ -191,7 +261,8 @@ export const AuthProvider = ({ children }) => {
     login: handleLogin,
     register: handleRegister,
     logout: handleLogout,
-    refreshUser
+    refreshUser,
+    refreshToken: handleTokenRefresh
   };
 
   return (

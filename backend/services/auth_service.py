@@ -7,6 +7,13 @@ from datetime import timedelta
 from shared.models import User
 from shared import auth as shared_auth
 
+# Import the token settings from api.auth if available, otherwise use defaults
+try:
+    from api.auth import ACCESS_TOKEN_EXPIRES
+except ImportError:
+    # Default if not imported from api.auth
+    ACCESS_TOKEN_EXPIRES = timedelta(days=15)
+
 class AuthService:
     """Service for authentication operations."""
     
@@ -22,19 +29,25 @@ class AuthService:
             
         Returns:
             Tuple of (user, access_token)
+            
+        Note:
+            This method doesn't commit changes to the database.
+            The caller is responsible for committing the transaction.
         """
         # Create new user
         user = User(email=email)
         user.set_password(password)
         
+        # Add to session but don't commit - caller will commit
         db.add(user)
-        db.commit()
-        db.refresh(user)
         
-        # Create access token with 30-day expiration - convert user ID to string
+        # Create access token with standardized expiration - convert user ID to string
+        # Note: We'll need to flush to get the user ID if it's auto-generated
+        db.flush()
+        
         access_token = create_access_token(
             identity=str(user.id),  # Convert to string to prevent JWT validation errors
-            expires_delta=timedelta(days=30)
+            expires_delta=ACCESS_TOKEN_EXPIRES
         )
         
         print(f"Register: Generated token for user {user.id}")
@@ -72,10 +85,10 @@ class AuthService:
             print(f"Login rejected: User {email} is {user.status}")
             return user, None, status_message
         
-        # Create access token with 30-day expiration - convert user ID to string
+        # Create access token with standardized expiration - convert user ID to string
         access_token = create_access_token(
             identity=str(user.id),  # Convert to string to prevent JWT validation errors
-            expires_delta=timedelta(days=30)
+            expires_delta=ACCESS_TOKEN_EXPIRES
         )
         
         print(f"Login successful for user {user.id}, token generated")

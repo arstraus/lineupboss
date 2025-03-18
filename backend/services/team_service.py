@@ -48,6 +48,10 @@ class TeamService:
             
         Returns:
             Newly created team
+            
+        Note:
+            This method doesn't commit changes to the database.
+            The caller is responsible for committing the transaction.
         """
         team = Team(
             name=team_data['name'],
@@ -58,9 +62,10 @@ class TeamService:
             user_id=user_id
         )
         
+        # Add to session but don't commit - caller will commit
         db.add(team)
-        db.commit()
-        db.refresh(team)
+        # Flush to get the ID generated
+        db.flush()
         
         return team
     
@@ -76,6 +81,10 @@ class TeamService:
             
         Returns:
             Updated team
+            
+        Note:
+            This method doesn't commit changes to the database.
+            The caller is responsible for committing the transaction.
         """
         if 'name' in team_data:
             team.name = team_data['name']
@@ -88,8 +97,9 @@ class TeamService:
         if 'assistant_coach2' in team_data:
             team.assistant_coach2 = team_data['assistant_coach2']
         
-        db.commit()
-        db.refresh(team)
+        # No commit here - caller will commit
+        # But flush to ensure related objects are updated
+        db.flush()
         
         return team
     
@@ -104,9 +114,13 @@ class TeamService:
             
         Returns:
             True if successful
+            
+        Note:
+            This method doesn't commit changes to the database.
+            The caller is responsible for committing the transaction.
         """
         db.delete(team)
-        db.commit()
+        # No commit here - caller will commit
         
         return True
     

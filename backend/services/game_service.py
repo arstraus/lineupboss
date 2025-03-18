@@ -62,8 +62,7 @@ class GameService:
         )
         
         db.add(game)
-        db.commit()
-        db.refresh(game)
+        db.flush()  # Flush to get the ID without committing
         
         return game
     
@@ -91,8 +90,7 @@ class GameService:
         if 'innings' in game_data:
             game.innings = game_data['innings']
         
-        db.commit()
-        db.refresh(game)
+        db.flush()  # Flush changes without committing
         
         return game
     
@@ -109,7 +107,7 @@ class GameService:
             True if successful
         """
         db.delete(game)
-        db.commit()
+        db.flush()  # Flush without committing
         
         return True
     
@@ -148,8 +146,7 @@ class GameService:
             batting_order = BattingOrder(game_id=game_id, order_data=order_data)
             db.add(batting_order)
         
-        db.commit()
-        db.refresh(batting_order)
+        db.flush()  # Flush changes without committing
         
         return batting_order
     
@@ -210,8 +207,7 @@ class GameService:
             rotation = FieldingRotation(game_id=game_id, inning=inning, positions=positions)
             db.add(rotation)
         
-        db.commit()
-        db.refresh(rotation)
+        db.flush()  # Flush changes without committing
         
         return rotation
     
@@ -279,8 +275,7 @@ class GameService:
             )
             db.add(availability)
         
-        db.commit()
-        db.refresh(availability)
+        db.flush()  # Flush changes without committing
         
         return availability
     
@@ -309,6 +304,9 @@ class GameService:
             )
             
             result.append(availability)
+        
+        # No need to commit here, as the db_session in the controller will handle it
+        # Each set_player_availability call will flush its changes
         
         return result
     

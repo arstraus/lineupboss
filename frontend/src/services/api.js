@@ -2,64 +2,197 @@ import axios from 'axios';
 
 // Configure axios with base settings
 axios.defaults.baseURL = process.env.REACT_APP_API_URL || '';
-console.log(`Axios base URL: ${axios.defaults.baseURL}`);
+if (process.env.NODE_ENV === 'development') {
+  console.log(`[API] Base URL: ${axios.defaults.baseURL || '(none)'}`);
+}
 
 // Add request interceptor to automatically add token to requests
 axios.interceptors.request.use(
   config => {
-    console.log(`Request URL before token: ${config.url}`);
-    console.log(`Request method: ${config.method}`);
-    
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('Added authorization token to request');
-    } else {
-      console.log('No token found in localStorage');
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[API] Added authentication token to ${config.method.toUpperCase()} ${config.url}`);
+      }
     }
     return config;
   },
-  error => Promise.reject(error)
+  error => {
+    console.error('[API] Request interceptor error:', error);
+    return Promise.reject(error);
+  }
 );
 
-// Utility function to handle API paths correctly
-const apiPath = (path) => {
-  console.log(`Original path: ${path}`);
+// Add response interceptor for better error handling and token refresh
+axios.interceptors.response.use(
+  response => {
+    // Check for token_expires_soon flag in /auth/me response
+    const url = response.config.url;
+    const isAuthMe = url && (url.endsWith('/api/auth/me') || url.endsWith('/auth/me'));
+    
+    if (isAuthMe && response.data && response.data.token_expires_soon) {
+      // Token is about to expire, attempt to refresh it
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[API] Token expires soon, scheduling refresh');
+      }
+      
+      // Schedule token refresh without blocking the current response
+      setTimeout(() => {
+        refreshTokenIfNeeded()
+          .then(refreshResult => {
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[API] Token refresh completed:', refreshResult ? 'Success' : 'No refresh needed');
+            }
+          })
+          .catch(error => {
+            console.error('[API] Token refresh failed:', error);
+          });
+      }, 100); // Small delay to avoid impacting current flow
+    }
+    
+    // Return successful response
+    return response;
+  },
+  async error => {
+    // Handle error responses
+    if (error.response) {
+      // Server responded with a status code outside of 2xx range
+      const status = error.response.status;
+      const data = error.response.data;
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[API] Error ${status}:`, data);
+      }
+      
+      // Handle authentication errors
+      if (status === 401) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          // Try to refresh the token if it exists
+          try {
+            const isRefreshed = await refreshTokenIfNeeded();
+            
+            if (isRefreshed) {
+              // Successfully refreshed token, retry the original request
+              const config = error.config;
+              // Update the Authorization header with new token
+              config.headers.Authorization = `Bearer ${localStorage.getItem('token')}`;
+              // Create new instance to avoid interceptor loops
+              return axios(config);
+            }
+          } catch (refreshError) {
+            // Refresh failed, proceed with normal error handling
+            console.error('[API] Token refresh failed:', refreshError);
+          }
+          
+          // If we reach here, token refresh failed or wasn't attempted
+          localStorage.removeItem('token');
+          console.error('[API] Authentication failed. Please log in again.');
+          // Consider adding a global notification here
+        }
+      }
+    } else if (error.request) {
+      // Request was made but no response received
+      console.error('[API] No response received:', error.request);
+    } else {
+      // Something else happened in setting up the request
+      console.error('[API] Request error:', error.message);
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+// Token refresh flag to prevent multiple simultaneous refresh requests
+let isRefreshing = false;
+
+// Function to refresh token if needed
+async function refreshTokenIfNeeded() {
+  // Prevent multiple refresh attempts
+  if (isRefreshing) return false;
   
-  // If baseURL already includes /api, remove the leading /api from the path
-  if (axios.defaults.baseURL && axios.defaults.baseURL.endsWith('/api')) {
-    // Remove leading /api if present to avoid double prefix
-    const newPath = path.startsWith('/api/') ? path.substring(4) : path;
-    console.log(`Modified path (baseURL has /api): ${newPath}`);
-    return newPath;
+  isRefreshing = true;
+  
+  try {
+    const response = await axios.post(
+      apiPath('/auth/refresh'),
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      }
+    );
+    
+    // Check if token was refreshed
+    if (response.data && response.data.access_token) {
+      // Update token in storage
+      localStorage.setItem('token', response.data.access_token);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[API] Token refreshed successfully, expires:', response.data.expires_at);
+      }
+      isRefreshing = false;
+      return true;
+    } else {
+      // No refresh needed or performed
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[API] No token refresh needed:', response.data?.message);
+      }
+      isRefreshing = false;
+      return false;
+    }
+  } catch (error) {
+    console.error('[API] Token refresh error:', error);
+    isRefreshing = false;
+    throw error;
+  }
+}
+
+// Simplified utility function to handle API paths correctly
+const apiPath = (path) => {
+  // Ensure path starts with a slash
+  const pathWithSlash = path.startsWith('/') ? path : `/${path}`;
+  
+  // Ensure path has /api prefix (but only once)
+  if (!pathWithSlash.startsWith('/api/')) {
+    return `/api${pathWithSlash}`;
   }
   
-  console.log(`Using original path: ${path}`);
-  return path;
+  return pathWithSlash;
 };
 
 // Create wrapped API methods that use apiPath
 const wrappedGet = (url, config) => {
   const processedUrl = apiPath(url);
-  console.log(`Making GET request to: ${processedUrl}`);
+  // Only log in development environment
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[API] GET ${processedUrl}`);
+  }
   return axios.get(processedUrl, config);
 };
 
 const wrappedPost = (url, data, config) => {
   const processedUrl = apiPath(url);
-  console.log(`Making POST request to: ${processedUrl}`);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[API] POST ${processedUrl}`);
+  }
   return axios.post(processedUrl, data, config);
 };
 
 const wrappedPut = (url, data, config) => {
   const processedUrl = apiPath(url);
-  console.log(`Making PUT request to: ${processedUrl}`);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[API] PUT ${processedUrl}`);
+  }
   return axios.put(processedUrl, data, config);
 };
 
 const wrappedDelete = (url, config) => {
   const processedUrl = apiPath(url);
-  console.log(`Making DELETE request to: ${processedUrl}`);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[API] DELETE ${processedUrl}`);
+  }
   return axios.delete(processedUrl, config);
 };
 
@@ -82,129 +215,125 @@ export default api;
 
 // AUTH API
 export const login = (email, password) => {
-  return wrappedPost('/api/auth/login', { email, password });
+  return wrappedPost('/auth/login', { email, password });
 };
 
 export const register = (email, password) => {
-  return wrappedPost('/api/auth/register', { email, password });
+  return wrappedPost('/auth/register', { email, password });
 };
 
 export const getCurrentUser = () => {
-  return wrappedGet('/api/auth/me');
+  return wrappedGet('/auth/me');
+};
+
+export const refreshToken = () => {
+  return wrappedPost('/auth/refresh');
 };
 
 // USER PROFILE API
 export const getUserProfile = () => {
-  // Log the API call
-  console.log("Calling getUserProfile API endpoint");
-  return wrappedGet('/api/user/profile');
+  return wrappedGet('/user/profile');
 };
 
 export const updateUserProfile = (profileData) => {
-  // Log the API call and data
-  console.log("Calling updateUserProfile API endpoint", profileData);
-  return wrappedPut('/api/user/profile', profileData);
+  return wrappedPut('/user/profile', profileData);
 };
 
 export const updatePassword = (currentPassword, newPassword) => {
-  // Log the API call
-  console.log("Calling updatePassword API endpoint");
-  return wrappedPut('/api/user/password', {
+  return wrappedPut('/user/password', {
     current_password: currentPassword,
     new_password: newPassword
   });
 };
 
 export const getUserSubscription = () => {
-  // Log the API call
-  console.log("Calling getUserSubscription API endpoint");
-  return wrappedGet('/api/user/subscription');
+  return wrappedGet('/user/subscription');
 };
 
 // TEAMS API
 export const getTeams = () => {
-  return wrappedGet('/api/teams');
+  return wrappedGet('/teams');
 };
 
 export const getTeam = (teamId) => {
-  return wrappedGet(`/api/teams/${teamId}`);
+  return wrappedGet(`/teams/${teamId}`);
 };
 
 export const createTeam = (teamData) => {
-  return wrappedPost('/api/teams', teamData);
+  return wrappedPost('/teams', teamData);
 };
 
 export const updateTeam = (teamId, teamData) => {
-  return wrappedPut(`/api/teams/${teamId}`, teamData);
+  return wrappedPut(`/teams/${teamId}`, teamData);
 };
 
 export const deleteTeam = (teamId) => {
-  return wrappedDelete(`/api/teams/${teamId}`);
+  return wrappedDelete(`/teams/${teamId}`);
 };
 
 // PLAYERS API
 export const getPlayers = (teamId) => {
-  return wrappedGet(`/api/teams/${teamId}/players`);
+  return wrappedGet(`/teams/${teamId}/players`);
 };
 
 export const getPlayer = (playerId) => {
-  return wrappedGet(`/api/players/${playerId}`);
+  return wrappedGet(`/players/${playerId}`);
 };
 
 export const createPlayer = (teamId, playerData) => {
-  return wrappedPost(`/api/teams/${teamId}/players`, playerData);
+  return wrappedPost(`/teams/${teamId}/players`, playerData);
 };
 
 export const updatePlayer = (playerId, playerData) => {
-  return wrappedPut(`/api/players/${playerId}`, playerData);
+  return wrappedPut(`/players/${playerId}`, playerData);
 };
 
 export const deletePlayer = (playerId) => {
-  return wrappedDelete(`/api/players/${playerId}`);
+  return wrappedDelete(`/players/${playerId}`);
 };
 
 // GAMES API
 export const getGames = (teamId) => {
-  return wrappedGet(`/api/teams/${teamId}/games`);
+  return wrappedGet(`/teams/${teamId}/games`);
 };
 
 export const getGame = (gameId) => {
-  return wrappedGet(`/api/games/${gameId}`);
+  return wrappedGet(`/games/${gameId}`);
 };
 
 export const createGame = (teamId, gameData) => {
-  return wrappedPost(`/api/teams/${teamId}/games`, gameData);
+  return wrappedPost(`/teams/${teamId}/games`, gameData);
 };
 
 export const updateGame = (gameId, gameData) => {
-  return wrappedPut(`/api/games/${gameId}`, gameData);
+  return wrappedPut(`/games/${gameId}`, gameData);
 };
 
 export const deleteGame = (gameId) => {
-  return wrappedDelete(`/api/games/${gameId}`);
+  return wrappedDelete(`/games/${gameId}`);
 };
 
 // ADMIN API
 export const getPendingUsers = () => {
-  return wrappedGet('/api/admin/pending-users');
+  return wrappedGet('/admin/pending-users');
 };
 
 export const approveUser = (userId) => {
-  return wrappedPost(`/api/admin/approve/${userId}`);
+  return wrappedPost(`/admin/approve/${userId}`);
 };
 
 export const rejectUser = (userId) => {
-  return wrappedPost(`/api/admin/reject/${userId}`);
+  return wrappedPost(`/admin/reject/${userId}`);
 };
 
 export const getPendingCount = () => {
-  return wrappedGet('/api/admin/pending-count');
+  return wrappedGet('/admin/pending-count');
 };
 
 // SYSTEM API
 export const checkApiHealth = async () => {
   try {
-    // Use the root API endpoint, not /api which would be /api/api with the base URL
+    // Check the root API endpoint
     const response = await wrappedGet('/', { timeout: 5000 });
     return { 
       status: 'ok', 
@@ -215,7 +344,7 @@ export const checkApiHealth = async () => {
     // Try alternative endpoints if the root fails
     try {
       // Try the teams endpoint which should be available if the user is logged in
-      const teamsResponse = await wrappedGet('/api/teams', { timeout: 5000 });
+      const teamsResponse = await wrappedGet('/teams', { timeout: 5000 });
       return {
         status: 'ok',
         message: 'API is available (teams endpoint)',
@@ -234,37 +363,37 @@ export const checkApiHealth = async () => {
 
 // LINEUP API
 export const getBattingOrder = (gameId) => {
-  return wrappedGet(`/api/games/${gameId}/batting-order`);
+  return wrappedGet(`/games/${gameId}/batting-order`);
 };
 
 export const updateBattingOrder = (gameId, orderData) => {
-  return wrappedPut(`/api/games/${gameId}/batting-order`, orderData);
+  return wrappedPut(`/games/${gameId}/batting-order`, orderData);
 };
 
 export const saveBattingOrder = (gameId, orderData) => {
-  return wrappedPost(`/api/games/${gameId}/batting-order`, { order_data: orderData });
+  return wrappedPost(`/games/${gameId}/batting-order`, { order_data: orderData });
 };
 
 export const getFieldingRotations = (gameId) => {
-  return wrappedGet(`/api/games/${gameId}/fielding-rotations`);
+  return wrappedGet(`/games/${gameId}/fielding-rotations`);
 };
 
 export const updateFieldingRotation = (gameId, inning, positionsData) => {
-  return wrappedPut(`/api/games/${gameId}/fielding-rotations/${inning}`, positionsData);
+  return wrappedPut(`/games/${gameId}/fielding-rotations/${inning}`, positionsData);
 };
 
 export const saveFieldingRotation = (gameId, inning, positions) => {
-  return wrappedPost(`/api/games/${gameId}/fielding-rotations/${inning}`, { positions });
+  return wrappedPost(`/games/${gameId}/fielding-rotations/${inning}`, { positions });
 };
 
 export const getPlayerAvailability = (gameId) => {
-  return wrappedGet(`/api/games/${gameId}/player-availability`);
+  return wrappedGet(`/games/${gameId}/player-availability`);
 };
 
 export const updatePlayerAvailability = (gameId, availabilityData) => {
-  return wrappedPut(`/api/games/${gameId}/player-availability`, availabilityData);
+  return wrappedPut(`/games/${gameId}/player-availability`, availabilityData);
 };
 
 export const batchSavePlayerAvailability = (gameId, playerAvailabilityArray) => {
-  return wrappedPost(`/api/games/${gameId}/player-availability/batch`, { players: playerAvailabilityArray });
+  return wrappedPost(`/games/${gameId}/player-availability/batch`, { players: playerAvailabilityArray });
 };

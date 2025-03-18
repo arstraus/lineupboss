@@ -43,6 +43,10 @@ API_DOCS_HTML = """
         <div><span class="method">GET</span> <span class="path">/api/auth/me</span></div>
         <div class="description">Get current user information</div>
     </div>
+    <div class="endpoint">
+        <div><span class="method">POST</span> <span class="path">/api/auth/refresh</span></div>
+        <div class="description">Refresh JWT access token. Will return a new token if the current one is about to expire.</div>
+    </div>
     
     <h2>Teams</h2>
     <div class="endpoint">

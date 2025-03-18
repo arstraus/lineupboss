@@ -59,6 +59,42 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/jso
 - **Error handling**: Use try/except blocks with specific exceptions
 - **Constants**: Define constants at the top of files in UPPERCASE
 
+### Database Access Patterns
+
+#### Session Management
+- Use the `db_session` context manager for database operations
+- For read operations: `with db_session(read_only=True) as session:`
+- For write operations: `with db_session(commit=True) as session:`
+- Avoid direct use of `get_db()` and manual session closing
+
+#### Error Handling
+- Use standardized error handling with `db_error_response`
+- Example:
+  ```python
+  try:
+      with db_session(commit=True) as session:
+          # database operations
+  except Exception as e:
+      return db_error_response(e, "Friendly error message")
+  ```
+
+#### Service Layer Responsibilities
+- Services should not commit changes - only manipulate objects
+- Controllers (API routes) are responsible for transaction boundaries
+- Example service method:
+  ```python
+  @staticmethod
+  def update_entity(session, entity_id, data):
+      entity = session.query(Entity).get(entity_id)
+      for key, value in data.items():
+          setattr(entity, key, value)
+      return entity
+  ```
+
+#### Utility Functions
+- Use `db_get_or_404(session, Model, object_id)` for fetching by ID
+- Use `db_run_transaction(func, *args, **kwargs)` for simple transactions
+
 ### Frontend (JavaScript/React)
 - **Imports**: Group React, third-party, and local imports
 - **Formatting**: Use 2 spaces for indentation

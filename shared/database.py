@@ -104,38 +104,68 @@ def get_db_session():
     """
     return SessionLocal()
 
-# Simple context manager for database sessions
+# Enhanced context manager for database sessions
 class db_session:
     """Context manager for database sessions.
     
-    Automatically handles session creation and cleanup.
+    Automatically handles session creation, cleanup, and error handling.
+    
+    This enhanced version provides:
+    1. Automatic session creation and cleanup
+    2. Automatic rollback on exceptions
+    3. Optional commit on successful exit
+    4. Error logging and handling
+    5. Transaction isolation level control
     
     Example usage:
     
-    with db_session() as session:
+    with db_session(commit=True) as session:
         # use session for queries
+        result = session.query(Model).all()
+        # No need to manually commit - it happens automatically on exit
+        return result
+        
+    # For read-only operations:
+    with db_session(read_only=True) as session:
         result = session.query(Model).all()
         return result
     """
-    def __init__(self, commit_on_exit=False):
+    def __init__(self, commit=False, read_only=False, log_errors=True):
         """Initialize the context manager.
         
         Args:
-            commit_on_exit: Whether to commit changes before exiting
+            commit: Whether to commit changes before exiting if no exceptions occurred
+            read_only: Set session to read-only mode (prevents accidental writes)
+            log_errors: Whether to log database errors automatically
         """
-        self.commit_on_exit = commit_on_exit
+        self.commit_on_exit = commit
+        self.read_only = read_only
+        self.log_errors = log_errors
         self.session = None
         
     def __enter__(self):
         """Create and return a new database session."""
         self.session = SessionLocal()
+        
+        # For read-only operations, set isolation level to ensure no write locks
+        if self.read_only:
+            # Execute raw SQL to set transaction as read-only
+            self.session.execute(
+                "SET TRANSACTION READ ONLY"
+            )
+        
         return self.session
         
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Clean up the session.
+        """Clean up the session with improved error handling.
         
-        If an exception occurred, roll back changes.
-        Otherwise, commit if commit_on_exit is True.
+        If an exception occurred:
+          - Roll back changes
+          - Log the error if log_errors is True
+        Otherwise:
+          - Commit if commit_on_exit is True
+        Finally:
+          - Always close the session
         """
         if self.session is None:
             return
@@ -144,12 +174,83 @@ class db_session:
             if exc_type is not None:
                 # An exception occurred, roll back changes
                 self.session.rollback()
-            elif self.commit_on_exit:
-                # No exception and commit_on_exit is True, commit changes
+                
+                # Log the error if requested
+                if self.log_errors:
+                    import logging
+                    logger = logging.getLogger('lineupboss.database')
+                    logger.error(f"Database error: {exc_type.__name__}: {str(exc_val)}")
+                    
+                    # For serious database errors, log more details
+                    if hasattr(exc_val, 'orig') and exc_val.orig is not None:
+                        logger.error(f"Original database error: {str(exc_val.orig)}")
+                        
+            elif self.commit_on_exit and not self.read_only:
+                # No exception and commit_on_exit is True (and not read-only), commit changes
                 self.session.commit()
         finally:
             # Always close the session
             self.session.close()
+            
+# Alias for backward compatibility
+# 'commit_on_exit' parameter is maintained for compatibility
+def db_session_legacy(commit_on_exit=False):
+    """Legacy db_session function for backward compatibility."""
+    return db_session(commit=commit_on_exit)
+
+# Database operation utilities for standardized access patterns
+def db_get_or_404(session, model, object_id, error_message=None):
+    """Get an object by ID or return a 404 error.
+    
+    This utility simplifies the common pattern of getting an object by ID
+    and returning a 404 error if it doesn't exist.
+    
+    Args:
+        session: SQLAlchemy session
+        model: SQLAlchemy model class
+        object_id: ID of the object to get
+        error_message: Optional custom error message (defaults to "{model.__name__} not found")
+        
+    Returns:
+        The requested object
+        
+    Raises:
+        HTTPException with 404 status if the object doesn't exist
+    """
+    from flask import abort
+    
+    obj = session.query(model).filter(model.id == object_id).first()
+    if obj is None:
+        if error_message is None:
+            error_message = f"{model.__name__} not found"
+        abort(404, description=error_message)
+    return obj
+
+def db_run_transaction(func, *args, log_errors=True, **kwargs):
+    """Run a function within a database transaction.
+    
+    This utility provides a clean way to run operations within a transaction
+    with proper error handling and automatic commit/rollback.
+    
+    Args:
+        func: Function to run within the transaction
+        *args: Arguments to pass to the function
+        log_errors: Whether to log database errors
+        **kwargs: Keyword arguments to pass to the function
+        
+    Returns:
+        The result of the function
+        
+    Example:
+        def update_user(session, user_id, new_name):
+            user = session.query(User).filter(User.id == user_id).first()
+            user.name = new_name
+            return user
+            
+        updated_user = db_run_transaction(update_user, user_id=123, new_name="New Name")
+    """
+    with db_session(commit=True, log_errors=log_errors) as session:
+        return func(session, *args, **kwargs)
 
 # Model serialization functions
 def serialize_player(player):
@@ -173,3 +274,41 @@ def serialize_game(game):
         "opponent": game.opponent,
         "innings": game.innings
     }
+
+# Database error handling utilities
+def db_error_response(error, default_message="A database error occurred"):
+    """Create a standard error response for database errors.
+    
+    Args:
+        error: The exception that was raised
+        default_message: Default message to use if no more specific message is available
+        
+    Returns:
+        A tuple (response_dict, status_code) ready to return from an API endpoint
+    """
+    from flask import jsonify
+    import logging
+    
+    logger = logging.getLogger('lineupboss.database')
+    
+    # Log the error
+    logger.error(f"Database error: {str(error)}")
+    
+    # Get a more specific error message if available
+    if hasattr(error, 'orig') and error.orig is not None:
+        logger.error(f"Original database error: {str(error.orig)}")
+        
+        # Check for specific error types
+        if hasattr(error.orig, 'pgcode'):
+            pgcode = error.orig.pgcode
+            
+            # Foreign key violation
+            if pgcode == '23503':
+                return jsonify({"error": "This operation would violate database constraints"}), 400
+                
+            # Unique violation (e.g., duplicate key)
+            if pgcode == '23505':
+                return jsonify({"error": "A record with this information already exists"}), 400
+                
+    # Default error response
+    return jsonify({"error": default_message}), 500
