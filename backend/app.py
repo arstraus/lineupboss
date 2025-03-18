@@ -430,16 +430,20 @@ def fix_double_api_prefix_get_game(game_id):
     return get_game(game_id)
 
 # Emergency fix for double-prefixed lineup endpoints
-@app.route('/api/api/games/<int:game_id>/batting-order', methods=['GET'])
+@app.route('/api/api/games/<int:game_id>/batting-order', methods=['GET', 'POST', 'PUT'])
 @jwt_required()
-def fix_double_api_prefix_get_batting_order(game_id):
+def fix_double_api_prefix_batting_order(game_id):
     """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
-    print(f"[API] EMERGENCY FIX: Handling /api/api/games/{game_id}/batting-order GET request")
-    from api.games import get_batting_order
+    method = request.method
+    print(f"[API] EMERGENCY FIX: Handling /api/api/games/{game_id}/batting-order {method} request")
+    from api.games import get_batting_order, save_batting_order
     from flask import g
     g.user_id = get_jwt_identity()
-    # Route to batting-order/<int:game_id> in the games blueprint
-    return get_batting_order(game_id)
+    
+    if method == 'GET':
+        return get_batting_order(game_id)
+    else:  # POST or PUT
+        return save_batting_order(game_id)
 
 @app.route('/api/api/games/<int:game_id>/fielding-rotations', methods=['GET'])
 @jwt_required()
@@ -452,32 +456,49 @@ def fix_double_api_prefix_get_fielding_rotations(game_id):
     # Route to fielding-rotations/<int:game_id> in the games blueprint
     return get_fielding_rotations(game_id)
 
-@app.route('/api/api/games/<int:game_id>/fielding-rotations/<int:inning>', methods=['GET'])
+@app.route('/api/api/games/<int:game_id>/fielding-rotations/<int:inning>', methods=['GET', 'POST', 'PUT'])
 @jwt_required()
-def fix_double_api_prefix_get_fielding_rotation_by_inning(game_id, inning):
+def fix_double_api_prefix_fielding_rotation_by_inning(game_id, inning):
     """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
-    print(f"[API] EMERGENCY FIX: Handling /api/api/games/{game_id}/fielding-rotations/{inning} GET request")
+    method = request.method
+    print(f"[API] EMERGENCY FIX: Handling /api/api/games/{game_id}/fielding-rotations/{inning} {method} request")
     from api.games import fielding_rotation_by_inning
     from flask import g
     g.user_id = get_jwt_identity()
     return fielding_rotation_by_inning(game_id, inning)
 
-@app.route('/api/api/games/<int:game_id>/player-availability', methods=['GET'])
+@app.route('/api/api/games/<int:game_id>/player-availability', methods=['GET', 'PUT', 'POST'])
 @jwt_required()
-def fix_double_api_prefix_get_player_availability(game_id):
+def fix_double_api_prefix_player_availability(game_id):
     """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
-    print(f"[API] EMERGENCY FIX: Handling /api/api/games/{game_id}/player-availability GET request")
+    method = request.method
+    print(f"[API] EMERGENCY FIX: Handling /api/api/games/{game_id}/player-availability {method} request")
     from api.games import get_player_availability
     from flask import g
     g.user_id = get_jwt_identity()
-    # Route to player-availability/<int:game_id> in the games blueprint
-    return get_player_availability(game_id)
+    
+    if method == 'GET':
+        return get_player_availability(game_id)
+    else:  # PUT or POST - single update mode
+        return jsonify({"error": "Use /api/api/games/<game_id>/player-availability/batch instead"}), 400
 
-@app.route('/api/api/games/<int:game_id>/player-availability/<int:player_id>', methods=['GET'])
+# Special batch endpoint
+@app.route('/api/api/games/<int:game_id>/player-availability/batch', methods=['POST'])
 @jwt_required()
-def fix_double_api_prefix_get_player_availability_by_id(game_id, player_id):
+def fix_double_api_prefix_batch_player_availability(game_id):
     """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
-    print(f"[API] EMERGENCY FIX: Handling /api/api/games/{game_id}/player-availability/{player_id} GET request")
+    print(f"[API] EMERGENCY FIX: Handling /api/api/games/{game_id}/player-availability/batch POST request")
+    from api.games import batch_save_player_availability
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return batch_save_player_availability(game_id)
+
+@app.route('/api/api/games/<int:game_id>/player-availability/<int:player_id>', methods=['GET', 'POST', 'PUT'])
+@jwt_required()
+def fix_double_api_prefix_player_availability_by_id(game_id, player_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    method = request.method
+    print(f"[API] EMERGENCY FIX: Handling /api/api/games/{game_id}/player-availability/{player_id} {method} request")
     from api.games import player_availability_by_id
     from flask import g
     g.user_id = get_jwt_identity()
