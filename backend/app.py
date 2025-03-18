@@ -333,6 +333,7 @@ def fix_double_api_prefix_pending_count():
     from api.admin import get_pending_count
     from flask import g
     g.user_id = get_jwt_identity()
+    # Route to /pending-count in the admin blueprint
     return get_pending_count()
 
 @app.route('/api/api/admin/users', methods=['GET'])
@@ -343,7 +344,109 @@ def fix_double_api_prefix_get_users():
     from api.admin import get_users
     from flask import g
     g.user_id = get_jwt_identity()
+    # Route to /users in the admin blueprint
+    # Will preserve any query parameters like ?status=pending
     return get_users()
+
+@app.route('/api/api/admin/users/<int:user_id>/approve', methods=['POST'])
+@jwt_required()
+def fix_double_api_prefix_approve_user(user_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/admin/users/{user_id}/approve POST request")
+    from api.admin import approve_user
+    from flask import g
+    g.user_id = get_jwt_identity()
+    # Route to /users/<int:user_id>/approve in the admin blueprint
+    return approve_user(user_id)
+
+@app.route('/api/api/admin/users/<int:user_id>/reject', methods=['POST'])
+@jwt_required()
+def fix_double_api_prefix_reject_user(user_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/admin/users/{user_id}/reject POST request")
+    from api.admin import reject_user
+    from flask import g
+    g.user_id = get_jwt_identity()
+    # Route to /users/<int:user_id>/reject in the admin blueprint
+    return reject_user(user_id)
+
+# Emergency fix for double-prefixed players endpoints
+@app.route('/api/api/teams/<int:team_id>/players', methods=['GET'])
+@jwt_required()
+def fix_double_api_prefix_get_players(team_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/teams/{team_id}/players GET request")
+    from api.players import get_players
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return get_players(team_id)
+
+@app.route('/api/api/players/<int:player_id>', methods=['GET'])
+@jwt_required()
+def fix_double_api_prefix_get_player(player_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/players/{player_id} GET request")
+    from api.players import get_player
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return get_player(player_id)
+
+# Emergency fix for double-prefixed games endpoints
+@app.route('/api/api/teams/<int:team_id>/games', methods=['GET'])
+@jwt_required()
+def fix_double_api_prefix_get_games(team_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/teams/{team_id}/games GET request")
+    from api.games import get_games
+    from flask import g
+    g.user_id = get_jwt_identity()
+    # Route to team/<int:team_id> in the games blueprint
+    return get_games(team_id)
+
+@app.route('/api/api/games/<int:game_id>', methods=['GET'])
+@jwt_required()
+def fix_double_api_prefix_get_game(game_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/games/{game_id} GET request")
+    from api.games import get_game
+    from flask import g
+    g.user_id = get_jwt_identity()
+    # Route to /<int:game_id> in the games blueprint
+    return get_game(game_id)
+
+# Emergency fix for double-prefixed lineup endpoints
+@app.route('/api/api/games/<int:game_id>/batting-order', methods=['GET'])
+@jwt_required()
+def fix_double_api_prefix_get_batting_order(game_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/games/{game_id}/batting-order GET request")
+    from api.games import get_batting_order
+    from flask import g
+    g.user_id = get_jwt_identity()
+    # Route to batting-order/<int:game_id> in the games blueprint
+    return get_batting_order(game_id)
+
+@app.route('/api/api/games/<int:game_id>/fielding-rotations', methods=['GET'])
+@jwt_required()
+def fix_double_api_prefix_get_fielding_rotations(game_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/games/{game_id}/fielding-rotations GET request")
+    from api.games import get_fielding_rotations
+    from flask import g
+    g.user_id = get_jwt_identity()
+    # Route to fielding-rotations/<int:game_id> in the games blueprint
+    return get_fielding_rotations(game_id)
+
+@app.route('/api/api/games/<int:game_id>/player-availability', methods=['GET'])
+@jwt_required()
+def fix_double_api_prefix_get_player_availability(game_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/games/{game_id}/player-availability GET request")
+    from api.games import get_player_availability
+    from flask import g
+    g.user_id = get_jwt_identity()
+    # Route to player-availability/<int:game_id> in the games blueprint
+    return get_player_availability(game_id)
 
 # ===================================================================
 # DEPRECATED ENDPOINTS - WILL BE REMOVED IN A FUTURE RELEASE
