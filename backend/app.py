@@ -164,12 +164,40 @@ def serve():
             'api_status': 'API is available at /api'
         }), 500
 
-@app.route('/<path:path>')
+@app.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def static_proxy(path):
-    # Check for problematic double API prefixes and log warnings
+    # Check for problematic double API prefixes and handle them
     if path.startswith('api/api/'):
         print(f"WARNING: Detected double API prefix in request path: /{path}")
-        # Continue processing to let the request flow through normal routing
+        
+        # If it's not one of our explicitly handled auth endpoints, try generic handling
+        if not path.startswith('api/api/auth/'):
+            # Create a fixed path by removing one api prefix
+            fixed_path = path.replace('api/api/', 'api/')
+            print(f"Trying to redirect to fixed path: /{fixed_path}")
+            
+            # For POST requests, we need to preserve the request body
+            if request.method == 'POST':
+                data = request.get_json()
+                headers = dict(request.headers)
+                
+                # Make an internal redirect by calling the correct view function if possible
+                # This is better than an HTTP redirect which would lose the request body
+                if fixed_path.startswith('api/auth/'):
+                    # Auth-related paths
+                    try:
+                        from api.auth import auth
+                        endpoint = fixed_path.replace('api/auth/', '')
+                        if endpoint == 'login':
+                            from api.auth import login
+                            return login()
+                        elif endpoint == 'register':
+                            from api.auth import register
+                            return register()
+                        # Add more endpoints as needed
+                    except Exception as e:
+                        print(f"Error redirecting auth request: {str(e)}")
+        # Continue processing to let our explicit route handlers work
     
     # If path starts with 'api/', pass it through to the API
     if path.startswith('api/'):
@@ -201,6 +229,46 @@ def static_proxy(path):
         return app.send_static_file(path)
     except Exception:
         return jsonify({'error': f'Path {path} not found'}), 404
+
+# Emergency fixes for double API prefix issues
+@app.route('/api/api/auth/login', methods=['POST'])
+def fix_double_api_prefix_login():
+    """Emergency fix for the /api/api/auth/login issue.
+    
+    This route directly handles the incorrect double-prefixed login URL
+    that the frontend is sending. It forwards the request to the correct
+    auth.login route in the auth blueprint.
+    """
+    print("[API] EMERGENCY FIX: Handling /api/api/auth/login request")
+    # Import the login function from the auth module
+    from api.auth import login as auth_login
+    # Forward to the proper login handler
+    return auth_login()
+
+@app.route('/api/api/auth/register', methods=['POST'])
+def fix_double_api_prefix_register():
+    """Emergency fix for the /api/api/auth/register issue."""
+    print("[API] EMERGENCY FIX: Handling /api/api/auth/register request")
+    from api.auth import register as auth_register
+    return auth_register()
+
+@app.route('/api/api/auth/me', methods=['GET'])
+@jwt_required()
+def fix_double_api_prefix_me():
+    """Emergency fix for the /api/api/auth/me issue."""
+    print("[API] EMERGENCY FIX: Handling /api/api/auth/me request")
+    from api.auth import get_user_info
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return get_user_info()
+
+@app.route('/api/api/auth/refresh', methods=['POST'])
+@jwt_required()
+def fix_double_api_prefix_refresh():
+    """Emergency fix for the /api/api/auth/refresh issue."""
+    print("[API] EMERGENCY FIX: Handling /api/api/auth/refresh request")
+    from api.auth import refresh_token
+    return refresh_token()
 
 # DEPRECATED: Root API route - will be moved to a system blueprint in a future update
 @app.route('/api')
