@@ -168,11 +168,51 @@ class AIService:
                 json_content = content[json_start:json_end]
                 result = json.loads(json_content)
                 
-                # Convert inning keys to integers and player IDs to integers
+                # Convert inning keys to integers and player IDs to integers with robust error handling
                 rotations = {}
                 for inning_str, positions in result.get('rotations', {}).items():
-                    inning = int(inning_str)
-                    rotations[inning] = {pos: int(pid) for pos, pid in positions.items()}
+                    try:
+                        inning = int(inning_str)
+                        inning_rotations = {}
+                        
+                        # Handle each position-player pair with careful type checking
+                        for pos, pid in positions.items():
+                            try:
+                                # Handle different possible formats returned by the AI
+                                if isinstance(pid, int):
+                                    player_id = pid
+                                elif isinstance(pid, str) and pid.isdigit():
+                                    player_id = int(pid)
+                                elif isinstance(pid, list) and len(pid) > 0:
+                                    # If somehow a list was returned, take the first element
+                                    first_item = pid[0]
+                                    if isinstance(first_item, int):
+                                        player_id = first_item
+                                    elif isinstance(first_item, str) and first_item.isdigit():
+                                        player_id = int(first_item)
+                                    else:
+                                        # If we can't parse it, use a default "unknown" value
+                                        logger.warning(f"Cannot parse player ID from list: {pid} for position {pos}")
+                                        player_id = -1  # Use -1 to indicate unknown
+                                else:
+                                    # If we can't parse it at all, use a default
+                                    logger.warning(f"Cannot parse player ID: {pid} of type {type(pid)} for position {pos}")
+                                    player_id = -1  # Use -1 to indicate unknown
+                                
+                                inning_rotations[pos] = player_id
+                            except Exception as e:
+                                logger.warning(f"Error parsing player ID for position {pos}: {str(e)}")
+                                inning_rotations[pos] = -1  # Use -1 to indicate error
+                        
+                        rotations[inning] = inning_rotations
+                    except Exception as e:
+                        logger.warning(f"Error parsing inning {inning_str}: {str(e)}")
+                        # Skip this inning if we can't parse it
+                
+                # If we didn't get any valid rotations, generate a simple default
+                if not rotations:
+                    logger.warning("No valid rotations parsed, generating a simple default")
+                    rotations = {1: {"error": "Failed to parse response"}}
                 
                 return {'rotations': rotations}
             else:

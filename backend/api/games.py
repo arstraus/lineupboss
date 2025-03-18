@@ -578,10 +578,24 @@ def get_player_availability_by_id(game_id, player_id, user_id):
             availability = GameService.get_player_availability_by_id(session, game_id, player_id)
             
             if not availability:
-                return jsonify({'error': f'No availability record found for player {player_id}'}), 404
+                # Check if the player exists for this user
+                from services.player_service import PlayerService
+                player = PlayerService.get_player(session, player_id, user_id)
+                if not player:
+                    return jsonify({'error': f'Player {player_id} not found or unauthorized'}), 404
+                    
+                # Player exists but no availability record - create a default one
+                print(f"No availability record found for player {player_id} in game {game_id}, creating default")
+                availability = GameService.set_player_availability(
+                    session, 
+                    game_id, 
+                    player_id, 
+                    available=True,  # Default to available
+                    can_play_catcher=False  # Default to not playing catcher
+                )
             
             # Serialize availability
-            result = GameService.serialize_player_availability(availability)
+            result = GameService.serialize_player_availability(availability, include_player=True)
             
             return jsonify(result), 200
     except Exception as e:
