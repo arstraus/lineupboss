@@ -425,5 +425,5 @@ export const updatePlayerAvailability = (gameId, availabilityData) => {
 };
 
 export const batchSavePlayerAvailability = (gameId, playerAvailabilityArray) => {
-  return wrappedPost(`/games/${gameId}/player-availability/batch`, { players: playerAvailabilityArray });
+  return wrappedPost(`/games/${gameId}/player-availability/batch`, playerAvailabilityArray);
 };
