@@ -45,8 +45,7 @@ The Heroku slug size optimization uses several complementary techniques:
    # Remove source maps
    find build -name "*.map" -delete
    
-   # Install backend requirements
-   pip install -r backend/requirements.txt
+   # Note: Python dependencies are handled by the Python buildpack automatically
    ```
 
 4. **`.npmrc`**: Streamlines npm behavior
@@ -80,6 +79,29 @@ The Heroku slug size optimization uses several complementary techniques:
 
 If you encounter build issues:
 
-1. Check Heroku build logs for specific errors
-2. Verify the `bin/heroku_build.sh` script is executable (`chmod +x`)
-3. Ensure the original public directory is properly included in the slug
+1. Check Heroku build logs for specific errors:
+   ```bash
+   heroku logs --source app
+   ```
+
+2. Verify buildpack order:
+   ```bash
+   heroku buildpacks
+   ```
+   The output should show Node.js first, then Python:
+   ```
+   1. heroku/nodejs
+   2. heroku/python
+   ```
+
+3. If necessary, set the buildpacks explicitly:
+   ```bash
+   heroku buildpacks:clear
+   heroku buildpacks:add heroku/nodejs
+   heroku buildpacks:add heroku/python
+   ```
+
+4. Ensure your Procfile is correctly formatted:
+   ```
+   web: cd backend && gunicorn app:app
+   ```

@@ -17,15 +17,11 @@ NODE_ENV=production npm run build
 # Remove any source maps that might have been generated
 find build -name "*.map" -type f -delete
 
-# Return to root directory
-cd ..
-
-# Install backend requirements
-echo "Installing backend requirements..."
-pip install -r backend/requirements.txt
-
 # Print build info
-echo "Build complete. Sizes:"
-du -sh frontend/build backend 2>/dev/null || true
+echo "Frontend build complete. Size:"
+du -sh build 2>/dev/null || true
 
-echo "===== Heroku Build Complete ====="
+echo "===== Frontend Build Complete ====="
+
+# We don't install backend requirements here because the Python buildpack 
+# will handle that automatically after the Node.js buildpack completes
