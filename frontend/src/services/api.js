@@ -224,7 +224,8 @@ const createSafeRequestMethod = (method, axiosMethod) => {
 const wrappedGet = createSafeRequestMethod('GET', axios.get);
 const wrappedPost = createSafeRequestMethod('POST', (url, data, config) => axios.post(url, data, config));
 const wrappedPut = createSafeRequestMethod('PUT', (url, data, config) => axios.put(url, data, config));
-const wrappedDelete = createSafeRequestMethod('DELETE', axios.delete);
+// Fix for DELETE operations - ensure proper config passing
+const wrappedDelete = createSafeRequestMethod('DELETE', (url, config) => axios.delete(url, config));
 
 // Export api object for named import
 export const api = {

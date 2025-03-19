@@ -70,11 +70,23 @@ const GameList = ({ teamId }) => {
   const handleDeleteGame = async (gameId) => {
     if (window.confirm("Are you sure you want to delete this game? This action cannot be undone.")) {
       try {
-        await deleteMethod(`/games/${gameId}`);
-        fetchGames();
+        console.log(`Attempting to delete game with ID: ${gameId}`);
+        const response = await deleteMethod(`/games/${gameId}`);
+        console.log('Delete game response:', response);
+        
+        // Show success message
+        setError("");
+        // Use a brief timeout to ensure state updates don't conflict
+        setTimeout(() => {
+          fetchGames();
+        }, 300);
       } catch (err) {
-        setError("Failed to delete game. Please try again.");
-        console.error(err);
+        console.error("Delete game error:", err);
+        if (err.response) {
+          setError(`Failed to delete game: ${err.response.data?.error || err.message}`);
+        } else {
+          setError("Failed to delete game. Please try again.");
+        }
       }
     }
   };

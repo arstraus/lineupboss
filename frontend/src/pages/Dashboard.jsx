@@ -153,11 +153,23 @@ const Dashboard = () => {
   const handleDeleteTeam = async (teamId) => {
     if (window.confirm("Are you sure you want to delete this team? This action cannot be undone.")) {
       try {
-        await deleteTeam(teamId);
-        fetchTeams();
+        console.log(`Attempting to delete team with ID: ${teamId}`);
+        const response = await deleteTeam(teamId);
+        console.log('Delete team response:', response);
+        
+        // Show success message  
+        setError("");
+        // Use a brief timeout to ensure state updates don't conflict
+        setTimeout(() => {
+          fetchTeams();
+        }, 300);
       } catch (err) {
-        setError("Failed to delete team. Please try again.");
-        console.error(err);
+        console.error("Delete team error:", err);
+        if (err.response) {
+          setError(`Failed to delete team: ${err.response.data?.error || err.message}`);
+        } else {
+          setError("Failed to delete team. Please try again.");
+        }
       }
     }
   };
