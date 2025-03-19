@@ -373,7 +373,14 @@ class ApiTester:
             # Test password update with dry run flag (never actually executed)
             self.test_endpoint("/user/password", method="PUT", 
                             data={"current_password": "oldpassword", "new_password": "newpassword"}, 
-                            skip_if_dry_run=True, group="user", description="Update password")
+                            skip_if_dry_run=True, group="user", description="Update password (normal)",
+                            expected_status=200)
+                            
+            # Test password update with emergency route pattern
+            self.test_endpoint("/api/user/password", method="PUT", 
+                            data={"current_password": "oldpassword", "new_password": "newpassword"}, 
+                            skip_if_dry_run=True, group="user", description="Update password (emergency)",
+                            expected_status=200)
 
         # Teams endpoints
         if self.should_test_group("teams"):
