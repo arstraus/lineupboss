@@ -119,9 +119,33 @@ class TeamService:
             This method doesn't commit changes to the database.
             The caller is responsible for committing the transaction.
         """
+        # Explicitly delete related objects first to avoid recursion errors
+        # Get team ID before deletion for logging
+        team_id = team.id
+        
+        # Delete players first (their relationships will cascade)
+        if hasattr(team, 'players') and team.players:
+            for player in list(team.players):
+                # Delete player availability records first
+                if hasattr(player, 'player_availability') and player.player_availability:
+                    for avail in list(player.player_availability):
+                        db.delete(avail)
+                # Delete the player
+                db.delete(player)
+                
+        # Delete games (and their relationships)
+        if hasattr(team, 'games') and team.games:
+            for game in list(team.games):
+                # Use the game service to delete games properly
+                from services.game_service import GameService
+                GameService.delete_game(db, game)
+                
+        # Now delete the team itself
         db.delete(team)
         # No commit here - caller will commit
+        db.flush()
         
+        print(f"Successfully deleted team ID: {team_id}")
         return True
     
     @staticmethod
