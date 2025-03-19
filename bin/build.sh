@@ -1,35 +1,27 @@
 #!/bin/bash
 set -e
 
-# Set npm config settings
-npm config set legacy-peer-deps true
+echo "===== Starting Build Process ====="
 
 # Go to frontend directory
 cd frontend
+echo "Changed to frontend directory: $(pwd)"
 
-# Always do a clean install to ensure all dependencies are properly installed
-echo "Installing dependencies..."
-# Install dependencies with legacy-peer-deps flag and production flag
-npm install --legacy-peer-deps --production --no-audit --no-fund
+# Install frontend dependencies
+echo "Installing frontend dependencies..."
+npm install --legacy-peer-deps
 
-# Directly modify package.json to use React 18 if needed
-if grep -q "\"react\": \"18.0.0\"" package.json; then
-  echo "React 18 already configured"
-else
-  echo "Configuring React 18..."
-  sed -i 's/"react": ".*"/"react": "18.0.0"/g' package.json
-  sed -i 's/"react-dom": ".*"/"react-dom": "18.0.0"/g' package.json
-fi
-
-# Build the application
+# Build the frontend
 echo "Building React application..."
-export NODE_ENV=production
-npm run build --production
+npm run build
 
-# Remove source maps to reduce build size
-echo "Removing source maps to reduce build size..."
-find build -name "*.map" -delete
+# Remove source maps to reduce size
+echo "Removing source maps to reduce size..."
+find build -name "*.map" -type f -delete
 
-# Clean up development dependencies after build
-echo "Cleaning up node_modules..."
-rm -rf node_modules
+# Install backend requirements
+echo "Installing backend requirements..."
+cd ..
+pip install -r backend/requirements.txt
+
+echo "===== Build Process Complete ====="
