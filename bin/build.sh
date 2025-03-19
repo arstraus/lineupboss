@@ -9,8 +9,8 @@ cd frontend
 
 # Always do a clean install to ensure all dependencies are properly installed
 echo "Installing dependencies..."
-# Install dependencies with legacy-peer-deps flag
-npm install --legacy-peer-deps --no-audit --no-fund
+# Install dependencies with legacy-peer-deps flag and production flag
+npm install --legacy-peer-deps --production --no-audit --no-fund
 
 # Directly modify package.json to use React 18 if needed
 if grep -q "\"react\": \"18.0.0\"" package.json; then
@@ -23,4 +23,13 @@ fi
 
 # Build the application
 echo "Building React application..."
+export NODE_ENV=production
 npm run build --production
+
+# Remove source maps to reduce build size
+echo "Removing source maps to reduce build size..."
+find build -name "*.map" -delete
+
+# Clean up development dependencies after build
+echo "Cleaning up node_modules..."
+rm -rf node_modules

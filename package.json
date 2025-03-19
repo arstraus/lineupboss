@@ -21,6 +21,11 @@
   "cacheDirectories": [
     "frontend/node_modules"
   ],
+  "resolutions": {
+    "//": "Force specific package versions to reduce duplicate dependencies",
+    "react": "18.0.0",
+    "react-dom": "18.0.0"
+  },
   "keywords": [
     "baseball",
     "lineup",
