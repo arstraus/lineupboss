@@ -2,6 +2,7 @@
 Team service for handling team-related business logic.
 """
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from models.models import Team
 
 class TeamService:
@@ -128,31 +129,31 @@ class TeamService:
         # Delete in order of most nested to least nested to respect foreign key constraints
         
         # Delete player availability records linked to this team's players
-        db.execute(f"""
+        db.execute(text(f"""
             DELETE FROM player_availability 
             WHERE player_id IN (SELECT id FROM players WHERE team_id = {team_id})
-        """)
+        """))
         
         # Delete fielding rotations for this team's games
-        db.execute(f"""
+        db.execute(text(f"""
             DELETE FROM fielding_rotations 
             WHERE game_id IN (SELECT id FROM games WHERE team_id = {team_id})
-        """)
+        """))
         
         # Delete batting orders for this team's games
-        db.execute(f"""
+        db.execute(text(f"""
             DELETE FROM batting_orders 
             WHERE game_id IN (SELECT id FROM games WHERE team_id = {team_id})
-        """)
+        """))
         
         # Delete players for this team
-        db.execute(f"DELETE FROM players WHERE team_id = {team_id}")
+        db.execute(text(f"DELETE FROM players WHERE team_id = {team_id}"))
         
         # Delete games for this team
-        db.execute(f"DELETE FROM games WHERE team_id = {team_id}")
+        db.execute(text(f"DELETE FROM games WHERE team_id = {team_id}"))
         
         # Finally delete the team itself
-        db.execute(f"DELETE FROM teams WHERE id = {team_id}")
+        db.execute(text(f"DELETE FROM teams WHERE id = {team_id}"))
         
         # No need to delete the team object since we already removed it via SQL
         # Don't flush as the SQL has already been executed

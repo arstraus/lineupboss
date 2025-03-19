@@ -2,6 +2,7 @@
 Game service for handling game-related business logic.
 """
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from models.models import Game, Team, BattingOrder, FieldingRotation, PlayerAvailability, Player
 
 class GameService:
@@ -113,16 +114,16 @@ class GameService:
         # This bypasses SQLAlchemy's object management system that can cause recursion
         
         # Delete batting order records directly
-        db.execute(f"DELETE FROM batting_orders WHERE game_id = {game_id}")
+        db.execute(text(f"DELETE FROM batting_orders WHERE game_id = {game_id}"))
         
         # Delete fielding rotation records directly
-        db.execute(f"DELETE FROM fielding_rotations WHERE game_id = {game_id}")
+        db.execute(text(f"DELETE FROM fielding_rotations WHERE game_id = {game_id}"))
         
         # Delete player availability records directly
-        db.execute(f"DELETE FROM player_availability WHERE game_id = {game_id}")
+        db.execute(text(f"DELETE FROM player_availability WHERE game_id = {game_id}"))
         
         # Now delete the game itself using direct SQL
-        db.execute(f"DELETE FROM games WHERE id = {game_id}")
+        db.execute(text(f"DELETE FROM games WHERE id = {game_id}"))
         
         # No need to delete the game object since we already removed it via SQL
         # Don't flush as the SQL has already been executed
