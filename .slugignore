@@ -1,55 +1,56 @@
-# Development and documentation files
+# Version control
 .git
+.gitignore
+.gitattributes
 .github
-__pycache__
-*.pyc
-*.pyo
-*.pyd
+
+# Node.js development files
+frontend/node_modules
+**/.npm
+**/.node_repl_history
+frontend/.pnp
+frontend/.pnp.js
+frontend/coverage
+**/.yarn-integrity
+
+# Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
 .Python
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-pip-log.txt
-pip-delete-this-directory.txt
+/venv
+/.venv
+/.env
+**/.python-version
 
-# Frontend development files (react)
-/frontend/node_modules/
-/frontend/src/
-# Need to keep public for build process
-# /frontend/public/
-/frontend/.pnp
-/frontend/.pnp.js
-/frontend/coverage/
-/frontend/.DS_Store
-/frontend/.env.local
-/frontend/.env.development.local
-/frontend/.env.test.local
-/frontend/.env.development
-
-# Tests
-**/*.test.js
-**/*.spec.js
-**/tests/
-**/__tests__/
-
-# Documentation and non-essential files
-*.md
-*.markdown
+# Development and Documentation
+/docs
+**/*.md
+**/*.markdown
 LICENSE
-docs/
+.vscode
+.idea
+.editorconfig
+.eslintrc.js
+.prettierrc
+**/.DS_Store
 
-# Editor directories and files
-.vscode/
-.idea/
-*.swp
-*.swo
-.DS_Store
+# Log files
+**/*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Keep important files
-!/Procfile
-!/backend/Procfile
-!/frontend/build/
+# Test files
+frontend/src/setupTests.js
+frontend/src/**/*.test.js
+frontend/src/**/*.spec.js
+**/__tests__/
+**/tests/
+
+# Keep important directories
+!frontend/public/
+!frontend/src/
+!backend/
+!bin/
