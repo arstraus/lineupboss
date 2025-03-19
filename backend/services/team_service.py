@@ -119,33 +119,45 @@ class TeamService:
             This method doesn't commit changes to the database.
             The caller is responsible for committing the transaction.
         """
-        # Explicitly delete related objects first to avoid recursion errors
         # Get team ID before deletion for logging
         team_id = team.id
         
-        # Delete players first (their relationships will cascade)
-        if hasattr(team, 'players') and team.players:
-            for player in list(team.players):
-                # Delete player availability records first
-                if hasattr(player, 'player_availability') and player.player_availability:
-                    for avail in list(player.player_availability):
-                        db.delete(avail)
-                # Delete the player
-                db.delete(player)
-                
-        # Delete games (and their relationships)
-        if hasattr(team, 'games') and team.games:
-            for game in list(team.games):
-                # Use the game service to delete games properly
-                from services.game_service import GameService
-                GameService.delete_game(db, game)
-                
-        # Now delete the team itself
-        db.delete(team)
-        # No commit here - caller will commit
-        db.flush()
+        # Use direct SQL to delete related records and avoid recursion issues
+        # This bypasses SQLAlchemy's object management system that can cause recursion
         
-        print(f"Successfully deleted team ID: {team_id}")
+        # Delete in order of most nested to least nested to respect foreign key constraints
+        
+        # Delete player availability records linked to this team's players
+        db.execute(f"""
+            DELETE FROM player_availability 
+            WHERE player_id IN (SELECT id FROM players WHERE team_id = {team_id})
+        """)
+        
+        # Delete fielding rotations for this team's games
+        db.execute(f"""
+            DELETE FROM fielding_rotations 
+            WHERE game_id IN (SELECT id FROM games WHERE team_id = {team_id})
+        """)
+        
+        # Delete batting orders for this team's games
+        db.execute(f"""
+            DELETE FROM batting_orders 
+            WHERE game_id IN (SELECT id FROM games WHERE team_id = {team_id})
+        """)
+        
+        # Delete players for this team
+        db.execute(f"DELETE FROM players WHERE team_id = {team_id}")
+        
+        # Delete games for this team
+        db.execute(f"DELETE FROM games WHERE team_id = {team_id}")
+        
+        # Finally delete the team itself
+        db.execute(f"DELETE FROM teams WHERE id = {team_id}")
+        
+        # No need to delete the team object since we already removed it via SQL
+        # Don't flush as the SQL has already been executed
+        
+        print(f"Successfully deleted team ID: {team_id} using direct SQL")
         return True
     
     @staticmethod

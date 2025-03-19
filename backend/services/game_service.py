@@ -106,29 +106,28 @@ class GameService:
         Returns:
             True if successful
         """
-        # Explicitly delete related objects first to avoid recursion errors
         # Get game ID before deletion for logging
         game_id = game.id
         
-        # Delete batting order if exists
-        if hasattr(game, 'batting_order') and game.batting_order:
-            db.delete(game.batting_order)
-            
-        # Delete fielding rotations
-        if hasattr(game, 'fielding_rotations') and game.fielding_rotations:
-            for rotation in list(game.fielding_rotations):
-                db.delete(rotation)
-                
-        # Delete player availability records
-        if hasattr(game, 'player_availability') and game.player_availability:
-            for avail in list(game.player_availability):
-                db.delete(avail)
-                
-        # Now delete the game itself
-        db.delete(game)
-        db.flush()  # Flush without committing
+        # Use direct SQL to delete related records and avoid recursion issues
+        # This bypasses SQLAlchemy's object management system that can cause recursion
         
-        print(f"Successfully deleted game ID: {game_id}")
+        # Delete batting order records directly
+        db.execute(f"DELETE FROM batting_orders WHERE game_id = {game_id}")
+        
+        # Delete fielding rotation records directly
+        db.execute(f"DELETE FROM fielding_rotations WHERE game_id = {game_id}")
+        
+        # Delete player availability records directly
+        db.execute(f"DELETE FROM player_availability WHERE game_id = {game_id}")
+        
+        # Now delete the game itself using direct SQL
+        db.execute(f"DELETE FROM games WHERE id = {game_id}")
+        
+        # No need to delete the game object since we already removed it via SQL
+        # Don't flush as the SQL has already been executed
+        
+        print(f"Successfully deleted game ID: {game_id} using direct SQL")
         return True
     
     @staticmethod
