@@ -2,7 +2,8 @@ import { get, post, put, del as deleteMethod } from "./api";
 
 // Player services
 export const getTeamPlayers = (teamId) => {
-  return get(`/players/team/${teamId}`);
+  // Use REST-style nested route pattern
+  return get(`/teams/${teamId}/players`);
 };
 
 export const getPlayer = (id) => {
@@ -10,7 +11,8 @@ export const getPlayer = (id) => {
 };
 
 export const createPlayer = (teamId, playerData) => {
-  return post(`/players/team/${teamId}`, playerData);
+  // Use REST-style nested route pattern
+  return post(`/teams/${teamId}/players`, playerData);
 };
 
 export const updatePlayer = (id, playerData) => {
@@ -23,9 +25,8 @@ export const deletePlayer = (id) => {
 
 // Game services
 export const getTeamGames = (teamId) => {
-  // Use the legacy route that matches games.py implementation
-  // This explicitly uses the /api/games/team/{teamId} route from line 18 in games.py
-  return get(`/games/team/${teamId}`);
+  // Use REST-style nested route pattern
+  return get(`/teams/${teamId}/games`);
 };
 
 export const getGame = (id) => {
@@ -33,10 +34,9 @@ export const getGame = (id) => {
 };
 
 export const createGame = (teamId, gameData) => {
-  // Use the route that matches games.py implementation
-  // This uses the /api/games/team/{teamId} POST route from line 100 in games.py
+  // Use REST-style nested route pattern
   console.log(`Creating game for team ${teamId} with data:`, gameData);
-  return post(`/games/team/${teamId}`, gameData);
+  return post(`/teams/${teamId}/games`, gameData);
 };
 
 export const updateGame = (id, gameData) => {

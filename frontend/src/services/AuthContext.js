@@ -1,6 +1,5 @@
 import React, { createContext, useState, useEffect } from "react";
-import axios from "axios";
-import { login, register, getCurrentUser, refreshToken } from "../services/api";
+import { login, register, getCurrentUser, refreshToken, getPendingCount } from "../services/api";
 
 // Create Auth Context
 export const AuthContext = createContext();
@@ -15,11 +14,8 @@ export const AuthProvider = ({ children }) => {
   const fetchPendingCount = async (userData) => {
     if (userData && userData.role === 'admin') {
       try {
-        const response = await axios.get('/api/admin/pending-count', {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`
-          }
-        });
+        // Use API client function instead of direct axios call
+        const response = await getPendingCount();
         setCurrentUser(prev => ({
           ...prev,
           pendingCount: response.data.pending_count || 0
@@ -117,30 +113,21 @@ export const AuthProvider = ({ children }) => {
       try {
         response = await login(email, password);
       } catch (loginErr) {
-        // Check for API path issue (405 Method Not Allowed is likely an incorrect URL)
+        // We shouldn't need special recovery now that all paths are standardized,
+        // but keeping a simpler version for robustness
         if (loginErr.response && loginErr.response.status === 405) {
-          console.error("LOGIN ERROR: Possible incorrect API path. Check for duplicate /api prefix.");
+          console.error("LOGIN ERROR: Possible incorrect API path. Check API service configuration.");
           
-          // Try to recover by analyzing the URL
-          const requestUrl = loginErr.response.config?.url;
-          if (requestUrl && requestUrl.includes('/api/api/')) {
-            console.warn("Detected duplicate API path. Attempting to recover...");
-            
-            // Try with fixed URL
-            const fixedUrl = requestUrl.replace('/api/api/', '/api/');
-            try {
-              response = await axios.post(fixedUrl, { email, password });
-              console.log("Recovery successful using fixed URL:", fixedUrl);
-            } catch (recoveryErr) {
-              console.error("Recovery attempt failed:", recoveryErr);
-              throw loginErr; // Throw original error if recovery fails
-            }
-          } else {
-            throw loginErr;
+          // Log more details in development
+          if (process.env.NODE_ENV === 'development') {
+            console.error("Login request failed with details:", {
+              url: loginErr.response.config?.url,
+              status: loginErr.response.status,
+              data: loginErr.response.data
+            });
           }
-        } else {
-          throw loginErr;
         }
+        throw loginErr;
       }
       
       // Step 2: Validate token

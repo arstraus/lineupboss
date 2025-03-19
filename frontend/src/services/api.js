@@ -303,6 +303,7 @@ export const deleteTeam = (teamId) => {
 
 // PLAYERS API
 export const getPlayers = (teamId) => {
+  // Use standardized nested REST route
   return wrappedGet(`/teams/${teamId}/players`);
 };
 
@@ -311,6 +312,7 @@ export const getPlayer = (playerId) => {
 };
 
 export const createPlayer = (teamId, playerData) => {
+  // Use standardized nested REST route
   return wrappedPost(`/teams/${teamId}/players`, playerData);
 };
 
@@ -324,8 +326,8 @@ export const deletePlayer = (playerId) => {
 
 // GAMES API
 export const getGames = (teamId) => {
-  // Change to match the actual legacy route registered in games.py
-  return wrappedGet(`/games/team/${teamId}`);
+  // Use standardized nested REST route
+  return wrappedGet(`/teams/${teamId}/games`);
 };
 
 export const getGame = (gameId) => {
@@ -333,9 +335,9 @@ export const getGame = (gameId) => {
 };
 
 export const createGame = (teamId, gameData) => {
-  // Make sure we use the legacy route for games creation
-  console.log(`API: Creating game for team ${teamId} using POST to /games/team/${teamId}`);
-  return wrappedPost(`/games/team/${teamId}`, gameData);
+  // Use standardized nested REST route
+  console.log(`API: Creating game for team ${teamId} using POST to /teams/${teamId}/games`);
+  return wrappedPost(`/teams/${teamId}/games`, gameData);
 };
 
 export const updateGame = (gameId, gameData) => {
