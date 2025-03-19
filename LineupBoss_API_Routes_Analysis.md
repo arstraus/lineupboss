@@ -32,7 +32,7 @@ Comprehensive API testing was conducted using an enhanced `test_api_routes.py` s
 | Games | 100% | 100% | Full compatibility including DELETE/PUT operations |
 | Lineup | 100% | 100% | Full compatibility |
 | Admin | 100% | 100% | Full compatibility, but slow |
-| User | 100% | 66.7% | `/user/test` only works with standard route |
+| User | 100% | 100% | Full compatibility including password change |
 | Auth | 100% | 100% | Full compatibility |
 | System | 100% | 0% | No emergency routes for system endpoints |
 | Docs | 100% | 0% | No emergency routes for documentation |
@@ -192,6 +192,7 @@ The following emergency routes all use the `/api/api/` double-prefix pattern and
 |--------|-------------|----------|-------------|
 | GET | `/api/api/user/profile` | `fix_double_api_prefix_get_profile` | Get profile handler |
 | PUT | `/api/api/user/profile` | `fix_double_api_prefix_update_profile` | Update profile handler |
+| PUT | `/api/api/user/password` | `fix_double_api_prefix_update_password` | Update password handler |
 | GET | `/api/api/user/subscription` | `fix_double_api_prefix_get_subscription` | Get subscription handler |
 
 ### Team Emergency Routes
@@ -404,6 +405,11 @@ The LineupBoss API has successfully implemented both standard and emergency rout
 
 Our comprehensive testing shows that all core business logic endpoints (teams, players, games, lineup) have full compatibility across both routing patterns, with recently added support for DELETE, PUT, and POST operations in the emergency routes. This provides confidence for a smooth migration. The updated strategy focuses on immediate frontend updates to standardize on the most RESTful patterns, followed by a phased deprecation of emergency routes.
 
-Recent updates (March 2025) have addressed critical issues with the emergency routes, particularly fixing the recursive errors in DELETE operations for teams, games, and players. These improvements have increased compatibility from 74.1% to 100% across all main API operations.
+Recent updates (March 2025) have addressed critical issues with the emergency routes, particularly fixing:
+1. Recursive errors in DELETE operations for teams and games (by properly wrapping SQL statements with SQLAlchemy's `text()` function)
+2. Password change functionality by adding the missing emergency route handler for `/api/api/user/password`
+3. Various recursion issues in route handling
+
+These improvements have increased compatibility from 74.1% to 100% across all main API operations.
 
 The strategy balances the needs for backward compatibility with the benefits of a cleaner, more maintainable API architecture. By following this plan, LineupBoss will achieve a more consistent API structure while ensuring a smooth transition for all clients.
