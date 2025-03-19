@@ -350,6 +350,17 @@ def fix_double_api_prefix_update_team(team_id):
     g.user_id = get_jwt_identity()
     return update_team(team_id)
 
+# Add emergency route for password update
+@app.route('/api/api/user/password', methods=['PUT'])
+@jwt_required()
+def fix_double_api_prefix_update_password():
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print("[API] EMERGENCY FIX: Handling /api/api/user/password PUT request")
+    from api.users import update_password
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return update_password()
+
 # Add emergency POST route for team creation
 @app.route('/api/api/teams', methods=['POST'])
 @jwt_required()
@@ -724,7 +735,9 @@ def redirect_user_profile_put():
 def redirect_user_password_put():
     """TO BE REMOVED - Use the users_bp blueprint endpoint /api/user/password instead"""
     from api.users import update_password
-    return handle_deprecated_route('/api/user/password [PUT]', update_password)
+    # Set user_id directly in g to avoid recursion issues
+    g.user_id = get_jwt_identity()
+    return update_password()
 
 @app.route('/api/user/subscription', methods=['GET'])
 @jwt_required()
