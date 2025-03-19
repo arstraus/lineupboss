@@ -8,8 +8,8 @@ const LandingPage = () => {
   const { currentUser } = useContext(AuthContext);
 
   return (
-    <div className="landing-page">
-      {/* Auth Buttons in Top-Right Corner */}
+    <div className={`landing-page ${currentUser ? 'logged-in' : ''}`}>
+      {/* Auth Buttons in Top-Right Corner - only show when not logged in */}
       {!currentUser && (
         <div className="landing-auth-buttons">
           <Link to="/register" className="btn btn-outline-primary me-2">

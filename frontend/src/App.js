@@ -58,8 +58,8 @@ function App() {
   
   return (
     <div className="App d-flex flex-column min-vh-100">
-      {/* Don't show header on landing page */}
-      {window.location.pathname !== "/" || currentUser ? <Header /> : null}
+      {/* Always show header when user is logged in, otherwise hide it on landing page */}
+      {currentUser || window.location.pathname !== "/" ? <Header /> : null}
       
       <div className="flex-grow-1">
         <Routes>

@@ -1,13 +1,18 @@
 /* Landing Page Styles */
 .landing-page {
-  margin-top: -1.5rem;
+  margin-top: 0;
   position: relative;
+}
+
+/* Special style when user is logged in - adjust for navbar */
+.logged-in .landing-page {
+  margin-top: 0;
 }
 
 /* Auth Buttons in Top-Right Corner */
 .landing-auth-buttons {
   position: absolute;
-  top: 1.5rem;
+  top: 2.5rem;
   right: 2rem;
   z-index: 1000;
 }
@@ -18,20 +23,21 @@
   font-weight: 600;
   border-radius: 20px;
   padding: 0.375rem 1.5rem;
+  margin-left: 0.75rem;
 }
 
 .landing-auth-buttons .btn-outline-primary {
-  color: #0d6efd;
-  border-color: #0d6efd;
+  color: white;
+  border: none;
   font-weight: 600;
-  background-color: white;
+  background-color: rgba(0, 0, 0, 0.6);
   border-radius: 20px;
   padding: 0.375rem 1.5rem;
 }
 
 .landing-auth-buttons .btn-outline-primary:hover {
-  background-color: #e6f0ff;
-  color: #0d6efd;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
 }
 
 /* Hero Section */
@@ -49,6 +55,12 @@
   overflow: hidden;
   margin-bottom: 0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Adjust hero section position for logged-in users to prevent overlap with navbar */
+.logged-in .hero-section {
+  margin-top: 0;
+  padding-top: 1rem;
 }
 
 /* Wave divider removed */
