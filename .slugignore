@@ -19,7 +19,8 @@ pip-delete-this-directory.txt
 # Frontend development files (react)
 /frontend/node_modules/
 /frontend/src/
-/frontend/public/
+# Need to keep public for build process
+# /frontend/public/
 /frontend/.pnp
 /frontend/.pnp.js
 /frontend/coverage/

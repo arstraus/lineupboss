@@ -14,7 +14,7 @@
     "install:backend": "pip install -r backend/requirements.txt",
     "install:frontend": "cd frontend && npm install",
     "build:frontend": "cd frontend && npm run build",
-    "heroku-postbuild": "bash bin/build.sh",
+    "heroku-postbuild": "npm install && cd frontend && npm install && npm run build && cd .. && pip install -r backend/requirements.txt",
     "test": "cd frontend && npm test",
     "lint": "cd frontend && npm run lint"
   },
