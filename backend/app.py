@@ -328,6 +328,28 @@ def fix_double_api_prefix_get_team(team_id):
     g.user_id = get_jwt_identity()
     return get_team(team_id)
 
+# Add emergency DELETE route for team deletion
+@app.route('/api/api/teams/<int:team_id>', methods=['DELETE'])
+@jwt_required()
+def fix_double_api_prefix_delete_team(team_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/teams/{team_id} DELETE request")
+    from api.teams import delete_team
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return delete_team(team_id)
+
+# Add emergency PUT route for team updates
+@app.route('/api/api/teams/<int:team_id>', methods=['PUT'])
+@jwt_required()
+def fix_double_api_prefix_update_team(team_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/teams/{team_id} PUT request")
+    from api.teams import update_team
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return update_team(team_id)
+
 # Add emergency POST route for team creation
 @app.route('/api/api/teams', methods=['POST'])
 @jwt_required()
@@ -439,6 +461,26 @@ def fix_double_api_prefix_get_player(player_id):
     g.user_id = get_jwt_identity()
     return get_player(player_id)
 
+@app.route('/api/api/players/<int:player_id>', methods=['DELETE'])
+@jwt_required()
+def fix_double_api_prefix_delete_player(player_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/players/{player_id} DELETE request")
+    from api.players import delete_player
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return delete_player(player_id)
+
+@app.route('/api/api/players/<int:player_id>', methods=['PUT'])
+@jwt_required()
+def fix_double_api_prefix_update_player(player_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/players/{player_id} PUT request")
+    from api.players import update_player
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return update_player(player_id)
+
 # Emergency fix for double-prefixed games endpoints
 @app.route('/api/api/teams/<int:team_id>/games', methods=['GET'])
 @jwt_required()
@@ -461,6 +503,28 @@ def fix_double_api_prefix_get_game(game_id):
     g.user_id = get_jwt_identity()
     # Route to /<int:game_id> in the games blueprint
     return get_game(game_id)
+
+@app.route('/api/api/games/<int:game_id>', methods=['DELETE'])
+@jwt_required()
+def fix_double_api_prefix_delete_game(game_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/games/{game_id} DELETE request")
+    from api.games import delete_game
+    from flask import g
+    g.user_id = get_jwt_identity()
+    # Route to /<int:game_id> in the games blueprint
+    return delete_game(game_id)
+
+@app.route('/api/api/games/<int:game_id>', methods=['PUT'])
+@jwt_required()
+def fix_double_api_prefix_update_game(game_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/games/{game_id} PUT request")
+    from api.games import update_game
+    from flask import g
+    g.user_id = get_jwt_identity()
+    # Route to /<int:game_id> in the games blueprint
+    return update_game(game_id)
 
 # Emergency fix for double-prefixed lineup endpoints
 @app.route('/api/api/games/<int:game_id>/batting-order', methods=['GET', 'POST', 'PUT'])
@@ -547,6 +611,16 @@ def fix_double_api_prefix_get_players_legacy(team_id):
     from flask import g
     g.user_id = get_jwt_identity()
     return get_players(team_id)
+
+@app.route('/api/api/players/team/<int:team_id>', methods=['POST'])
+@jwt_required()
+def fix_double_api_prefix_create_player(team_id):
+    """TEMPORARY ROUTE - Will be removed after frontend update is deployed."""
+    print(f"[API] EMERGENCY FIX: Handling /api/api/players/team/{team_id} POST request")
+    from api.players import create_player
+    from flask import g
+    g.user_id = get_jwt_identity()
+    return create_player(team_id)
 
 @app.route('/api/api/games/team/<int:team_id>', methods=['GET', 'POST'])
 @jwt_required()
