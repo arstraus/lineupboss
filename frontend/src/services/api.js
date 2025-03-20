@@ -115,8 +115,8 @@ async function refreshTokenIfNeeded() {
   isRefreshing = true;
   
   try {
-    // Use properly processed URL
-    const refreshUrl = apiPath('/auth/refresh');
+    // Use explicit standard route without risking emergency prefix
+    const refreshUrl = '/api/auth/refresh';
     
     if (process.env.NODE_ENV === 'development') {
       console.log(`[API] Attempting token refresh: POST ${refreshUrl}`);
@@ -249,131 +249,153 @@ export default api;
 
 // AUTH API
 export const login = (email, password) => {
-  return wrappedPost('/auth/login', { email, password });
+  // Explicitly use standard route without any risk of emergency prefix
+  return wrappedPost('/api/auth/login', { email, password });
 };
 
 export const register = (email, password) => {
-  return wrappedPost('/auth/register', { email, password });
+  // Explicitly use standard route without any risk of emergency prefix
+  return wrappedPost('/api/auth/register', { email, password });
 };
 
 export const getCurrentUser = () => {
-  return wrappedGet('/auth/me');
+  // Explicitly use standard route without any risk of emergency prefix
+  return wrappedGet('/api/auth/me');
 };
 
 export const refreshToken = () => {
-  return wrappedPost('/auth/refresh');
+  // Explicitly use standard route without any risk of emergency prefix
+  return wrappedPost('/api/auth/refresh');
 };
 
 // USER PROFILE API
 export const getUserProfile = () => {
-  return wrappedGet('/user/profile');
+  // Explicitly use standard route
+  return wrappedGet('/api/user/profile');
 };
 
 export const updateUserProfile = (profileData) => {
-  return wrappedPut('/user/profile', profileData);
+  // Explicitly use standard route
+  return wrappedPut('/api/user/profile', profileData);
 };
 
 export const updatePassword = (currentPassword, newPassword) => {
-  return wrappedPut('/user/password', {
+  // Explicitly use standard route
+  return wrappedPut('/api/user/password', {
     current_password: currentPassword,
     new_password: newPassword
   });
 };
 
 export const getUserSubscription = () => {
-  return wrappedGet('/user/subscription');
+  // Explicitly use standard route
+  return wrappedGet('/api/user/subscription');
 };
 
 // TEAMS API
 export const getTeams = () => {
-  return wrappedGet('/teams');
+  // Explicitly use standard route
+  return wrappedGet('/api/teams');
 };
 
 export const getTeam = (teamId) => {
-  return wrappedGet(`/teams/${teamId}`);
+  // Explicitly use standard route
+  return wrappedGet(`/api/teams/${teamId}`);
 };
 
 export const createTeam = (teamData) => {
-  return wrappedPost('/teams', teamData);
+  // Explicitly use standard route
+  return wrappedPost('/api/teams', teamData);
 };
 
 export const updateTeam = (teamId, teamData) => {
-  return wrappedPut(`/teams/${teamId}`, teamData);
+  // Explicitly use standard route
+  return wrappedPut(`/api/teams/${teamId}`, teamData);
 };
 
 export const deleteTeam = (teamId) => {
-  return wrappedDelete(`/teams/${teamId}`);
+  // Explicitly use standard route
+  return wrappedDelete(`/api/teams/${teamId}`);
 };
 
 // PLAYERS API
 export const getPlayers = (teamId) => {
-  // Use standardized nested REST route
-  return wrappedGet(`/teams/${teamId}/players`);
+  // Explicitly use standard RESTful route
+  return wrappedGet(`/api/teams/${teamId}/players`);
 };
 
 export const getPlayer = (playerId) => {
-  return wrappedGet(`/players/${playerId}`);
+  // Explicitly use standard route
+  return wrappedGet(`/api/players/${playerId}`);
 };
 
 export const createPlayer = (teamId, playerData) => {
-  // Use standardized nested REST route
-  return wrappedPost(`/teams/${teamId}/players`, playerData);
+  // Explicitly use standard RESTful route
+  return wrappedPost(`/api/teams/${teamId}/players`, playerData);
 };
 
 export const updatePlayer = (playerId, playerData) => {
-  return wrappedPut(`/players/${playerId}`, playerData);
+  // Explicitly use standard route
+  return wrappedPut(`/api/players/${playerId}`, playerData);
 };
 
 export const deletePlayer = (playerId) => {
-  return wrappedDelete(`/players/${playerId}`);
+  // Explicitly use standard route
+  return wrappedDelete(`/api/players/${playerId}`);
 };
 
 // GAMES API
 export const getGames = (teamId) => {
-  // Use standardized nested REST route
-  return wrappedGet(`/teams/${teamId}/games`);
+  // Explicitly use standard RESTful route
+  return wrappedGet(`/api/teams/${teamId}/games`);
 };
 
 export const getGame = (gameId) => {
-  return wrappedGet(`/games/${gameId}`);
+  // Explicitly use standard route
+  return wrappedGet(`/api/games/${gameId}`);
 };
 
 export const createGame = (teamId, gameData) => {
-  // Use standardized nested REST route
-  console.log(`API: Creating game for team ${teamId} using POST to /teams/${teamId}/games`);
-  return wrappedPost(`/teams/${teamId}/games`, gameData);
+  // Explicitly use standard RESTful route
+  return wrappedPost(`/api/teams/${teamId}/games`, gameData);
 };
 
 export const updateGame = (gameId, gameData) => {
-  return wrappedPut(`/games/${gameId}`, gameData);
+  // Explicitly use standard route
+  return wrappedPut(`/api/games/${gameId}`, gameData);
 };
 
 export const deleteGame = (gameId) => {
-  return wrappedDelete(`/games/${gameId}`);
+  // Explicitly use standard route
+  return wrappedDelete(`/api/games/${gameId}`);
 };
 
 // ADMIN API
 export const getPendingUsers = () => {
-  return wrappedGet('/admin/pending-users');
+  // Explicitly use standard route
+  return wrappedGet('/api/admin/pending-users');
 };
 
 export const approveUser = (userId) => {
-  return wrappedPost(`/admin/approve/${userId}`);
+  // Explicitly use standard route
+  return wrappedPost(`/api/admin/approve/${userId}`);
 };
 
 export const rejectUser = (userId) => {
-  return wrappedPost(`/admin/reject/${userId}`);
+  // Explicitly use standard route
+  return wrappedPost(`/api/admin/reject/${userId}`);
 };
 
 export const getPendingCount = () => {
-  return wrappedGet('/admin/pending-count');
+  // Explicitly use standard route
+  return wrappedGet('/api/admin/pending-count');
 };
 
 // SYSTEM API
 export const checkApiHealth = async () => {
   try {
-    // Check the root API endpoint
-    const response = await wrappedGet('/', { timeout: 5000 });
+    // Check the root API endpoint with explicit path
+    const response = await wrappedGet('/api', { timeout: 5000 });
     return { 
       status: 'ok', 
       message: response.data?.message || 'API is available', 
@@ -383,7 +405,7 @@ export const checkApiHealth = async () => {
     // Try alternative endpoints if the root fails
     try {
       // Try the teams endpoint which should be available if the user is logged in
-      const teamsResponse = await wrappedGet('/teams', { timeout: 5000 });
+      const teamsResponse = await wrappedGet('/api/teams', { timeout: 5000 });
       return {
         status: 'ok',
         message: 'API is available (teams endpoint)',
@@ -402,37 +424,46 @@ export const checkApiHealth = async () => {
 
 // LINEUP API
 export const getBattingOrder = (gameId) => {
-  return wrappedGet(`/games/${gameId}/batting-order`);
+  // Explicitly use standard route
+  return wrappedGet(`/api/games/${gameId}/batting-order`);
 };
 
 export const updateBattingOrder = (gameId, orderData) => {
-  return wrappedPut(`/games/${gameId}/batting-order`, orderData);
+  // Explicitly use standard route
+  return wrappedPut(`/api/games/${gameId}/batting-order`, orderData);
 };
 
 export const saveBattingOrder = (gameId, orderData) => {
-  return wrappedPost(`/games/${gameId}/batting-order`, { order_data: orderData });
+  // Explicitly use standard route
+  return wrappedPost(`/api/games/${gameId}/batting-order`, { order_data: orderData });
 };
 
 export const getFieldingRotations = (gameId) => {
-  return wrappedGet(`/games/${gameId}/fielding-rotations`);
+  // Explicitly use standard route
+  return wrappedGet(`/api/games/${gameId}/fielding-rotations`);
 };
 
 export const updateFieldingRotation = (gameId, inning, positionsData) => {
-  return wrappedPut(`/games/${gameId}/fielding-rotations/${inning}`, positionsData);
+  // Explicitly use standard route
+  return wrappedPut(`/api/games/${gameId}/fielding-rotations/${inning}`, positionsData);
 };
 
 export const saveFieldingRotation = (gameId, inning, positions) => {
-  return wrappedPost(`/games/${gameId}/fielding-rotations/${inning}`, { positions });
+  // Explicitly use standard route
+  return wrappedPost(`/api/games/${gameId}/fielding-rotations/${inning}`, { positions });
 };
 
 export const getPlayerAvailability = (gameId) => {
-  return wrappedGet(`/games/${gameId}/player-availability`);
+  // Explicitly use standard route
+  return wrappedGet(`/api/games/${gameId}/player-availability`);
 };
 
 export const updatePlayerAvailability = (gameId, availabilityData) => {
-  return wrappedPut(`/games/${gameId}/player-availability`, availabilityData);
+  // Explicitly use standard route
+  return wrappedPut(`/api/games/${gameId}/player-availability`, availabilityData);
 };
 
 export const batchSavePlayerAvailability = (gameId, playerAvailabilityArray) => {
-  return wrappedPost(`/games/${gameId}/player-availability/batch`, playerAvailabilityArray);
+  // Explicitly use standard route
+  return wrappedPost(`/api/games/${gameId}/player-availability/batch`, playerAvailabilityArray);
 };
