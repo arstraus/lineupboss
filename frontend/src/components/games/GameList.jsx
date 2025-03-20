@@ -17,7 +17,7 @@ const GameList = ({ teamId }) => {
   const fetchGames = async () => {
     try {
       setLoading(true);
-      const response = await get(`/games/team/${teamId}`);
+      const response = await get(`/teams/${teamId}/games`);
       
       // Sort games by game_number
       const sortedGames = [...response.data].sort((a, b) => {
@@ -36,9 +36,8 @@ const GameList = ({ teamId }) => {
 
   const handleAddGame = async (gameData) => {
     try {
-      // Use the API path consistent with backend routes in games.py
-      // This uses the /api/games/team/{teamId} route that's properly registered
-      await post(`/games/team/${teamId}`, gameData);
+      // Use the RESTful nested route pattern
+      await post(`/teams/${teamId}/games`, gameData);
       setShowAddForm(false);
       fetchGames();
     } catch (err) {

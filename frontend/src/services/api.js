@@ -156,7 +156,7 @@ async function refreshTokenIfNeeded() {
   }
 }
 
-// Enhanced utility function to handle API paths correctly
+// Simplified utility function to handle API paths correctly
 const apiPath = (path) => {
   // Handle null or undefined
   if (!path) return '/api';
@@ -172,6 +172,23 @@ const apiPath = (path) => {
     normalizedPath = `/${normalizedPath}`;
   }
   
+  // Convert legacy resource routes to RESTful nested routes
+  if (normalizedPath.includes('/games/team/')) {
+    const teamId = normalizedPath.split('/games/team/')[1].split('/')[0];
+    normalizedPath = normalizedPath.replace(`/games/team/${teamId}`, `/teams/${teamId}/games`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[API] Standardized legacy games route to: ${normalizedPath}`);
+    }
+  }
+  
+  if (normalizedPath.includes('/players/team/')) {
+    const teamId = normalizedPath.split('/players/team/')[1].split('/')[0];
+    normalizedPath = normalizedPath.replace(`/players/team/${teamId}`, `/teams/${teamId}/players`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[API] Standardized legacy players route to: ${normalizedPath}`);
+    }
+  }
+  
   // Detect if path already has the /api prefix
   const hasApiPrefix = normalizedPath.startsWith('/api/') || normalizedPath === '/api';
   
@@ -180,42 +197,28 @@ const apiPath = (path) => {
     return `/api${normalizedPath}`;
   }
   
-  // Detect and fix double /api/api prefix
+  // Remove any emergency /api/api/ prefix
   if (normalizedPath.startsWith('/api/api/')) {
-    // Log warning for this critical fix in development
+    normalizedPath = normalizedPath.replace('/api/api/', '/api/');
     if (process.env.NODE_ENV === 'development') {
-      console.warn(`[API] Fixing duplicate API prefix in path: ${normalizedPath}`);
+      console.log(`[API] Removed emergency prefix, using: ${normalizedPath}`);
     }
-    
-    // Fix by removing one /api
-    return normalizedPath.replace('/api/api/', '/api/');
   }
   
   return normalizedPath;
 };
 
-// Enhanced request handler wrapper with double-prefix protection
+// Simplified request handler wrapper
 const createSafeRequestMethod = (method, axiosMethod) => {
   return (url, ...args) => {
-    const processedUrl = apiPath(url);
-    
-    // Additional safety check - detect and fix any remaining /api/api/ prefixes
-    // This is a secondary defense after apiPath's own check
-    const finalPath = processedUrl.includes('/api/api/') 
-      ? processedUrl.replace('/api/api/', '/api/') 
-      : processedUrl;
+    const finalPath = apiPath(url);
     
     // Log API calls in development mode
     if (process.env.NODE_ENV === 'development') {
       console.log(`[API] ${method} ${finalPath}`);
-      
-      // If we had to fix a path, log a warning
-      if (finalPath !== processedUrl) {
-        console.warn(`[API] Fixed duplicate API prefix: ${processedUrl} → ${finalPath}`);
-      }
     }
     
-    // Make the actual request with the safe path
+    // Make the actual request with the standardized path
     return axiosMethod(finalPath, ...args);
   };
 };
