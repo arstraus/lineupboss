@@ -795,6 +795,7 @@ def generate_ai_fielding_rotation(game_id):
             balance_playing_time = options.get('balancePlayingTime', True)
             allow_same_position = options.get('allowSamePositionMultipleTimes', False)
             strict_position_balance = options.get('strictPositionBalance', True)
+            temperature = options.get('temperature', 0.7)  # Add temperature parameter with default
             
             try:
                 # Use the AI service to generate fielding rotation with timeout handling
@@ -808,7 +809,8 @@ def generate_ai_fielding_rotation(game_id):
                     no_consecutive_innings,
                     balance_playing_time,
                     allow_same_position,
-                    strict_position_balance
+                    strict_position_balance,
+                    temperature  # Pass temperature to the AI service
                 )
                 
                 return jsonify(rotation_result), 200

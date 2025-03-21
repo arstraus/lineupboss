@@ -414,15 +414,16 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
     noConsecutiveInnings: true,
     balancePlayingTime: true,
     allowSamePositionMultipleTimes: false,
-    strictPositionBalance: true
+    strictPositionBalance: true,
+    temperature: 0.7
   });
   
   // Handle AI options change
   const handleAiOptionChange = (e) => {
-    const { name, checked } = e.target;
+    const { name, checked, type, value } = e.target;
     setAiOptions(prev => ({
       ...prev,
-      [name]: checked
+      [name]: type === 'range' ? parseFloat(value) : checked
     }));
   };
   
@@ -465,7 +466,8 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
             noConsecutiveInnings: aiOptions.noConsecutiveInnings,
             balancePlayingTime: aiOptions.balancePlayingTime,
             allowSamePositionMultipleTimes: aiOptions.allowSamePositionMultipleTimes,
-            strictPositionBalance: aiOptions.strictPositionBalance
+            strictPositionBalance: aiOptions.strictPositionBalance,
+            temperature: aiOptions.temperature
           }
         },
         { timeout: 120000 } // 2 minute timeout for AI operations
@@ -881,60 +883,96 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                     <div className="card-body">
                       <div className="row">
                         <div className="col-md-6">
-                          <div className="form-check mb-2">
-                            <input
-                              type="checkbox"
-                              className="form-check-input"
-                              id="noConsecutiveInnings"
-                              name="noConsecutiveInnings"
-                              checked={aiOptions.noConsecutiveInnings}
-                              onChange={handleAiOptionChange}
-                            />
-                            <label className="form-check-label" htmlFor="noConsecutiveInnings">
+                          <div className="toggle-option">
+                            <label className="toggle-switch">
+                              <input
+                                type="checkbox"
+                                id="noConsecutiveInnings"
+                                name="noConsecutiveInnings"
+                                checked={aiOptions.noConsecutiveInnings}
+                                onChange={handleAiOptionChange}
+                              />
+                              <span className="toggle-slider"></span>
+                            </label>
+                            <label className="toggle-option-label" htmlFor="noConsecutiveInnings">
                               No consecutive innings in infield/outfield
                             </label>
                           </div>
-                          <div className="form-check mb-2">
-                            <input
-                              type="checkbox"
-                              className="form-check-input"
-                              id="balancePlayingTime"
-                              name="balancePlayingTime"
-                              checked={aiOptions.balancePlayingTime}
-                              onChange={handleAiOptionChange}
-                            />
-                            <label className="form-check-label" htmlFor="balancePlayingTime">
+                          <div className="toggle-option">
+                            <label className="toggle-switch">
+                              <input
+                                type="checkbox"
+                                id="balancePlayingTime"
+                                name="balancePlayingTime"
+                                checked={aiOptions.balancePlayingTime}
+                                onChange={handleAiOptionChange}
+                              />
+                              <span className="toggle-slider"></span>
+                            </label>
+                            <label className="toggle-option-label" htmlFor="balancePlayingTime">
                               Balance playing time evenly
                             </label>
                           </div>
                         </div>
                         <div className="col-md-6">
-                          <div className="form-check mb-2">
-                            <input
-                              type="checkbox"
-                              className="form-check-input"
-                              id="allowSamePositionMultipleTimes"
-                              name="allowSamePositionMultipleTimes"
-                              checked={aiOptions.allowSamePositionMultipleTimes}
-                              onChange={handleAiOptionChange}
-                            />
-                            <label className="form-check-label" htmlFor="allowSamePositionMultipleTimes">
+                          <div className="toggle-option">
+                            <label className="toggle-switch">
+                              <input
+                                type="checkbox"
+                                id="allowSamePositionMultipleTimes"
+                                name="allowSamePositionMultipleTimes"
+                                checked={aiOptions.allowSamePositionMultipleTimes}
+                                onChange={handleAiOptionChange}
+                              />
+                              <span className="toggle-slider"></span>
+                            </label>
+                            <label className="toggle-option-label" htmlFor="allowSamePositionMultipleTimes">
                               Allow players to play same position multiple times
                             </label>
                           </div>
-                          <div className="form-check mb-2">
-                            <input
-                              type="checkbox"
-                              className="form-check-input"
-                              id="strictPositionBalance"
-                              name="strictPositionBalance"
-                              checked={aiOptions.strictPositionBalance}
-                              onChange={handleAiOptionChange}
-                            />
-                            <label className="form-check-label" htmlFor="strictPositionBalance">
+                          <div className="toggle-option">
+                            <label className="toggle-switch">
+                              <input
+                                type="checkbox"
+                                id="strictPositionBalance"
+                                name="strictPositionBalance"
+                                checked={aiOptions.strictPositionBalance}
+                                onChange={handleAiOptionChange}
+                              />
+                              <span className="toggle-slider"></span>
+                            </label>
+                            <label className="toggle-option-label" htmlFor="strictPositionBalance">
                               Strictly balance infield/outfield time
                             </label>
                           </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 mb-2">
+                        <label htmlFor="temperature" className="form-label">
+                          <strong>Rotation Variability</strong>
+                          <span className="ms-2 text-muted">
+                            {aiOptions.temperature <= 0.3 ? '(Predictable)' : 
+                             aiOptions.temperature >= 0.8 ? '(Creative)' : '(Balanced)'}
+                          </span>
+                        </label>
+                        <div className="d-flex align-items-center">
+                          <span className="me-2"><i className="bi bi-thermometer-low"></i></span>
+                          <input
+                            type="range"
+                            className="form-range"
+                            min="0.1"
+                            max="1.0"
+                            step="0.1"
+                            id="temperature"
+                            name="temperature"
+                            value={aiOptions.temperature}
+                            onChange={handleAiOptionChange}
+                          />
+                          <span className="ms-2"><i className="bi bi-thermometer-high"></i></span>
+                        </div>
+                        <div className="text-muted small mt-1">
+                          <i className="bi bi-info-circle me-1"></i>
+                          Lower values produce more predictable rotations, higher values increase creativity and variety
                         </div>
                       </div>
                     </div>
@@ -948,6 +986,10 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                       {aiOptions.noConsecutiveInnings && <li>Players will not play infield or outfield in consecutive innings</li>}
                       {aiOptions.balancePlayingTime && <li>Playing time will be balanced as evenly as possible</li>}
                       {aiOptions.strictPositionBalance && <li>Infield and outfield time will be strictly balanced</li>}
+                      <li>
+                        Rotation variability: {aiOptions.temperature <= 0.3 ? 'Low (predictable)' : 
+                          aiOptions.temperature >= 0.8 ? 'High (creative)' : 'Medium (balanced)'}
+                      </li>
                     </ul>
                   </div>
                   

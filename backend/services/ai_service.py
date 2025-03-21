@@ -27,7 +27,8 @@ class AIService:
         no_consecutive_innings: bool = True,
         balance_playing_time: bool = True,
         allow_same_position: bool = False,
-        strict_position_balance: bool = True
+        strict_position_balance: bool = True,
+        temperature: float = 0.7
     ) -> Dict[int, Dict[str, int]]:
         """
         Generate a fielding rotation using the Anthropic API.
@@ -163,10 +164,11 @@ class AIService:
                 # Set a timeout to avoid long-running requests
                 timeout = 8.0  # 8 seconds timeout to stay within Heroku's limits
                 
+                # Use the user-provided temperature parameter
                 response = anthropic.messages.create(
                     model="claude-3-5-sonnet-20240620",  # Use the latest model directly
                     max_tokens=4000,
-                    temperature=0.7,  # Higher temperature for more variability
+                    temperature=temperature,  # Use the temperature parameter passed from the frontend
                     system="You are an expert baseball coach assistant that creates fielding rotations. Respond only with JSON.",
                     messages=[
                         {"role": "user", "content": prompt}
