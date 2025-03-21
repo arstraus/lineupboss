@@ -41,9 +41,10 @@ frontend/coverage
 /docs
 **/*.md
 **/*.markdown
-**/*.txt
-!requirements.txt
-!backend/requirements.txt
+# Exclude txt files but NOT requirements.txt
+/docs/**/*.txt
+/frontend/**/*.txt
+/bin/**/*.txt
 LICENSE
 .vscode
 .idea
