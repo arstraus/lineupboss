@@ -1,3 +1,5 @@
+@import './theme.css';
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -5,6 +7,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color: var(--text-dark);
+  background-color: var(--primary-white);
 }
 
 code {
@@ -19,7 +23,7 @@ code {
 
 /* Hero Section */
 .hero-section {
-  background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), 
+  background-image: linear-gradient(rgba(10, 36, 99, 0.8), rgba(10, 36, 99, 0.8)), 
                     url('https://images.unsplash.com/photo-1562038969-e85c82240086?auto=format&fit=crop&q=80&w=1200');
   background-size: cover;
   background-position: center;
@@ -30,7 +34,7 @@ code {
   text-align: center;
   position: relative;
   overflow: hidden;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--navy-15);
   margin-left: calc(-50vw + 50%);
   margin-right: calc(-50vw + 50%);
   width: 100vw;
@@ -46,21 +50,24 @@ code {
   font-weight: 700;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
   margin-bottom: 0.75rem;
+  color: var(--primary-white);
 }
 
 .hero-content p {
   font-size: 1.25rem;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  color: var(--primary-white);
 }
 
 /* Feature Cards */
 .feature-card {
-  background-color: #fff;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background-color: var(--primary-white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
   padding: 2rem;
   height: 100%;
   transition: transform 0.2s;
+  border-top: 4px solid var(--primary-navy);
 }
 
 .feature-card:hover {
@@ -69,25 +76,26 @@ code {
 
 .feature-icon {
   font-size: 2.5rem;
-  color: #0d6efd;
+  color: var(--primary-navy);
   margin-bottom: 1rem;
 }
 
 .feature-card h3 {
   font-size: 1.5rem;
   margin-bottom: 1rem;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .feature-card p {
-  color: #666;
+  color: var(--text-muted);
 }
 
 /* Team Cards */
 .section-title {
-  border-left: 5px solid #0d6efd;
+  border-left: 5px solid var(--primary-navy);
   padding-left: 1rem;
   font-weight: 700;
+  color: var(--text-primary);
 }
 
 .team-cards {
@@ -97,14 +105,14 @@ code {
 }
 
 .team-card {
-  background: white;
-  border-radius: 0.5rem;
+  background: var(--primary-white);
+  border-radius: var(--border-radius);
   overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
   transition: transform 0.2s ease;
   display: flex;
   flex-direction: column;
-  border-top: 4px solid #0d6efd;
+  border-top: 4px solid var(--primary-navy);
 }
 
 .team-card:hover {
@@ -112,14 +120,14 @@ code {
 }
 
 .team-card-header {
-  background-color: #f8f9fa;
+  background-color: var(--accent-gray);
   padding: 1.25rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--accent-gray);
 }
 
 .team-card-header h3 {
   margin: 0;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -130,12 +138,13 @@ code {
 
 .team-card-body p {
   margin-bottom: 0.75rem;
+  color: var(--text-muted);
 }
 
 .team-card-footer {
   padding: 1.25rem;
-  background-color: #f8f9fa;
-  border-top: 1px solid #e9ecef;
+  background-color: var(--accent-gray);
+  border-top: 1px solid var(--accent-gray);
   display: flex;
   justify-content: space-between;
 }
@@ -144,14 +153,14 @@ code {
 .new-team-card {
   max-width: 800px;
   margin: 0 auto 2rem;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 /* App Info Section */
 .app-info {
-  background-color: #f8f9fa;
+  background-color: var(--accent-gray);
   padding: 2rem;
-  border-radius: 0.5rem;
+  border-radius: var(--border-radius);
 }
 
 .app-features-list {
@@ -170,25 +179,26 @@ code {
   position: absolute;
   left: 0;
   top: 0.25rem;
-  color: #28a745;
+  color: var(--secondary-green);
 }
 
 .screenshot-placeholder {
-  background-color: #e9ecef;
+  background-color: var(--accent-gray);
   height: 300px;
-  border-radius: 0.5rem;
+  border-radius: var(--border-radius);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  color: #6c757d;
-  border: 2px dashed #adb5bd;
+  color: var(--text-muted);
+  border: 2px dashed var(--secondary-sand);
 }
 
 .screenshot-placeholder i {
   font-size: 4rem;
   margin-bottom: 1rem;
+  color: var(--text-muted);
 }
 
 /* Game List styles */
@@ -209,8 +219,8 @@ code {
 }
 
 .game-list-item .card {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  border-left: 4px solid #007bff;
+  box-shadow: var(--shadow-sm);
+  border-left: 4px solid var(--primary-navy);
 }
 
 /* Modal styles */
@@ -241,24 +251,169 @@ code {
 }
 
 .modal-overlay .modal-content {
-  background-color: #fff;
-  border-radius: 0.3rem;
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  background-color: var(--primary-white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
 }
 
 /* Footer styles */
 .footer {
   margin-top: 2rem;
   padding: 1.5rem 0;
-  background-color: #f8f9fa;
-  border-top: 1px solid #dee2e6;
+  background-color: var(--primary-navy);
+  border-top: 1px solid var(--navy-25);
+  color: var(--primary-white);
 }
 
 .footer a {
-  color: #0d6efd;
+  color: var(--accent-yellow);
   text-decoration: none;
 }
 
 .footer a:hover {
   text-decoration: underline;
+  color: var(--primary-white);
+}
+
+/* Position coloring overrides */
+.position-pitcher {
+  background-color: var(--accent-yellow) !important;
+  color: var(--text-dark) !important;
+}
+
+.position-catcher {
+  background-color: var(--primary-red) !important;
+  color: var(--primary-white) !important;
+}
+
+.position-1b,
+.position-2b,
+.position-3b,
+.position-ss {
+  background-color: var(--primary-navy) !important;
+  color: var(--primary-white) !important;
+}
+
+.position-lf,
+.position-rf,
+.position-lc,
+.position-rc {
+  background-color: var(--secondary-green) !important;
+  color: var(--primary-white) !important;
+}
+
+.position-bench {
+  background-color: var(--secondary-sand) !important;
+  color: var(--text-dark) !important;
+}
+
+/* Baseball field styling - general container */
+.baseball-field-container {
+  background-color: var(--secondary-green);
+  border-radius: var(--border-radius);
+  padding: 2rem;
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+/* Lineup table */
+.lineup-table {
+  background-color: var(--primary-white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.lineup-table .table thead {
+  background-color: var(--primary-navy);
+  color: var(--primary-white);
+}
+
+.lineup-table .table tbody tr:nth-child(odd) {
+  background-color: var(--accent-gray);
+}
+
+/* Tabs styling */
+.nav-tabs {
+  border-bottom: 1px solid var(--accent-gray);
+}
+
+.nav-tabs .nav-link {
+  color: var(--text-muted);
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 0.75rem 1.25rem;
+}
+
+.nav-tabs .nav-link:hover,
+.nav-tabs .nav-link:focus {
+  color: var(--primary-navy);
+  border-color: transparent;
+}
+
+.nav-tabs .nav-link.active {
+  color: var(--primary-navy);
+  background-color: transparent;
+  border-color: transparent;
+  border-bottom: 3px solid var(--primary-navy);
+}
+
+/* Form controls */
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--primary-navy);
+  box-shadow: 0 0 0 0.25rem rgba(10, 36, 99, 0.25);
+}
+
+/* Alerts */
+.alert {
+  border-radius: var(--border-radius);
+  border-left: 4px solid transparent;
+}
+
+.alert-primary {
+  border-left-color: var(--primary-navy);
+}
+
+.alert-danger {
+  border-left-color: var(--primary-red);
+}
+
+.alert-warning {
+  border-left-color: var(--accent-yellow);
+}
+
+.alert-success {
+  border-left-color: var(--secondary-green);
+}
+
+/* Media Queries */
+@media (max-width: 768px) {
+  .hero-section {
+    height: 300px;
+  }
+  
+  .hero-content h1 {
+    font-size: 2.5rem;
+  }
+  
+  .hero-content p {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .hero-section {
+    height: 250px;
+  }
+  
+  .hero-buttons .btn {
+    display: block;
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  .hero-buttons .btn:not(:last-child) {
+    margin-right: 0;
+  }
 }

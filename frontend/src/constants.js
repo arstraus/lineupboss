@@ -12,19 +12,35 @@ export const BENCH = ["Bench"];
 export const MAX_INNINGS = 9;
 export const DEFAULT_INNINGS = 6;
 
-// UI constants
+// UI constants with new brand colors
 export const POSITION_COLORS = {
-  "Pitcher": "#FFD700",   // Gold
-  "Catcher": "#FF8C00",   // Dark Orange
-  "1B": "#32CD32",        // Lime Green
-  "2B": "#00BFFF",        // Deep Sky Blue
-  "3B": "#FF69B4",        // Hot Pink
-  "SS": "#9370DB",        // Medium Purple
-  "LF": "#00CED1",        // Dark Turquoise
-  "RF": "#FF6347",        // Tomato
-  "LC": "#20B2AA",        // Light Sea Green
-  "RC": "#BA55D3",        // Medium Orchid
-  "Bench": "#A9A9A9"      // Dark Gray
+  "Pitcher": "#F2C94C",   // Golden Yellow (accent)
+  "Catcher": "#BA1F33",   // Cardinal Red (primary)
+  "1B": "#0A2463",        // Navy Blue (primary)
+  "2B": "#0A2463",        // Navy Blue (primary)
+  "3B": "#0A2463",        // Navy Blue (primary)
+  "SS": "#0A2463",        // Navy Blue (primary)
+  "LF": "#1B512D",        // Forest Green (secondary)
+  "RF": "#1B512D",        // Forest Green (secondary)
+  "LC": "#1B512D",        // Forest Green (secondary)
+  "RC": "#1B512D",        // Forest Green (secondary)
+  "Bench": "#D6C7A9"      // Sand/Tan (secondary)
+};
+
+// Brand colors reference
+export const BRAND_COLORS = {
+  // Primary Colors
+  primaryNavy: "#0A2463",    // Navy Blue - trust and reliability
+  primaryRed: "#BA1F33",     // Cardinal Red - energy and excitement
+  primaryWhite: "#FFFFFF",   // Clean White - backgrounds and contrast
+  
+  // Secondary Colors
+  secondarySand: "#D6C7A9",  // Sand/Tan - baseball infield dirt, subtle backgrounds
+  secondaryGreen: "#1B512D", // Forest Green - baseball field grass, success states
+  
+  // Accent Colors
+  accentYellow: "#F2C94C",   // Golden Yellow - highlighting important elements, calls to action
+  accentGray: "#E5E5E5",     // Light Gray - subtle UI elements and dividers
 };
 
 // Routes

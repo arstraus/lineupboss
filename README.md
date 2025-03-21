@@ -18,6 +18,7 @@ A comprehensive baseball lineup management application for coaches to create fai
 - **Data Persistence**: All your team and game data is securely stored and accessible anytime
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 - **User Authentication**: Secure access with JWT-based authentication and user accounts
+- **AI-Powered Rotations**: Generate balanced fielding rotations with AI assistance
 
 ## Technical Architecture
 
@@ -30,6 +31,7 @@ LineupBoss employs a modern, maintainable architecture:
 - **Service Layer**: Organized business logic in dedicated services
 - **API Documentation**: Interactive Swagger documentation
 - **Error Handling**: Comprehensive error handling and reporting
+- **Standardized Routes**: Consistent RESTful resource patterns
 
 ### Frontend (React/JavaScript)
 - **Component Architecture**: Reusable, modular React components
@@ -39,11 +41,13 @@ LineupBoss employs a modern, maintainable architecture:
 - **JWT Integration**: Secure auth token management
 - **Form Validation**: Client-side validation for all input forms
 - **PDF Export**: Generate downloadable game plans with HTML2PDF
+- **Drag and Drop**: Intuitive lineup management with react-beautiful-dnd
 
 ### Cross-Cutting Concerns
 - **Shared Models**: Common data models between frontend and backend
 - **Consistent Error Handling**: Standardized error responses and handling
 - **Responsive Design**: Mobile-first approach for all user interfaces
+- **Database Session Management**: Optimized database access patterns
 
 ## Getting Started
 
@@ -80,9 +84,6 @@ LineupBoss employs a modern, maintainable architecture:
    DATABASE_URL=postgresql://username:password@localhost/lineup
    JWT_SECRET_KEY=$(openssl rand -hex 32)
    EOF
-
-   # Initialize the database
-   python migrate_db.py
    ```
 
 4. **Frontend Setup:**
@@ -102,8 +103,9 @@ LineupBoss employs a modern, maintainable architecture:
 **Option 1: Run backend and frontend separately**
 ```bash
 # Terminal 1 - Backend
-cd backend
-gunicorn app:app --reload
+./run_server.sh
+# or
+cd backend && gunicorn app:app
 
 # Terminal 2 - Frontend
 cd frontend
@@ -144,6 +146,7 @@ The application will be available at:
    - Color coding indicates position balance issues
    - Validation ensures no player plays the same position multiple times
    - System warns about consecutive infield/outfield assignments
+   - Use AI assistance to generate balanced rotations automatically
 
 ### 5. Game Day
 1. **Game Summary**: View the complete lineup card with all assignments
@@ -154,6 +157,32 @@ The application will be available at:
 1. **Fairness Analysis**: Review position distribution across the season
 2. **Adjustment Tools**: Easily modify lineups based on analysis
 3. **Historical Data**: Access previous game plans throughout the season
+
+## API Architecture
+
+LineupBoss uses a RESTful API architecture with standardized routes:
+
+### Blueprint Organization
+```
+/api                   - Main API blueprint
+  /auth                - Authentication endpoints
+  /user                - User profile endpoints
+  /teams               - Team management
+    /<team_id>/games   - Games for a specific team
+    /<team_id>/players - Players for a specific team
+  /players             - Player management
+  /games               - Game management
+  /admin               - Admin functions
+  /docs                - API documentation
+```
+
+### Key Endpoints
+- Authentication: `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh`
+- Teams: `/api/teams`, `/api/teams/<team_id>`
+- Players: `/api/teams/<team_id>/players`, `/api/players/<player_id>`
+- Games: `/api/teams/<team_id>/games`, `/api/games/<game_id>`
+- Game Details: `/api/games/<game_id>/batting-order`, `/api/games/<game_id>/fielding-rotations`
+- User Profile: `/api/user/profile`
 
 ## Deployment Guide
 
@@ -179,6 +208,11 @@ git subtree push --prefix backend heroku main
 # Run database migrations
 heroku run python migrate_db.py
 ```
+
+Heroku slug size optimizations are implemented via:
+- `.slugignore` to exclude unnecessary files
+- Source map elimination for frontend builds
+- Optimized build scripts in `bin/heroku_build.sh`
 
 #### Option 2: Railway
 Railway offers an easy deployment option with PostgreSQL integration:
@@ -218,6 +252,12 @@ netlify deploy --prod
 
 ## Recent Improvements
 
+### API Route Standardization (March 2025)
+- Completed migration to standard RESTful routes
+- Eliminated legacy emergency routes
+- Improved average response time by 13.9%
+- Reduced slow endpoints from 22 to 4
+
 ### UI Enhancements (2025)
 - **New Landing Page**: Baseball-themed landing page with clear features and benefits
 - **Dashboard Redesign**: Streamlined dashboard with improved team management
@@ -225,6 +265,53 @@ netlify deploy --prod
 - **Fielding Rotations**: Enhanced position validation with clearer visual feedback
 - **Mobile Responsiveness**: Improved layout for all screen sizes
 - **Visual Consistency**: Unified design language across all app screens
+
+### AI-Powered Features
+- **Fielding Rotations**: AI-assisted generation of balanced fielding rotations
+- **Position Fairness**: Intelligent suggestions for player positions
+
+## Code Style Guidelines
+
+### Backend (Python)
+- **Imports**: Group standard library, third-party, and local imports
+- **Formatting**: Use 4 spaces for indentation
+- **Naming**: snake_case for variables/functions, CamelCase for classes
+- **Database Access**:
+  - For read operations: `with db_session(read_only=True) as session:`
+  - For write operations: `with db_session(commit=True) as session:`
+
+### Frontend (JavaScript/React)
+- **Imports**: Group React, third-party, and local imports
+- **Formatting**: Use 2 spaces for indentation
+- **Naming**: camelCase for variables/functions, PascalCase for components
+- **Position Constants**:
+  ```javascript
+  // Position constants
+  export const POSITIONS = ["Pitcher", "Catcher", "1B", "2B", "3B", "SS", "LF", "RF", "LC", "RC", "Bench"];
+  export const INFIELD = ["Pitcher", "1B", "2B", "3B", "SS"];
+  export const OUTFIELD = ["Catcher", "LF", "RF", "LC", "RC"];
+  export const BENCH = ["Bench"];
+  ```
+
+## Dependencies
+
+### Backend
+- Flask 3.0+
+- SQLAlchemy 2.0+
+- Flask-JWT-Extended 4.7+
+- Gunicorn 23.0+
+- PostgreSQL (via psycopg2-binary)
+- Marshmallow 3.26+
+- Anthropic 0.16+ (for AI features)
+
+### Frontend
+- React 18.0.0
+- Bootstrap 5.3+
+- Axios 1.8+
+- React Router 6.30+
+- React Bootstrap 2.10+
+- HTML2PDF 0.10+
+- React Beautiful DnD 13.1+
 
 ## Contributing
 
