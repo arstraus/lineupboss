@@ -393,3 +393,19 @@ export const batchSavePlayerAvailability = (gameId, playerAvailabilityArray) => 
   // Use direct axios call to avoid duplicating the /api prefix from baseURL
   return axios.post(`/games/${gameId}/player-availability/batch`, playerAvailabilityArray);
 };
+
+// ANALYTICS API
+export const getBattingAnalytics = (teamId) => {
+  // Use direct axios call to avoid duplicating the /api prefix from baseURL
+  return axios.get(`/analytics/teams/${teamId}/batting-analytics`);
+};
+
+export const getFieldingAnalytics = (teamId) => {
+  // Use direct axios call to avoid duplicating the /api prefix from baseURL
+  return axios.get(`/analytics/teams/${teamId}/fielding-analytics`);
+};
+
+export const getTeamAnalytics = (teamId) => {
+  // Use direct axios call to avoid duplicating the /api prefix from baseURL
+  return axios.get(`/analytics/teams/${teamId}/analytics`);
+};

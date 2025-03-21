@@ -78,6 +78,9 @@ except Exception as e:
 # Register admin blueprint (for admin functions)
 register_blueprint(api, 'admin', 'admin', '/admin')
 
+# Register analytics blueprint (for team and player analytics)
+register_blueprint(api, 'analytics', 'analytics_bp', '/analytics')
+
 # Try to import docs with special handling for apispec dependency
 try:
     # First check if apispec is available

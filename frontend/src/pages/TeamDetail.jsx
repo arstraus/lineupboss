@@ -176,6 +176,14 @@ const TeamDetail = () => {
             Games
           </button>
         </li>
+        <li className="nav-item">
+          <button 
+            className={`nav-link ${activeTab === "analytics" ? "active" : ""}`}
+            onClick={() => navigate(`/teams/${teamId}/analytics`)}
+          >
+            <i className="bi bi-bar-chart me-1"></i> Season Analytics
+          </button>
+        </li>
       </ul>
 
       {activeTab === "players" ? (

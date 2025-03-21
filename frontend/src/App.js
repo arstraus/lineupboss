@@ -14,6 +14,7 @@ import LandingPage from "./pages/Landing/LandingPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import AccountSettings from "./pages/AccountSettings";
 import Billing from "./pages/Billing";
+import AnalyticsPage from "./components/analytics/AnalyticsPage";
 
 // Components
 import Header from "./components/Header";
@@ -123,6 +124,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <Billing />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/teams/:teamId/analytics" 
+            element={
+              <ProtectedRoute>
+                <AnalyticsPage />
               </ProtectedRoute>
             } 
           />
