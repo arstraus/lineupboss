@@ -11,8 +11,8 @@ export const getPlayer = (id) => {
 };
 
 export const createPlayer = (teamId, playerData) => {
-  // Use REST-style nested route pattern
-  return post(`/teams/${teamId}/players`, playerData);
+  // Use API route that matches backend endpoint
+  return post(`/players/team/${teamId}`, playerData);
 };
 
 export const updatePlayer = (id, playerData) => {
@@ -34,9 +34,9 @@ export const getGame = (id) => {
 };
 
 export const createGame = (teamId, gameData) => {
-  // Use REST-style nested route pattern
+  // Use API route that matches backend endpoint
   console.log(`Creating game for team ${teamId} with data:`, gameData);
-  return post(`/teams/${teamId}/games`, gameData);
+  return post(`/games/team/${teamId}`, gameData);
 };
 
 export const updateGame = (id, gameData) => {

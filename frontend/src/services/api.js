@@ -257,7 +257,7 @@ export const getPlayer = (playerId) => {
 
 export const createPlayer = (teamId, playerData) => {
   // Use direct axios call to avoid duplicating the /api prefix from baseURL
-  return axios.post(`/teams/${teamId}/players`, playerData);
+  return axios.post(`/players/team/${teamId}`, playerData);
 };
 
 export const updatePlayer = (playerId, playerData) => {
@@ -283,7 +283,7 @@ export const getGame = (gameId) => {
 
 export const createGame = (teamId, gameData) => {
   // Use direct axios call to avoid duplicating the /api prefix from baseURL
-  return axios.post(`/teams/${teamId}/games`, gameData);
+  return axios.post(`/games/team/${teamId}`, gameData);
 };
 
 export const updateGame = (gameId, gameData) => {

@@ -30,7 +30,7 @@ const PlayerList = ({ teamId }) => {
 
   const handleAddPlayer = async (playerData) => {
     try {
-      await post(`/teams/${teamId}/players`, playerData);
+      await post(`/players/team/${teamId}`, playerData);
       setShowAddForm(false);
       fetchPlayers();
     } catch (err) {

@@ -10,7 +10,9 @@ const Dashboard = () => {
   const [newTeam, setNewTeam] = useState({
     name: "",
     league: "",
-    head_coach: ""
+    head_coach: "",
+    assistant_coach1: "",
+    assistant_coach2: ""
   });
 
   const [apiStatus, setApiStatus] = useState(null);
@@ -126,7 +128,9 @@ const Dashboard = () => {
       setNewTeam({
         name: "",
         league: "",
-        head_coach: ""
+        head_coach: "",
+        assistant_coach1: "",
+        assistant_coach2: ""
       });
       setShowNewTeamForm(false);
       fetchTeams();
@@ -300,6 +304,28 @@ const Dashboard = () => {
                     id="head_coach"
                     name="head_coach"
                     value={newTeam.head_coach}
+                    onChange={handleNewTeamChange}
+                  />
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="assistant_coach1" className="form-label">Assistant Coach 1</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="assistant_coach1"
+                    name="assistant_coach1"
+                    value={newTeam.assistant_coach1}
+                    onChange={handleNewTeamChange}
+                  />
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="assistant_coach2" className="form-label">Assistant Coach 2</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="assistant_coach2"
+                    name="assistant_coach2"
+                    value={newTeam.assistant_coach2}
                     onChange={handleNewTeamChange}
                   />
                 </div>

@@ -36,8 +36,8 @@ const GameList = ({ teamId }) => {
 
   const handleAddGame = async (gameData) => {
     try {
-      // Use the RESTful nested route pattern
-      await post(`/teams/${teamId}/games`, gameData);
+      // Use the endpoint that matches the backend
+      await post(`/games/team/${teamId}`, gameData);
       setShowAddForm(false);
       fetchGames();
     } catch (err) {
