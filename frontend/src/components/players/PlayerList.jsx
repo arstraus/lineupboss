@@ -140,8 +140,8 @@ const PlayerList = ({ teamId }) => {
 
       {editingPlayer && (
         <div className="modal-overlay" onClick={() => setEditingPlayer(null)}>
-          <div className="modal">
-            <div className="modal-dialog" role="document" onClick={e => e.stopPropagation()}>
+          <div className="modal" style={{display: 'block'}}>
+            <div className="modal-dialog" onClick={e => e.stopPropagation()}>
               <div className="modal-content">
                 <div className="modal-header">
                   <h5 className="modal-title">Edit Player: {editingPlayer.full_name}</h5>

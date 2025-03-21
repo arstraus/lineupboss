@@ -243,17 +243,22 @@ code {
   margin: 0;
   width: 100%;
   pointer-events: none;
+  display: block !important;
 }
 
 .modal-overlay .modal-dialog {
   pointer-events: auto;
   margin: 1.75rem auto;
+  max-width: 500px;
 }
 
 .modal-overlay .modal-content {
   background-color: var(--primary-white);
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-lg);
+  border: none;
+  position: relative;
+  pointer-events: auto;
 }
 
 /* Footer styles */
