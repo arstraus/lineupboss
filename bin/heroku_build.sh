@@ -9,7 +9,10 @@ cd frontend
 echo "Building frontend..."
 
 # Install frontend dependencies
+echo "Installing frontend dependencies including recharts..."
 npm install --legacy-peer-deps --no-audit --no-fund
+# Explicitly install recharts to be sure it's available
+npm install --legacy-peer-deps --no-audit --no-fund recharts
 
 # Ensure source maps are disabled
 echo "GENERATE_SOURCEMAP=false" > .env.production

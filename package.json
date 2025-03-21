@@ -35,6 +35,9 @@
   ],
   "author": "",
   "license": "MIT",
+  "dependencies": {
+    "recharts": "^2.10.3"
+  },
   "devDependencies": {
     "concurrently": "^7.6.0"
   }
