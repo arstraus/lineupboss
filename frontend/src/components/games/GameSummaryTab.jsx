@@ -92,6 +92,11 @@ const GameSummaryTab = ({ gameId, players, game, innings }) => {
         return position;
       }
     }
+    
+    // Check if player is available for this game before showing "Bench"
+    if (isPlayerAvailable(playerId)) {
+      return "Bench";
+    }
     return "";
   };
 
@@ -200,9 +205,14 @@ const GameSummaryTab = ({ gameId, players, game, innings }) => {
                   <td className="py-1">{player.jersey_number}</td>
                   <td className="py-1">{player.full_name || `${player.first_name} ${player.last_name}`}</td>
                   <td className="py-1">{isPlayerAvailable(player.id) ? "Y" : "N"}</td>
-                  {Array.from({ length: innings }).map((_, i) => (
-                    <td key={i+1} className="py-1">{getPlayerPosition(player.id, i+1)}</td>
-                  ))}
+                  {Array.from({ length: innings }).map((_, i) => {
+                    const position = getPlayerPosition(player.id, i+1);
+                    return (
+                      <td key={i+1} className={`py-1 ${position === 'Bench' ? 'text-muted fst-italic' : ''}`}>
+                        {position}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             ) : (
@@ -212,9 +222,14 @@ const GameSummaryTab = ({ gameId, players, game, innings }) => {
                   <td className="py-1">{player.jersey_number}</td>
                   <td className="py-1">{player.full_name || `${player.first_name} ${player.last_name}`}</td>
                   <td className="py-1">{isPlayerAvailable(player.id) ? "Y" : "N"}</td>
-                  {Array.from({ length: innings }).map((_, i) => (
-                    <td key={i+1} className="py-1">{getPlayerPosition(player.id, i+1)}</td>
-                  ))}
+                  {Array.from({ length: innings }).map((_, i) => {
+                    const position = getPlayerPosition(player.id, i+1);
+                    return (
+                      <td key={i+1} className={`py-1 ${position === 'Bench' ? 'text-muted fst-italic' : ''}`}>
+                        {position}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             )}
