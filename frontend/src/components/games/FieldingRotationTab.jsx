@@ -409,6 +409,23 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
     }
   };
   
+  // State for AI customization options
+  const [aiOptions, setAiOptions] = useState({
+    noConsecutiveInnings: true,
+    balancePlayingTime: true,
+    allowSamePositionMultipleTimes: false,
+    strictPositionBalance: true
+  });
+  
+  // Handle AI options change
+  const handleAiOptionChange = (e) => {
+    const { name, checked } = e.target;
+    setAiOptions(prev => ({
+      ...prev,
+      [name]: checked
+    }));
+  };
+  
   // Function to generate AI fielding rotation
   const handleGenerateAIRotation = async () => {
     try {
@@ -443,7 +460,13 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
           innings: innings,
           required_positions: requiredPositions,
           infield_positions: INFIELD,
-          outfield_positions: OUTFIELD
+          outfield_positions: OUTFIELD,
+          options: {
+            noConsecutiveInnings: aiOptions.noConsecutiveInnings,
+            balancePlayingTime: aiOptions.balancePlayingTime,
+            allowSamePositionMultipleTimes: aiOptions.allowSamePositionMultipleTimes,
+            strictPositionBalance: aiOptions.strictPositionBalance
+          }
         },
         { timeout: 120000 } // 2 minute timeout for AI operations
       );
@@ -848,14 +871,85 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
                   {aiError && <div className="alert alert-danger">{aiError}</div>}
                   
                   <p className="mb-3">
-                    The AI will create a fielding rotation plan that follows these rules:
+                    The AI will create a fielding rotation plan that follows the rules you select below:
                   </p>
-                  <ul className="mb-4">
-                    <li>All positions must be filled in every inning</li>
-                    <li>Players will not play the same position more than once</li>
-                    <li>Players should not play infield or outfield in consecutive innings</li>
-                    <li>Playing time will be balanced as evenly as possible</li>
-                  </ul>
+                  
+                  <div className="card mb-4">
+                    <div className="card-header bg-light">
+                      <h6 className="mb-0">Rotation Rules Customization</h6>
+                    </div>
+                    <div className="card-body">
+                      <div className="row">
+                        <div className="col-md-6">
+                          <div className="form-check mb-2">
+                            <input
+                              type="checkbox"
+                              className="form-check-input"
+                              id="noConsecutiveInnings"
+                              name="noConsecutiveInnings"
+                              checked={aiOptions.noConsecutiveInnings}
+                              onChange={handleAiOptionChange}
+                            />
+                            <label className="form-check-label" htmlFor="noConsecutiveInnings">
+                              No consecutive innings in infield/outfield
+                            </label>
+                          </div>
+                          <div className="form-check mb-2">
+                            <input
+                              type="checkbox"
+                              className="form-check-input"
+                              id="balancePlayingTime"
+                              name="balancePlayingTime"
+                              checked={aiOptions.balancePlayingTime}
+                              onChange={handleAiOptionChange}
+                            />
+                            <label className="form-check-label" htmlFor="balancePlayingTime">
+                              Balance playing time evenly
+                            </label>
+                          </div>
+                        </div>
+                        <div className="col-md-6">
+                          <div className="form-check mb-2">
+                            <input
+                              type="checkbox"
+                              className="form-check-input"
+                              id="allowSamePositionMultipleTimes"
+                              name="allowSamePositionMultipleTimes"
+                              checked={aiOptions.allowSamePositionMultipleTimes}
+                              onChange={handleAiOptionChange}
+                            />
+                            <label className="form-check-label" htmlFor="allowSamePositionMultipleTimes">
+                              Allow players to play same position multiple times
+                            </label>
+                          </div>
+                          <div className="form-check mb-2">
+                            <input
+                              type="checkbox"
+                              className="form-check-input"
+                              id="strictPositionBalance"
+                              name="strictPositionBalance"
+                              checked={aiOptions.strictPositionBalance}
+                              onChange={handleAiOptionChange}
+                            />
+                            <label className="form-check-label" htmlFor="strictPositionBalance">
+                              Strictly balance infield/outfield time
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="alert alert-primary">
+                    <strong>Current Rules:</strong>
+                    <ul className="mb-0 mt-2">
+                      <li>All positions must be filled in every inning</li>
+                      {!aiOptions.allowSamePositionMultipleTimes && <li>Players will not play the same position more than once</li>}
+                      {aiOptions.noConsecutiveInnings && <li>Players will not play infield or outfield in consecutive innings</li>}
+                      {aiOptions.balancePlayingTime && <li>Playing time will be balanced as evenly as possible</li>}
+                      {aiOptions.strictPositionBalance && <li>Infield and outfield time will be strictly balanced</li>}
+                    </ul>
+                  </div>
                   
                   {Object.keys(aiRotations).length === 0 ? (
                     <div className="text-center my-5">

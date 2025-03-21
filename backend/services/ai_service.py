@@ -23,7 +23,11 @@ class AIService:
         innings: int,
         required_positions: List[str],
         infield_positions: List[str],
-        outfield_positions: List[str]
+        outfield_positions: List[str],
+        no_consecutive_innings: bool = True,
+        balance_playing_time: bool = True,
+        allow_same_position: bool = False,
+        strict_position_balance: bool = True
     ) -> Dict[int, Dict[str, int]]:
         """
         Generate a fielding rotation using the Anthropic API.
@@ -76,6 +80,51 @@ class AIService:
             timestamp = int(time.time())
             
             # Create the prompt
+            # Building the prompt with customization options
+            rule_components = [
+                f"1. MOST CRITICAL: In EVERY inning, ALL of these positions MUST be filled EXACTLY ONCE: {required_positions_str}",
+                f"2. Unavailable players (marked \"available\": false) MUST be marked as \"OUT\" in ALL innings",
+                f"3. \"Catcher\" position can ONLY be assigned to players marked as \"can_play_catcher\": true",
+                f"4. ALL positions must be assigned EXACTLY ONE player - no position can be left unfilled",
+                f"5. NO duplicate position assignments within the same inning",
+            ]
+            
+            # Rule about playing the same position multiple times
+            if not allow_same_position:
+                rule_components.append(f"6. NO player should play the SAME position more than once across ALL innings of a game")
+            else:
+                rule_components.append(f"6. Players MAY play the same position multiple times across innings")
+            
+            # Rule about consecutive innings in infield/outfield
+            if no_consecutive_innings:
+                rule_components.append(f"""7. NO player should play infield or outfield in CONSECUTIVE innings (they must alternate or have bench time in between)
+               - Infield positions are: {', '.join(infield_positions)}
+               - Outfield positions are: {', '.join(outfield_positions)}""")
+            else:
+                rule_components.append(f"""7. Players MAY play infield or outfield in consecutive innings
+               - Infield positions are: {', '.join(infield_positions)}
+               - Outfield positions are: {', '.join(outfield_positions)}""")
+            
+            # Rule about balancing playing time
+            if balance_playing_time:
+                playing_time_rule = "8. BALANCE playing time:"
+                if strict_position_balance:
+                    playing_time_rule += """
+               - Every available player should have nearly equal infield time (within 1 inning difference)
+               - Every available player should have nearly equal outfield time (within 1 inning difference)"""
+                playing_time_rule += """
+               - Only use bench if necessary (when there are more players than field positions)
+               - Bench time should be evenly distributed across players (within 1 inning difference)"""
+                rule_components.append(playing_time_rule)
+            else:
+                rule_components.append("8. Even distribution of playing time is NOT required, but try to give everyone some playing time")
+            
+            # Final verification rule
+            rule_components.append(f"9. DOUBLE CHECK that ALL of these positions are assigned in EVERY inning: {required_positions_str}")
+            
+            # Join all rules into a full ruleset
+            all_rules = "\n\n".join(rule_components)
+            
             prompt = f"""
             You are an expert baseball coach assistant that specializes in creating fair and balanced fielding rotations.
             
@@ -84,21 +133,7 @@ class AIService:
 
             Please analyze the following data and create a fielding rotation plan with these STRICT requirements:
 
-            1. MOST CRITICAL: In EVERY inning, ALL of these positions MUST be filled EXACTLY ONCE: {required_positions_str}
-            2. Unavailable players (marked "available": false) MUST be marked as "OUT" in ALL innings
-            3. "Catcher" position can ONLY be assigned to players marked as "can_play_catcher": true
-            4. ALL positions must be assigned EXACTLY ONE player - no position can be left unfilled
-            5. NO duplicate position assignments within the same inning
-            6. NO player should play the SAME position more than once across ALL innings of a game
-            7. NO player should play infield or outfield in CONSECUTIVE innings (they must alternate or have bench time in between)
-               - Infield positions are: {', '.join(infield_positions)}
-               - Outfield positions are: {', '.join(outfield_positions)}
-            8. STRICTLY BALANCE playing time:
-               - Every available player should have nearly equal infield time (within 1 inning difference)
-               - Every available player should have nearly equal outfield time (within 1 inning difference)
-               - Only use bench if necessary (when there are more players than field positions)
-               - Bench time should be evenly distributed across players (within 1 inning difference)
-            9. DOUBLE CHECK that ALL of these positions are assigned in EVERY inning: {required_positions_str}
+            {all_rules}
 
             Here is the data:
             - Number of innings: {innings}

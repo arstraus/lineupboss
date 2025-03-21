@@ -789,6 +789,13 @@ def generate_ai_fielding_rotation(game_id):
             infield_positions = data.get('infield_positions', [])
             outfield_positions = data.get('outfield_positions', [])
             
+            # Get customization options with defaults
+            options = data.get('options', {})
+            no_consecutive_innings = options.get('noConsecutiveInnings', True)
+            balance_playing_time = options.get('balancePlayingTime', True)
+            allow_same_position = options.get('allowSamePositionMultipleTimes', False)
+            strict_position_balance = options.get('strictPositionBalance', True)
+            
             try:
                 # Use the AI service to generate fielding rotation with timeout handling
                 rotation_result = AIService.generate_fielding_rotation(
@@ -797,7 +804,11 @@ def generate_ai_fielding_rotation(game_id):
                     innings,
                     required_positions,
                     infield_positions,
-                    outfield_positions
+                    outfield_positions,
+                    no_consecutive_innings,
+                    balance_playing_time,
+                    allow_same_position,
+                    strict_position_balance
                 )
                 
                 return jsonify(rotation_result), 200
