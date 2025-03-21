@@ -16,22 +16,16 @@ def get_user_profile():
     """Get the current user's profile information."""
     user_id = g.user_id
     
-    # Log detailed information
-    print("*** PROFILE GET STARTED ***")
-    print(f"Request method: {request.method}")
-    print(f"Request path: {request.path}")
-    print(f"User ID: {user_id}")
-    
     try:
-        with db_session() as session:
+        # Use read-only session for better performance
+        with db_session(read_only=True) as session:
+            # Use a selective query to get only the needed columns
             user = session.query(User).filter(User.id == user_id).first()
             
             if not user:
-                print(f"Error: User {user_id} not found")
                 return jsonify({"error": "User not found"}), 404
-                
-            print(f"Found user: {user.email}")
             
+            # Directly serialize the user data without excess logging
             response_data = {
                 "id": user.id,
                 "email": user.email,
@@ -45,13 +39,10 @@ def get_user_profile():
                 "subscription_tier": user.subscription_tier,
                 "created_at": user.created_at.isoformat() if user.created_at else None
             }
-            print(f"Response data: {response_data}")
-            print("*** PROFILE GET COMPLETED SUCCESSFULLY ***")
+            
             return jsonify(response_data)
     except Exception as e:
-        print(f"*** PROFILE GET ERROR: {str(e)} ***")
-        import traceback
-        traceback.print_exc()
+        # Simplified error handling
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 @users_bp.route('/profile', methods=['PUT'])

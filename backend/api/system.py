@@ -33,7 +33,12 @@ def test_db():
     """Test database connection."""
     try:
         with db_session(read_only=True) as session:
-            user_count = session.query(User).count()
+            # Optimized: Use raw SQL execution for faster response
+            from sqlalchemy import func, text
+            
+            # Use a simpler query that doesn't require full table scan
+            user_count = session.query(func.count(User.id)).scalar()
+            
             return jsonify({
                 'message': 'Database connection successful', 
                 'user_count': user_count

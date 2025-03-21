@@ -107,75 +107,22 @@ def get_users():
     status_filter = request.args.get('status', None)
     
     try:
-        # Try direct database connection approach first
-        try:
-            from sqlalchemy import create_engine, desc
-            from sqlalchemy.orm import sessionmaker
-            from shared.config import config
+        with db_session(read_only=True) as session:
+            # Build query
+            query = session.query(User)
             
-            print("Admin: attempting direct database access for user list...")
+            # Apply status filter if provided
+            if status_filter:
+                query = query.filter(User.status == status_filter)
+                
+            # Order by newest first
+            query = query.order_by(User.created_at.desc())
             
-            # Get database URL from configuration
-            database_url = config.get_database_url()
+            # Execute query
+            users = query.all()
+            result = [AuthService.serialize_user(user) for user in users]
             
-            if database_url:
-                # Handle Postgres URL format conversion
-                if database_url.startswith('postgres://'):
-                    database_url = database_url.replace('postgres://', 'postgresql://', 1)
-                
-                # Create direct session
-                engine = create_engine(database_url)
-                SessionDirect = sessionmaker(bind=engine)
-                session = SessionDirect()
-                
-                # Build query directly
-                query = session.query(User)
-                
-                # Apply status filter if provided
-                if status_filter:
-                    query = query.filter(User.status == status_filter)
-                    
-                # Order by newest first - using text() to wrap any SQL expressions
-                from sqlalchemy import text
-                query = query.order_by(text("created_at DESC"))
-                
-                # Execute query
-                users = query.all()
-                result = [AuthService.serialize_user(user) for user in users]
-                
-                # Clean up
-                session.close()
-                
-                print(f"Admin: found {len(users)} users via direct connection")
-                return jsonify(result), 200
-            else:
-                raise Exception("No database URL found in configuration")
-                
-        except Exception as direct_db_error:
-            # Log the error from direct access attempt
-            print(f"Admin: direct database access error: {str(direct_db_error)}")
-            import traceback
-            print(traceback.format_exc())
-            
-            # Fall back to regular session with disabled transaction management
-            print("Admin: falling back to db_session approach...")
-            
-            # Using non-read-only session to avoid SQL textual expression issues
-            with db_session(read_only=False) as session:
-                query = session.query(User)
-                
-                # Apply status filter if provided
-                if status_filter:
-                    query = query.filter(User.status == status_filter)
-                    
-                # Use simpler ordering to avoid SQL expressions
-                users = query.all()
-                # Sort in Python instead of SQL
-                users.sort(key=lambda user: user.created_at if user.created_at else None, reverse=True)
-                
-                result = [AuthService.serialize_user(user) for user in users]
-                
-                return jsonify(result), 200
+            return jsonify(result), 200
                 
     except Exception as e:
         print(f"Admin: error getting users: {e}")
@@ -397,11 +344,14 @@ def get_pending_count():
     - db_session context manager for automatic cleanup
     - Read-only operation (no commits needed)
     - Structured error handling with db_error_response
+    - Optimized query using SQL COUNT directly
     """
     try:
         # Using read_only mode since this is just a query operation
         with db_session(read_only=True) as session:
-            count = session.query(User).filter(User.status == 'pending').count()
+            # Optimized: Use SQL COUNT directly with specific column to avoid full row fetch
+            from sqlalchemy import func
+            count = session.query(func.count(User.id)).filter(User.status == 'pending').scalar()
             
             return jsonify({
                 'pending_count': count
