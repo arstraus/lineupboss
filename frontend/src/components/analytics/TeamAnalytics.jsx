@@ -79,9 +79,10 @@ const TeamAnalytics = ({ teamId }) => {
   }
   
   // Check if there's any actual game data
-  const hasGameData = analytics.total_games > 0 && 
+  const hasGameData = analytics.has_data || 
+                     (analytics.total_games > 0 && 
                      (Object.keys(analytics.games_by_month).length > 0 || 
-                      Object.values(analytics.games_by_day).some(count => count > 0));
+                      Object.values(analytics.games_by_day).some(count => count > 0)));
                       
   if (!hasGameData) {
     return (

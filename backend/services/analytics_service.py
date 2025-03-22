@@ -329,6 +329,7 @@ class AnalyticsService:
         with db_session(read_only=True) as session:
             # Get all games for this team
             games = session.query(Game).filter_by(team_id=team_id).all()
+            logger.info(f"Found {len(games)} games for team {team_id}")
             
             # Basic team stats
             stats = {
@@ -343,7 +344,8 @@ class AnalyticsService:
                     "Friday": 0,
                     "Saturday": 0,
                     "Sunday": 0
-                }
+                },
+                "has_data": len(games) > 0  # Add the has_data flag similar to other analytics methods
             }
             
             # Process game dates
@@ -357,4 +359,5 @@ class AnalyticsService:
                     day = game.game_date.strftime("%A")
                     stats["games_by_day"][day] += 1
             
+            logger.info(f"Team {team_id} analytics: {len(games)} games, {len(stats['games_by_month'])} months with data, has_data={stats['has_data']}")
             return stats

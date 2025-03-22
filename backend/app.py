@@ -279,6 +279,75 @@ def analytics_status_debug():
         'api_analytics_routes': all_routes,
         'environment': os.environ.get('FLASK_ENV', 'undefined'),
     }), 200
+    
+# Add data diagnostic route for analytics data
+@app.route('/api/debug/analytics-data/<int:team_id>', methods=['GET'])
+@jwt_required()
+def analytics_data_debug(team_id):
+    """Diagnostic endpoint to verify analytics data"""
+    logger.info(f"Debug analytics data endpoint called for team {team_id}")
+    
+    results = {
+        'status': 'ok',
+        'team_id': team_id,
+        'data_checks': {}
+    }
+    
+    try:
+        with get_db(read_only=True) as session:
+            # Check basic data availability
+            from shared.models import Game, BattingOrder, FieldingRotation, Player
+            
+            # Count players
+            player_count = session.query(Player).filter_by(team_id=team_id).count()
+            results['data_checks']['player_count'] = player_count
+            
+            # Count games
+            game_count = session.query(Game).filter_by(team_id=team_id).count()
+            results['data_checks']['game_count'] = game_count
+            
+            # If games exist, get IDs for further checking
+            if game_count > 0:
+                game_ids = [g.id for g in session.query(Game.id).filter_by(team_id=team_id).all()]
+                results['data_checks']['game_ids'] = game_ids
+                
+                # Check for batting orders
+                batting_orders = session.query(BattingOrder).filter(
+                    BattingOrder.game_id.in_(game_ids)
+                ).count()
+                results['data_checks']['batting_order_count'] = batting_orders
+                
+                # Check for fielding rotations
+                fielding_rotations = session.query(FieldingRotation).filter(
+                    FieldingRotation.game_id.in_(game_ids)
+                ).count()
+                results['data_checks']['fielding_rotation_count'] = fielding_rotations
+                
+                # Check games with dates
+                games_with_dates = session.query(Game).filter(
+                    Game.team_id == team_id,
+                    Game.game_date != None
+                ).count()
+                results['data_checks']['games_with_dates'] = games_with_dates
+                
+                # Run the analytics methods
+                from services.analytics_service import AnalyticsService
+                team_analytics = AnalyticsService.get_team_analytics(team_id)
+                results['data_checks']['team_analytics'] = {
+                    'total_games': team_analytics.get('total_games', 0),
+                    'has_data': team_analytics.get('has_data', False),
+                    'month_count': len(team_analytics.get('games_by_month', {})),
+                    'day_counts': team_analytics.get('games_by_day', {})
+                }
+            else:
+                results['data_checks']['note'] = "No games found for team"
+    except Exception as e:
+        logger.error(f"Error in analytics data debug: {str(e)}")
+        logger.error(traceback.format_exc())
+        results['status'] = 'error'
+        results['error'] = str(e)
+    
+    return jsonify(results), 200
 
 # Serve React App
 @app.route('/')
