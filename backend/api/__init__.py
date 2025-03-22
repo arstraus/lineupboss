@@ -79,7 +79,12 @@ except Exception as e:
 register_blueprint(api, 'admin', 'admin', '/admin')
 
 # Register analytics blueprint (for team and player analytics)
-register_blueprint(api, 'analytics', 'analytics_bp', '/analytics')
+try:
+    from api.analytics import analytics_bp
+    api.register_blueprint(analytics_bp, url_prefix='/analytics')
+    print("Registered analytics blueprint with URL prefix /analytics")
+except Exception as e:
+    print(f"Error registering analytics blueprint: {e}")
 
 # Try to import docs with special handling for apispec dependency
 try:

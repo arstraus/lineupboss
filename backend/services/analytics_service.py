@@ -2,10 +2,15 @@
 Analytics service for generating player statistics across games.
 """
 from typing import Dict, List, Any
+import logging
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import JSONB
 from shared.db import db_session
 from shared.models import Game, BattingOrder, FieldingRotation, PlayerAvailability, Player
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class AnalyticsService:
     """Service for analytics operations."""
@@ -21,6 +26,7 @@ class AnalyticsService:
         Returns:
             List of player batting analytics
         """
+        logger.info(f"Fetching batting analytics for team_id: {team_id}")
         player_stats = []
         
         with db_session(read_only=True) as session:
@@ -102,6 +108,7 @@ class AnalyticsService:
         Returns:
             List of player fielding analytics
         """
+        logger.info(f"Fetching fielding analytics for team_id: {team_id}")
         player_stats = []
         
         with db_session(read_only=True) as session:
@@ -236,6 +243,7 @@ class AnalyticsService:
         Returns:
             Team analytics
         """
+        logger.info(f"Fetching team analytics for team_id: {team_id}")
         with db_session(read_only=True) as session:
             # Get all games for this team
             games = session.query(Game).filter_by(team_id=team_id).all()
