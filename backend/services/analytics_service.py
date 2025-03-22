@@ -113,7 +113,7 @@ class AnalyticsService:
             for player in players:
                 stats = {
                     "player_id": player.id,
-                    "name": player.full_name,
+                    "name": player.full_name(),
                     "jersey_number": player.jersey_number,
                     "total_games": len(games),
                     "games_in_lineup": 0,
@@ -154,7 +154,7 @@ class AnalyticsService:
                 
                 # Always return stats for players, even if empty
                 player_stats.append(stats)
-                logger.info(f"Player {player.id} ({player.full_name}): found {len(positions)} batting positions")
+                logger.info(f"Player {player.id} ({player.full_name()}): found {len(positions)} batting positions")
         
         return player_stats
     
@@ -233,7 +233,7 @@ class AnalyticsService:
             for player in players:
                 stats = {
                     "player_id": player.id,
-                    "name": player.full_name,
+                    "name": player.full_name(),
                     "jersey_number": player.jersey_number,
                     "total_games": len(games),
                     "games_available": 0,
@@ -316,7 +316,7 @@ class AnalyticsService:
                 
                 # Always return stats for players, even if empty
                 player_stats.append(stats)
-                logger.info(f"Player {player.id} ({player.full_name}): found {stats['infield_innings'] + stats['outfield_innings']} fielding assignments")
+                logger.info(f"Player {player.id} ({player.full_name()}): found {stats['infield_innings'] + stats['outfield_innings']} fielding assignments")
         
         return player_stats
     
