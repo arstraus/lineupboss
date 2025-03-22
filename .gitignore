@@ -104,3 +104,6 @@ yarn-error.log*
 .heroku/
 *.pyc
 staticfiles/
+
+# Testing
+/testing/
