@@ -78,6 +78,26 @@ const TeamAnalytics = ({ teamId }) => {
     );
   }
   
+  // Check if there's any actual game data
+  const hasGameData = analytics.total_games > 0 && 
+                     (Object.keys(analytics.games_by_month).length > 0 || 
+                      Object.values(analytics.games_by_day).some(count => count > 0));
+                      
+  if (!hasGameData) {
+    return (
+      <div>
+        <h2 className="mb-4">Team Analytics</h2>
+        <div className="alert alert-warning">
+          <i className="bi bi-exclamation-triangle me-2"></i>
+          Team found, but no games with recorded data yet.
+          <p className="mt-2 mb-0">
+            To collect analytics: add games with dates and complete batting orders and fielding rotations.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div>
       <h2 className="mb-4">Team Analytics</h2>

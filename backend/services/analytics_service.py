@@ -69,25 +69,34 @@ class AnalyticsService:
         with db_session(read_only=True) as session:
             # Get all players in the team
             players = session.query(Player).filter_by(team_id=team_id).all()
+            logger.info(f"Found {len(players)} players for team {team_id}")
             
             # Get all games for this team
             games = session.query(Game).filter_by(team_id=team_id).all()
             game_ids = [game.id for game in games]
+            logger.info(f"Found {len(games)} games for team {team_id}: {game_ids}")
             
             # If no games, return empty stats
             if not game_ids:
+                logger.info(f"No games found for team {team_id}, returning empty stats")
                 return []
             
             # Get all batting orders for these games
             batting_orders = session.query(BattingOrder).filter(
                 BattingOrder.game_id.in_(game_ids)
             ).all()
+            logger.info(f"Found {len(batting_orders)} batting orders for team {team_id}")
             
             # Create a map of game_id to batting order
             game_to_batting = {}
             for bo in batting_orders:
                 if bo.order_data:
                     game_to_batting[bo.game_id] = bo.order_data
+                    logger.info(f"Game {bo.game_id} has batting order: {bo.order_data}")
+                else:
+                    logger.info(f"Game {bo.game_id} has empty batting order data")
+            
+            logger.info(f"Created batting order map with {len(game_to_batting)} entries")
             
             # Process stats for each player
             for player in players:
@@ -99,7 +108,8 @@ class AnalyticsService:
                     "games_in_lineup": 0,
                     "batting_positions": {},
                     "avg_batting_position": None,
-                    "batting_position_history": []
+                    "batting_position_history": [],
+                    "has_data": False  # Flag to indicate if we have real data
                 }
                 
                 # Track batting positions across games
@@ -126,11 +136,14 @@ class AnalyticsService:
                 stats["games_in_lineup"] = len(positions)
                 if positions:
                     stats["avg_batting_position"] = sum(positions) / len(positions)
+                    stats["has_data"] = True
                 
                 # Sort history by game date
                 stats["batting_position_history"].sort(key=lambda x: x["game_date"] if x["game_date"] else "")
                 
+                # Always return stats for players, even if empty
                 player_stats.append(stats)
+                logger.info(f"Player {player.id} ({player.full_name}): found {len(positions)} batting positions")
         
         return player_stats
     
@@ -156,24 +169,29 @@ class AnalyticsService:
         with db_session(read_only=True) as session:
             # Get all players in the team
             players = session.query(Player).filter_by(team_id=team_id).all()
+            logger.info(f"Found {len(players)} players for team {team_id}")
             
             # Get all games for this team
             games = session.query(Game).filter_by(team_id=team_id).all()
             game_ids = [game.id for game in games]
+            logger.info(f"Found {len(games)} games for team {team_id}: {game_ids}")
             
             # If no games, return empty stats
             if not game_ids:
+                logger.info(f"No games found for team {team_id}, returning empty stats")
                 return []
             
             # Get all fielding rotations for these games
             fielding_rotations = session.query(FieldingRotation).filter(
                 FieldingRotation.game_id.in_(game_ids)
             ).all()
+            logger.info(f"Found {len(fielding_rotations)} fielding rotation records for team {team_id}")
             
             # Get all player availability data
             availability_data = session.query(PlayerAvailability).filter(
                 PlayerAvailability.game_id.in_(game_ids)
             ).all()
+            logger.info(f"Found {len(availability_data)} player availability records for team {team_id}")
             
             # Create a map of game_id and inning to positions
             game_inning_positions = {}
@@ -182,6 +200,11 @@ class AnalyticsService:
                     if rotation.game_id not in game_inning_positions:
                         game_inning_positions[rotation.game_id] = {}
                     game_inning_positions[rotation.game_id][rotation.inning] = rotation.positions
+                    logger.info(f"Game {rotation.game_id}, Inning {rotation.inning} has positions: {rotation.positions}")
+                else:
+                    logger.info(f"Game {rotation.game_id}, Inning {rotation.inning} has empty positions data")
+            
+            logger.info(f"Created fielding position map with {len(game_inning_positions)} game entries")
             
             # Create a map of game_id to player availability
             game_player_availability = {}
@@ -209,7 +232,8 @@ class AnalyticsService:
                     "outfield_innings": 0,
                     "bench_innings": 0,
                     "position_count": {},
-                    "position_history": []
+                    "position_history": [],
+                    "has_data": False  # Flag to indicate if we have real data
                 }
                 
                 for game in games:
@@ -266,11 +290,14 @@ class AnalyticsService:
                             "opponent": game.opponent,
                             "innings": game_positions
                         })
+                        stats["has_data"] = True  # We found some position data for this player
                 
                 # Sort history by game date
                 stats["position_history"].sort(key=lambda x: x["game_date"] if x["game_date"] else "")
                 
+                # Always return stats for players, even if empty
                 player_stats.append(stats)
+                logger.info(f"Player {player.id} ({player.full_name}): found {stats['infield_innings'] + stats['outfield_innings']} fielding assignments")
         
         return player_stats
     
@@ -296,6 +323,7 @@ class AnalyticsService:
                 "games_by_month": {},
                 "games_by_day": {"Monday": 0, "Tuesday": 0, "Wednesday": 0, 
                                 "Thursday": 0, "Friday": 0, "Saturday": 0, "Sunday": 0},
+                "has_data": False,
                 "error": "Missing database dependencies"
             }
         with db_session(read_only=True) as session:

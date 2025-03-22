@@ -110,6 +110,25 @@ const PlayerAnalytics = ({ teamId }) => {
     );
   }
   
+  // Check if we have data with content
+  const hasActualData = 
+    (battingAnalytics.some(p => p.has_data) || fieldingAnalytics.some(p => p.has_data));
+  
+  if (!hasActualData) {
+    return (
+      <div>
+        <h2 className="mb-4">Player Analytics</h2>
+        <div className="alert alert-warning">
+          <i className="bi bi-exclamation-triangle me-2"></i>
+          Players found, but no batting or fielding history recorded yet. 
+          <p className="mt-2 mb-0">
+            To collect analytics: add players to batting orders and create fielding rotations in your games.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div>
       <h2 className="mb-4">Player Analytics</h2>
