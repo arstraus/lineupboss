@@ -298,18 +298,18 @@ export const deleteGame = (gameId) => {
 
 // ADMIN API
 export const getPendingUsers = () => {
-  // Use direct axios call to avoid duplicating the /api prefix from baseURL
-  return axios.get('/admin/pending-users');
+  // Use RESTful URL pattern with query parameter
+  return axios.get('/admin/users?status=pending');
 };
 
 export const approveUser = (userId) => {
-  // Use direct axios call to avoid duplicating the /api prefix from baseURL
-  return axios.post(`/admin/approve/${userId}`);
+  // Use RESTful URL pattern
+  return axios.post(`/admin/users/${userId}/approve`);
 };
 
 export const rejectUser = (userId) => {
-  // Use direct axios call to avoid duplicating the /api prefix from baseURL
-  return axios.post(`/admin/reject/${userId}`);
+  // Use RESTful URL pattern
+  return axios.post(`/admin/users/${userId}/reject`);
 };
 
 export const getPendingCount = () => {

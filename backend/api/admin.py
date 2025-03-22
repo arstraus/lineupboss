@@ -131,6 +131,12 @@ def get_users():
         # Use standardized error response
         return db_error_response(e, "Failed to retrieve users")
 
+@admin.route('/approve/<int:user_id>', methods=['POST'])
+@admin_required
+def approve_user_legacy(user_id):
+    """Legacy endpoint for approving a user. Redirects to the RESTful endpoint."""
+    return approve_user(user_id)
+
 @admin.route('/users/<int:user_id>/approve', methods=['POST'])
 @admin_required
 def approve_user(user_id):
@@ -183,6 +189,12 @@ def approve_user(user_id):
         print(f"Error approving user: {e}")
         # Use standardized error response - no need to manually rollback
         return db_error_response(e, "Failed to approve user")
+
+@admin.route('/reject/<int:user_id>', methods=['POST'])
+@admin_required
+def reject_user_legacy(user_id):
+    """Legacy endpoint for rejecting a user. Redirects to the RESTful endpoint."""
+    return reject_user(user_id)
 
 @admin.route('/users/<int:user_id>/reject', methods=['POST'])
 @admin_required
@@ -334,6 +346,21 @@ def delete_user(user_id):
         # Use standardized error response - no need to manually rollback
         return db_error_response(e, "Failed to delete user")
 
+
+@admin.route('/pending-users', methods=['GET'])
+@admin_required
+def get_pending_users_legacy():
+    """Legacy endpoint to get all pending users.
+    
+    Redirects to get_users with status=pending filter, maintaining backward compatibility.
+    """
+    # Construct a modified request.args with status=pending
+    from werkzeug.datastructures import ImmutableMultiDict
+    args = request.args.copy()
+    args['status'] = 'pending'
+    request.args = ImmutableMultiDict(args)
+    
+    return get_users()
 
 @admin.route('/pending-count', methods=['GET'])
 @admin_required
