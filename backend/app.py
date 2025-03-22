@@ -1,7 +1,7 @@
 
 from flask import Flask, jsonify, send_from_directory, Blueprint, request, g
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 from dotenv import load_dotenv
 import os
 import importlib.util
@@ -151,6 +151,68 @@ app.register_blueprint(api)
 app.register_blueprint(docs, url_prefix='/api')
 app.register_blueprint(swagger_ui_blueprint)
 
+# Directly register analytics blueprint with the app
+try:
+    from api.analytics import analytics_bp
+    app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
+    logger.info("Successfully registered analytics_bp directly with Flask app")
+except ImportError as e:
+    logger.error(f"Could not import analytics module for direct registration: {e}")
+    logger.error(traceback.format_exc())
+except Exception as e:
+    logger.error(f"Error registering analytics blueprint directly: {e}")
+    logger.error(traceback.format_exc())
+
+# Direct analytics endpoints as fallback in case blueprint registration fails
+@app.route('/api/analytics/status', methods=['GET'])
+def analytics_direct_status():
+    """Fallback endpoint to verify analytics routing"""
+    logger.info("Direct analytics status endpoint called")
+    return jsonify({"status": "ok", "message": "Direct analytics endpoint working", "method": "app.route"}), 200
+
+# Direct team analytics endpoints
+@app.route('/api/analytics/teams/<int:team_id>/batting-analytics', methods=['GET'])
+@jwt_required()
+def direct_team_batting_analytics(team_id):
+    """Direct batting analytics endpoint if blueprint fails"""
+    logger.info(f"Direct batting analytics endpoint called for team {team_id}")
+    try:
+        from services.analytics_service import AnalyticsService
+        analytics = AnalyticsService.get_player_batting_analytics(team_id)
+        return jsonify(analytics), 200
+    except Exception as e:
+        logger.error(f"Error in direct batting analytics: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({"error": f"Failed to get batting analytics: {str(e)}"}), 500
+
+@app.route('/api/analytics/teams/<int:team_id>/fielding-analytics', methods=['GET'])
+@jwt_required()
+def direct_team_fielding_analytics(team_id):
+    """Direct fielding analytics endpoint if blueprint fails"""
+    logger.info(f"Direct fielding analytics endpoint called for team {team_id}")
+    try:
+        from services.analytics_service import AnalyticsService
+        analytics = AnalyticsService.get_player_fielding_analytics(team_id)
+        return jsonify(analytics), 200
+    except Exception as e:
+        logger.error(f"Error in direct fielding analytics: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({"error": f"Failed to get fielding analytics: {str(e)}"}), 500
+
+@app.route('/api/analytics/teams/<int:team_id>/analytics', methods=['GET'])
+@jwt_required()
+def direct_team_analytics(team_id):
+    """Direct team analytics endpoint if blueprint fails"""
+    logger.info(f"Direct team analytics endpoint called for team {team_id}")
+    try:
+        from services.analytics_service import AnalyticsService
+        analytics = AnalyticsService.get_team_analytics(team_id)
+        return jsonify(analytics), 200
+    except Exception as e:
+        logger.error(f"Error in direct team analytics: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({"error": f"Failed to get team analytics: {str(e)}"}), 500
+
 # Add diagnostic route directly to app
 @app.route('/api/debug/analytics-status', methods=['GET'])
 def analytics_status_debug():
@@ -159,26 +221,62 @@ def analytics_status_debug():
     
     # Collect registered blueprints for debugging
     registered_blueprints = []
+    analytics_registered = False
+    
     for blueprint_name, blueprint in app.blueprints.items():
         registered_blueprints.append({
             'name': blueprint_name,
             'url_prefix': blueprint.url_prefix
         })
+        if 'analytics' in blueprint_name:
+            analytics_registered = True
     
-    # Check if the analytics module is available
+    # Check if the analytics module and service are available
     has_analytics_service = False
+    has_analytics_bp = False
+    analytics_routes = []
+    
     try:
         from services.analytics_service import AnalyticsService
         has_analytics_service = True
     except ImportError:
         pass
     
-    # Return diagnostic information
+    try:
+        from api.analytics import analytics_bp
+        has_analytics_bp = True
+        
+        # Note that we have the analytics blueprint
+        analytics_routes.append("analytics_bp is available")
+        
+        # Try to get routes if possible, but this is optional
+        try:
+            if hasattr(analytics_bp, 'deferred_functions'):
+                for rule in analytics_bp.deferred_functions:
+                    if hasattr(rule, '__name__'):
+                        analytics_routes.append(rule.__name__)
+        except Exception as e:
+            analytics_routes.append(f"Error getting routes: {str(e)}")
+    except ImportError:
+        pass
+    
+    # Collect all API routes
+    all_routes = []
+    for rule in app.url_map.iter_rules():
+        rule_str = str(rule)
+        if '/api/analytics' in rule_str:
+            all_routes.append(rule_str)
+    
+    # Return comprehensive diagnostic information
     return jsonify({
         'status': 'ok',
         'message': 'API diagnostics endpoint',
         'registered_blueprints': registered_blueprints,
+        'analytics_registered': analytics_registered,
         'has_analytics_service': has_analytics_service,
+        'has_analytics_bp': has_analytics_bp,
+        'analytics_routes': analytics_routes,
+        'api_analytics_routes': all_routes,
         'environment': os.environ.get('FLASK_ENV', 'undefined'),
     }), 200
 

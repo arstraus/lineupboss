@@ -82,22 +82,41 @@ register_blueprint(api, 'admin', 'admin', '/admin')
 
 # Register analytics blueprint (for team and player analytics)
 try:
-    # Explicitly import the module and try to access the blueprint
-    import api.analytics
-    analytics_bp = api.analytics.analytics_bp
+    # Use the same pattern as the other blueprints for consistency
+    from api.analytics import analytics_bp
     
-    # Register the blueprint with very explicit error handling
-    api.register_blueprint(analytics_bp, url_prefix='/analytics')
-    print("SUCCESS: Registered analytics blueprint with URL prefix /analytics")
+    # Register it using the standard register_blueprint helper
+    success = register_blueprint(api, 'analytics', 'analytics_bp', '/analytics')
+    
+    if success:
+        print(f"SUCCESS: Registered analytics blueprint with URL prefix /analytics")
+        # Store blueprint for direct app registration later
+        analytics_registered = True
+    else:
+        analytics_registered = False
+        print(f"WARNING: Failed to register analytics blueprint using helper")
+        
+        # Fallback: Try direct registration
+        try:
+            api.register_blueprint(analytics_bp, url_prefix='/analytics')
+            print(f"SUCCESS: Registered analytics blueprint directly with URL prefix /analytics")
+            analytics_registered = True
+        except Exception as e:
+            print(f"ERROR: Direct blueprint registration also failed: {e}")
+            analytics_registered = False
+            
 except ImportError as e:
     print(f"IMPORT ERROR: Could not import analytics module: {e}")
     print(f"Stack trace: {traceback.format_exc()}")
+    analytics_registered = False
 except AttributeError as e:
     print(f"ATTRIBUTE ERROR: Could not find analytics_bp in analytics module: {e}")
     print(f"Stack trace: {traceback.format_exc()}")
+    analytics_registered = False
 except Exception as e:
     print(f"GENERAL ERROR: Error registering analytics blueprint: {e}")
     print(f"Stack trace: {traceback.format_exc()}")
+    analytics_registered = False
 
 # Try to import docs with special handling for apispec dependency
 try:
