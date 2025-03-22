@@ -99,6 +99,12 @@ def get_game(game_id):
 
 @games.route('/team/<int:team_id>', methods=['POST'])
 @jwt_required()
+def create_game_legacy(team_id):
+    """Legacy endpoint for creating a game. Redirects to the standard RESTful endpoint."""
+    return create_game(team_id)
+
+@games_nested.route('/<int:team_id>/games', methods=['POST'])
+@jwt_required()
 def create_game(team_id):
     """Create a new game for a specific team.
     

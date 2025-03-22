@@ -18,7 +18,7 @@ players_nested = Blueprint("players_nested", __name__)
 def get_players_legacy(team_id):
     return get_players(team_id)
 
-# Add a properly nested route
+# Add properly nested routes
 @players_nested.route('/<int:team_id>/players', methods=['GET'])
 @jwt_required()
 def get_players(team_id):
@@ -96,6 +96,12 @@ def get_player(player_id):
         return db_error_response(e, "Failed to retrieve player")
 
 @players.route('/team/<int:team_id>', methods=['POST'])
+@jwt_required()
+def create_player_legacy(team_id):
+    """Legacy endpoint for creating a player. Redirects to the standard RESTful endpoint."""
+    return create_player(team_id)
+
+@players_nested.route('/<int:team_id>/players', methods=['POST'])
 @jwt_required()
 def create_player(team_id):
     """Create a new player.

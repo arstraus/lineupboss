@@ -76,6 +76,7 @@ All blueprints are registered in `api/__init__.py` with the following URL prefix
   /players             - Player management (players)
   /games               - Game management (games)
   /admin               - Admin functions (admin)
+  /analytics           - Analytics endpoints (analytics_bp)
   /docs                - API documentation (docs)
 ```
 
@@ -86,6 +87,12 @@ Additionally, there are nested blueprints for relational endpoints:
   /teams
     /<team_id>/games   - Games for a specific team (games_nested)
     /<team_id>/players - Players for a specific team (players_nested)
+  /analytics
+    /teams
+      /<team_id>/analytics          - Team analytics
+      /<team_id>/batting-analytics  - Player batting analytics for a team
+      /<team_id>/fielding-analytics - Player fielding analytics for a team
+      /<team_id>/debug              - Debug analytics data for a team
 ```
 
 ## Standard Routes by Blueprint
@@ -182,6 +189,16 @@ Additionally, there are nested blueprints for relational endpoints:
 | GET | `/api/teams/<team_id>/players` | `get_players` | Get all players for a team |
 | POST | `/api/teams/<team_id>/players` | `create_player` | Create a player for a team |
 
+### Analytics Blueprint (`/api/analytics`)
+
+| Method | URL Pattern | Function | Description |
+|--------|-------------|----------|-------------|
+| GET | `/api/analytics/status` | `analytics_status` | Check analytics module status |
+| GET | `/api/analytics/teams/<team_id>/analytics` | `get_team_analytics` | Get team analytics data |
+| GET | `/api/analytics/teams/<team_id>/batting-analytics` | `get_team_batting_analytics` | Get player batting analytics |
+| GET | `/api/analytics/teams/<team_id>/fielding-analytics` | `get_team_fielding_analytics` | Get player fielding analytics |
+| GET | `/api/analytics/teams/<team_id>/debug` | `debug_analytics_data` | Get detailed diagnostic data |
+
 ## Frontend API Client Implementation
 
 The frontend API client in `api.js` has been updated to ensure that:
@@ -241,31 +258,131 @@ Several key performance improvements have been implemented:
   - All emergency routes have been properly removed
   - Performance metrics are within acceptable thresholds
 
-## Future Recommendations
+## API Route Standardization Plan
 
-While the migration to standard routes has been completed successfully, there are still opportunities for further improvements:
+While the migration to standard routes has been completed successfully, we've identified several areas that still need improvement to fully adhere to RESTful best practices. This document outlines a comprehensive remediation plan to address these issues.
 
-### 1. Additional Performance Optimization
+### 1. Legacy Route Remediation
+
+The following routes in the frontend API client still use non-standard patterns and should be updated:
+
+| Current Route | Current Pattern | RESTful Pattern | Priority |
+|---------------|----------------|-----------------|----------|
+| `createPlayer` | `POST /players/team/{teamId}` | `POST /teams/{teamId}/players` | High |
+| `createGame` | `POST /games/team/{teamId}` | `POST /teams/{teamId}/games` | High |
+| `approveUser` | `POST /admin/approve/{userId}` | `POST /admin/users/{userId}/approve` | Medium |
+| `rejectUser` | `POST /admin/reject/{userId}` | `POST /admin/users/{userId}/reject` | Medium |
+| `getPendingUsers` | `GET /admin/pending-users` | `GET /admin/users?status=pending` | Medium |
+| `getBattingAnalytics` | `GET /analytics/teams/{teamId}/batting-analytics` | `GET /analytics/teams/{teamId}/players/batting` | Low |
+| `getFieldingAnalytics` | `GET /analytics/teams/{teamId}/fielding-analytics` | `GET /analytics/teams/{teamId}/players/fielding` | Low |
+| `getTeamAnalytics` | `GET /analytics/teams/{teamId}/analytics` | `GET /analytics/teams/{teamId}` | Low |
+
+### 2. Simplified Implementation Plan for Solo Developer
+
+Since you're the only developer and there are no active users, we can simplify the implementation plan and make direct changes without maintaining backward compatibility or phased rollouts.
+
+#### Streamlined Approach
+
+1. **Backend and Frontend Updates Together**
+   - Update backend routes to follow RESTful patterns
+   - Immediately update corresponding frontend API client methods
+   - Test each endpoint as you go
+
+2. **Prioritized Implementation Order**
+   1. Player and Game endpoints (High priority)
+   2. Admin endpoints (Medium priority)
+   3. Analytics endpoints (Low priority)
+
+3. **Direct Replacement Strategy**
+   - Replace non-standard routes with RESTful alternatives
+   - No need to maintain legacy routes or add deprecation notices
+   - Update component code immediately after updating the API function
+
+### 3. Simplified Implementation Tasks
+
+#### High Priority Tasks
+
+1. **Player Resource Standardization**
+   - Replace `POST /players/team/<team_id>` with `POST /teams/<team_id>/players`
+   - Update `createPlayer()` function in api.js
+   - Update any components using this endpoint (PlayerForm.jsx)
+
+2. **Game Resource Standardization**
+   - Replace `POST /games/team/<team_id>` with `POST /teams/<team_id>/games`
+   - Update `createGame()` function in api.js
+   - Update any components using this endpoint (GameForm.jsx)
+
+#### Medium Priority Tasks
+
+3. **Admin Resource Standardization**
+   - Replace admin endpoints with RESTful patterns:
+     - `GET /admin/pending-users` → `GET /admin/users?status=pending`
+     - `POST /admin/approve/{userId}` → `POST /admin/users/{userId}/approve`
+     - `POST /admin/reject/{userId}` → `POST /admin/users/{userId}/reject`
+   - Update corresponding API functions in api.js
+   - Update AdminDashboard.jsx components
+
+#### Low Priority Tasks
+
+4. **Analytics Resource Hierarchy**
+   - Refactor analytics routes to use clearer resource hierarchy:
+     - `GET /analytics/teams/{teamId}/batting-analytics` → `GET /analytics/teams/{teamId}/players/batting`
+     - `GET /analytics/teams/{teamId}/fielding-analytics` → `GET /analytics/teams/{teamId}/players/fielding`
+     - `GET /analytics/teams/{teamId}/analytics` → `GET /analytics/teams/{teamId}`
+   - Update corresponding API functions in api.js
+   - Update TeamAnalytics.jsx and PlayerAnalytics.jsx components
+
+### 4. Additional Improvements
+
+#### Performance Optimization
 
 - Database indexing on frequently queried fields
 - Response caching for read-heavy operations like user profiles and admin lists
 - Further query optimization for the remaining slow endpoints
+- Consider caching analytics data which is computationally expensive to generate
 
-### 2. Route Pattern Consistency
-
-- Consider standardizing on nested RESTful routes for related resources:
-  - Prefer `/api/teams/<team_id>/players` over `/api/players/team/<team_id>`
-  - Prefer `/api/teams/<team_id>/games` over `/api/games/team/<team_id>`
-
-### 3. API Documentation
+#### API Documentation
 
 - Update API documentation to reflect the standardized route patterns
 - Add explicit documentation for best practices in API usage
+- Document the analytics data structure for frontend developers
 
-### 4. Monitoring
+#### Monitoring
 
 - Implement performance monitoring to track response times
 - Add metrics collection to identify bottlenecks
+- Monitor analytics endpoints closely as they can be resource-intensive
+
+#### Analytics-Specific Improvements
+
+- Add pagination support for analytics data to improve performance
+- Add filtering options via query parameters (e.g., date range filtering)
+- Consider implementing incremental analytics updates rather than full recalculations
+- Add response format versioning to support evolving analytics data structures
+
+### 5. Simplified Timeline and Development Approach
+
+**Estimated Timeline for Solo Developer:**
+- High Priority Tasks: 1-2 days
+- Medium Priority Tasks: 1 day
+- Low Priority Tasks: 1-2 days
+- Total time: 3-5 days of focused development
+
+**Development Workflow:**
+1. Create a new git branch for API standardization
+2. Make changes to both backend and frontend in small, testable increments
+3. Test each endpoint change immediately using Postman or similar tool
+4. Commit changes after each endpoint is successfully updated and tested
+
+**Efficient Testing Strategy:**
+- Use manual testing for critical user journeys
+- Focus on end-to-end testing of modified components
+- Verify that data flows correctly from frontend to backend and back
+
+**Tips for Rapid Implementation:**
+- Start with one endpoint at a time and finish it completely
+- Keep a checklist of components that need updating after API changes
+- Document any edge cases or special behaviors as you go
 
 ## Conclusion
 
@@ -273,4 +390,8 @@ The LineupBoss API has successfully migrated from a dual routing system to a sta
 
 The application now has a cleaner, more maintainable API architecture that follows RESTful conventions. This will make future development and maintenance simpler and more efficient, while also improving the user experience through faster API responses.
 
-This successful migration demonstrates the value of a systematic approach to API standardization, with careful testing and performance optimization at each step of the process.
+Recent additions to the API architecture include comprehensive analytics endpoints for team and player statistics. These endpoints follow the same RESTful conventions as the rest of the API, with a logical hierarchy under `/api/analytics/teams/<team_id>/...`. The analytics functionality provides valuable insights for users while maintaining consistent API patterns.
+
+The analytics routes demonstrate proper separation of concerns, with route handlers delegating business logic to a dedicated analytics service. This pattern should be followed for all future API extensions, ensuring maintainability and testability.
+
+This successful migration and extension demonstrates the value of a systematic approach to API standardization, with careful testing and performance optimization at each step of the process. Future extensions to the API should continue to follow these established patterns.
