@@ -91,7 +91,7 @@ def get_team_analytics(team_id):
         logger.error(traceback.format_exc())
         return db_error_response(e, "Failed to get team analytics")
 
-@analytics_bp.route('/debug/analytics-data/<int:team_id>', methods=['GET'])
+@analytics_bp.route('/teams/<int:team_id>/debug', methods=['GET'])
 @jwt_required
 def debug_analytics_data(team_id):
     """

@@ -138,7 +138,7 @@ class AnalyticsService:
                         # Add to history
                         stats["batting_position_history"].append({
                             "game_id": game.id,
-                            "game_date": game.game_date.strftime("%Y-%m-%d") if game.game_date else None,
+                            "game_date": game.date.strftime("%Y-%m-%d") if game.date else None,
                             "opponent": game.opponent,
                             "position": position
                         })
@@ -272,9 +272,17 @@ class AnalyticsService:
                         # Find this player's position in this inning
                         position = BENCH  # Default to bench
                         for pos, player_id in positions.items():
-                            if int(player_id) == player.id:
-                                position = pos
-                                break
+                            try:
+                                # Handle case where player_id might be a string or number
+                                if isinstance(player_id, int) and player_id == player.id:
+                                    position = pos
+                                    break
+                                elif isinstance(player_id, str) and player_id.isdigit() and int(player_id) == player.id:
+                                    position = pos
+                                    break
+                            except (ValueError, TypeError):
+                                logger.warning(f"Invalid player ID format: {player_id} for position {pos}")
+                                continue
                         
                         # Count by position category
                         if position in INFIELD:
@@ -297,7 +305,7 @@ class AnalyticsService:
                     if game_positions:
                         stats["position_history"].append({
                             "game_id": game.id,
-                            "game_date": game.game_date.strftime("%Y-%m-%d") if game.game_date else None,
+                            "game_date": game.date.strftime("%Y-%m-%d") if game.date else None,
                             "opponent": game.opponent,
                             "innings": game_positions
                         })
@@ -359,8 +367,8 @@ class AnalyticsService:
                 "has_data": False  # Will be updated based on data availability
             }
             
-            # Get all games with dates
-            games_with_dates = [g for g in games if g.game_date]
+            # Get all games with dates - use 'date' attribute instead of 'game_date'
+            games_with_dates = [g for g in games if g.date]
             logger.info(f"Found {len(games_with_dates)} games with dates for team {team_id}")
             
             if not games_with_dates:
@@ -411,13 +419,13 @@ class AnalyticsService:
                 
                 # Process game dates
                 for game in games_with_both:
-                    if game.game_date:
+                    if game.date:
                         # Count by month
-                        month = game.game_date.strftime("%Y-%m")
+                        month = game.date.strftime("%Y-%m")
                         stats["games_by_month"][month] = stats["games_by_month"].get(month, 0) + 1
                         
                         # Count by day of week
-                        day = game.game_date.strftime("%A")
+                        day = game.date.strftime("%A")
                         stats["games_by_day"][day] += 1
             
             logger.info(f"Team {team_id} analytics: total_games={stats['total_games']}, months={len(stats['games_by_month'])}, has_data={stats['has_data']}")
