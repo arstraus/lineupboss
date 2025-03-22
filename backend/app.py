@@ -50,6 +50,12 @@ app = Flask(__name__, static_folder=static_folder_path, static_url_path='')
 
 # Import datetime at the top level
 from datetime import timedelta
+import logging
+import traceback
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Configure app with secure defaults
 jwt_secret = os.getenv('JWT_SECRET_KEY')
@@ -144,6 +150,37 @@ app.register_blueprint(api)
 # Register API documentation blueprints
 app.register_blueprint(docs, url_prefix='/api')
 app.register_blueprint(swagger_ui_blueprint)
+
+# Add diagnostic route directly to app
+@app.route('/api/debug/analytics-status', methods=['GET'])
+def analytics_status_debug():
+    """Diagnostic endpoint to verify routing is working"""
+    logger.info("Debug analytics status endpoint called")
+    
+    # Collect registered blueprints for debugging
+    registered_blueprints = []
+    for blueprint_name, blueprint in app.blueprints.items():
+        registered_blueprints.append({
+            'name': blueprint_name,
+            'url_prefix': blueprint.url_prefix
+        })
+    
+    # Check if the analytics module is available
+    has_analytics_service = False
+    try:
+        from services.analytics_service import AnalyticsService
+        has_analytics_service = True
+    except ImportError:
+        pass
+    
+    # Return diagnostic information
+    return jsonify({
+        'status': 'ok',
+        'message': 'API diagnostics endpoint',
+        'registered_blueprints': registered_blueprints,
+        'has_analytics_service': has_analytics_service,
+        'environment': os.environ.get('FLASK_ENV', 'undefined'),
+    }), 200
 
 # Serve React App
 @app.route('/')
@@ -243,9 +280,41 @@ NOTE: As of March 2025, all emergency routes with '/api/api/' prefixes and depre
 have been removed. The frontend now uses standardized RESTful routes exclusively.
 """
 
+# Import database module directly for testing
+try:
+    from shared.db import db_session, db_error_response
+    logger.info("Successfully imported shared.db module at app startup")
+except ImportError as e:
+    logger.error(f"Failed to import shared.db: {str(e)}")
+    logger.error(traceback.format_exc())
+
 # Initialize database before first request
 def before_first_request():
     init_db()
+    
+    # Log database availability for diagnostics
+    logger.info("Checking database access and modules for analytics")
+    try:
+        from services.analytics_service import AnalyticsService, HAS_DB_DEPENDENCIES
+        logger.info(f"Analytics service imported, database dependencies available: {HAS_DB_DEPENDENCIES}")
+        
+        # Check if database models are accessible
+        from shared.models import Game, BattingOrder, FieldingRotation
+        logger.info("Database models imported successfully")
+        
+        # Check if API blueprints are registered
+        api_routes = []
+        for rule in app.url_map.iter_rules():
+            if "/api/" in str(rule):
+                api_routes.append(str(rule))
+        logger.info(f"API routes registered: {len(api_routes)}")
+        
+    except ImportError as e:
+        logger.error(f"Failed to import module for analytics diagnostics: {str(e)}")
+        logger.error(traceback.format_exc())
+    except Exception as e:
+        logger.error(f"Error during database diagnostics: {str(e)}")
+        logger.error(traceback.format_exc())
     
 with app.app_context():
     before_first_request()

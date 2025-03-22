@@ -13,11 +13,13 @@ registered here with the appropriate URL prefix.
 - /api/players/... - Player management
 - /api/games/... - Game management
 - /api/admin/... - Admin functions
+- /api/analytics/... - Analytics endpoints
 
 Routes defined directly in app.py are deprecated and will be removed in a future release.
 """
 from flask import Blueprint
 import importlib
+import traceback
 
 # Main API blueprint with /api prefix
 api = Blueprint('api', __name__, url_prefix='/api')
@@ -80,11 +82,22 @@ register_blueprint(api, 'admin', 'admin', '/admin')
 
 # Register analytics blueprint (for team and player analytics)
 try:
-    from api.analytics import analytics_bp
+    # Explicitly import the module and try to access the blueprint
+    import api.analytics
+    analytics_bp = api.analytics.analytics_bp
+    
+    # Register the blueprint with very explicit error handling
     api.register_blueprint(analytics_bp, url_prefix='/analytics')
-    print("Registered analytics blueprint with URL prefix /analytics")
+    print("SUCCESS: Registered analytics blueprint with URL prefix /analytics")
+except ImportError as e:
+    print(f"IMPORT ERROR: Could not import analytics module: {e}")
+    print(f"Stack trace: {traceback.format_exc()}")
+except AttributeError as e:
+    print(f"ATTRIBUTE ERROR: Could not find analytics_bp in analytics module: {e}")
+    print(f"Stack trace: {traceback.format_exc()}")
 except Exception as e:
-    print(f"Error registering analytics blueprint: {e}")
+    print(f"GENERAL ERROR: Error registering analytics blueprint: {e}")
+    print(f"Stack trace: {traceback.format_exc()}")
 
 # Try to import docs with special handling for apispec dependency
 try:

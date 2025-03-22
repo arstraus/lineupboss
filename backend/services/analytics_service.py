@@ -3,14 +3,46 @@ Analytics service for generating player statistics across games.
 """
 from typing import Dict, List, Any
 import logging
-from sqlalchemy import func
-from sqlalchemy.dialects.postgresql import JSONB
-from shared.db import db_session
-from shared.models import Game, BattingOrder, FieldingRotation, PlayerAvailability, Player
+import traceback
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Safe imports with fallbacks
+try:
+    from sqlalchemy import func
+    from sqlalchemy.dialects.postgresql import JSONB
+    from shared.db import db_session, db_error_response
+    from shared.models import Game, BattingOrder, FieldingRotation, PlayerAvailability, Player
+    logger.info("Successfully imported all required modules for AnalyticsService")
+    HAS_DB_DEPENDENCIES = True
+except ImportError as e:
+    logger.error(f"Failed to import a module for AnalyticsService: {str(e)}")
+    logger.error(traceback.format_exc())
+    # Provide dummy objects for graceful degradation
+    HAS_DB_DEPENDENCIES = False
+    
+    class Game: pass
+    class BattingOrder: pass
+    class FieldingRotation: pass
+    class PlayerAvailability: pass
+    class Player: pass
+    
+    # Create a dummy db_session context manager
+    def db_session(read_only=False, commit=False):
+        class DummyContextManager:
+            def __enter__(self):
+                logger.error("Using dummy db_session - database access will fail")
+                return None
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                pass
+        return DummyContextManager()
+    
+    # Create a dummy error response function
+    def db_error_response(error, message):
+        logger.error(f"Database error: {message} - {str(error)}")
+        return {"error": message}, 500
 
 class AnalyticsService:
     """Service for analytics operations."""
@@ -27,6 +59,11 @@ class AnalyticsService:
             List of player batting analytics
         """
         logger.info(f"Fetching batting analytics for team_id: {team_id}")
+        
+        # Check if we have all required dependencies
+        if not HAS_DB_DEPENDENCIES:
+            logger.error("Cannot fetch batting analytics: missing database dependencies")
+            return []
         player_stats = []
         
         with db_session(read_only=True) as session:
@@ -109,6 +146,11 @@ class AnalyticsService:
             List of player fielding analytics
         """
         logger.info(f"Fetching fielding analytics for team_id: {team_id}")
+        
+        # Check if we have all required dependencies
+        if not HAS_DB_DEPENDENCIES:
+            logger.error("Cannot fetch fielding analytics: missing database dependencies")
+            return []
         player_stats = []
         
         with db_session(read_only=True) as session:
@@ -244,6 +286,18 @@ class AnalyticsService:
             Team analytics
         """
         logger.info(f"Fetching team analytics for team_id: {team_id}")
+        
+        # Check if we have all required dependencies
+        if not HAS_DB_DEPENDENCIES:
+            logger.error("Cannot fetch team analytics: missing database dependencies")
+            return {
+                "team_id": team_id,
+                "total_games": 0,
+                "games_by_month": {},
+                "games_by_day": {"Monday": 0, "Tuesday": 0, "Wednesday": 0, 
+                                "Thursday": 0, "Friday": 0, "Saturday": 0, "Sunday": 0},
+                "error": "Missing database dependencies"
+            }
         with db_session(read_only=True) as session:
             # Get all games for this team
             games = session.query(Game).filter_by(team_id=team_id).all()
