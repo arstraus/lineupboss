@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 try:
     from sqlalchemy import func
     from sqlalchemy.dialects.postgresql import JSONB
-    from shared.db import db_session, db_error_response
+    # Update to use the correct database module
+    from shared.database import db_session
+    from shared.database import db_error_response
     from shared.models import Game, BattingOrder, FieldingRotation, PlayerAvailability, Player
     logger.info("Successfully imported all required modules for AnalyticsService")
     HAS_DB_DEPENDENCIES = True
@@ -91,8 +93,17 @@ class AnalyticsService:
             game_to_batting = {}
             for bo in batting_orders:
                 if bo.order_data:
-                    game_to_batting[bo.game_id] = bo.order_data
-                    logger.info(f"Game {bo.game_id} has batting order: {bo.order_data}")
+                    # Handle both possible formats of batting order data
+                    if isinstance(bo.order_data, list):
+                        # Direct array of player IDs
+                        game_to_batting[bo.game_id] = bo.order_data
+                        logger.info(f"Game {bo.game_id} has batting order (list format): {bo.order_data}")
+                    elif isinstance(bo.order_data, dict) and 'order_data' in bo.order_data:
+                        # Object with order_data field containing array
+                        game_to_batting[bo.game_id] = bo.order_data['order_data']
+                        logger.info(f"Game {bo.game_id} has batting order (dict format): {bo.order_data['order_data']}")
+                    else:
+                        logger.warning(f"Game {bo.game_id} has unrecognized batting order format: {type(bo.order_data)}")
                 else:
                     logger.info(f"Game {bo.game_id} has empty batting order data")
             
@@ -334,7 +345,7 @@ class AnalyticsService:
             # Basic team stats
             stats = {
                 "team_id": team_id,
-                "total_games": len(games),
+                "total_games": 0,  # Will be updated after filtering games with data
                 "games_by_month": {},
                 "games_by_day": {
                     "Monday": 0,
@@ -345,19 +356,69 @@ class AnalyticsService:
                     "Saturday": 0,
                     "Sunday": 0
                 },
-                "has_data": len(games) > 0  # Add the has_data flag similar to other analytics methods
+                "has_data": False  # Will be updated based on data availability
             }
             
-            # Process game dates
-            for game in games:
-                if game.game_date:
-                    # Count by month
-                    month = game.game_date.strftime("%Y-%m")
-                    stats["games_by_month"][month] = stats["games_by_month"].get(month, 0) + 1
-                    
-                    # Count by day of week
-                    day = game.game_date.strftime("%A")
-                    stats["games_by_day"][day] += 1
+            # Get all games with dates
+            games_with_dates = [g for g in games if g.game_date]
+            logger.info(f"Found {len(games_with_dates)} games with dates for team {team_id}")
             
-            logger.info(f"Team {team_id} analytics: {len(games)} games, {len(stats['games_by_month'])} months with data, has_data={stats['has_data']}")
+            if not games_with_dates:
+                logger.info(f"No games with dates found for team {team_id}")
+                return stats
+            
+            # Get batting orders for these games
+            game_ids = [g.id for g in games_with_dates]
+            batting_orders = session.query(BattingOrder).filter(
+                BattingOrder.game_id.in_(game_ids)
+            ).all()
+            logger.info(f"Found {len(batting_orders)} batting orders for team {team_id}")
+            
+            # Create a map of game_id to batting order
+            game_to_batting = {}
+            for bo in batting_orders:
+                if bo.order_data:
+                    # Handle both possible formats of batting order data
+                    if isinstance(bo.order_data, list):
+                        game_to_batting[bo.game_id] = bo.order_data
+                    elif isinstance(bo.order_data, dict) and 'order_data' in bo.order_data:
+                        game_to_batting[bo.game_id] = bo.order_data['order_data']
+            
+            # Get fielding rotations for these games
+            fielding_query = session.query(FieldingRotation.game_id, 
+                                          func.count(FieldingRotation.id).label('count')
+                                         ).filter(
+                FieldingRotation.game_id.in_(game_ids)
+            ).group_by(FieldingRotation.game_id).all()
+            
+            fielding_games = {game_id: count for game_id, count in fielding_query}
+            logger.info(f"Found {len(fielding_games)} games with fielding rotations for team {team_id}")
+            
+            # Find games with both batting and fielding data
+            games_with_both = [
+                game for game in games_with_dates
+                if game.id in game_to_batting and game.id in fielding_games
+            ]
+            
+            logger.info(f"Found {len(games_with_both)} games with both batting and fielding data for team {team_id}")
+            
+            # Update has_data flag based on whether any valid games were found
+            stats["has_data"] = len(games_with_both) > 0
+            
+            # Only process games with both batting and fielding data for analytics
+            if games_with_both:
+                stats["total_games"] = len(games_with_both)
+                
+                # Process game dates
+                for game in games_with_both:
+                    if game.game_date:
+                        # Count by month
+                        month = game.game_date.strftime("%Y-%m")
+                        stats["games_by_month"][month] = stats["games_by_month"].get(month, 0) + 1
+                        
+                        # Count by day of week
+                        day = game.game_date.strftime("%A")
+                        stats["games_by_day"][day] += 1
+            
+            logger.info(f"Team {team_id} analytics: total_games={stats['total_games']}, months={len(stats['games_by_month'])}, has_data={stats['has_data']}")
             return stats

@@ -79,11 +79,14 @@ def create_tables():
     Base.metadata.create_all(engine)
 
 # Simple and reliable database session function
-def get_db_session():
+def get_db_session(read_only=False):
     """Returns a database session.
     
     This function must be used within a try/finally block 
     with session.close() in the finally clause to ensure the session is properly closed.
+    
+    Args:
+        read_only (bool): If True, sets the transaction to read-only mode.
     
     Example usage:
     
@@ -102,7 +105,13 @@ def get_db_session():
         result = session.query(Model).all()
         return result
     """
-    return SessionLocal()
+    session = SessionLocal()
+    
+    # Set read-only mode if requested
+    if read_only:
+        session.execute(text("SET TRANSACTION READ ONLY"))
+    
+    return session
 
 # Enhanced context manager for database sessions
 class db_session:
