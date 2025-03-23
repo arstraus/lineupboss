@@ -170,11 +170,11 @@ def analytics_direct_status():
     logger.info("Direct analytics status endpoint called")
     return jsonify({"status": "ok", "message": "Direct analytics endpoint working", "method": "app.route"}), 200
 
-# Direct team analytics endpoints
+# Direct team analytics endpoints - Legacy patterns
 @app.route('/api/analytics/teams/<int:team_id>/batting-analytics', methods=['GET'])
 @jwt_required()
 def direct_team_batting_analytics(team_id):
-    """Direct batting analytics endpoint if blueprint fails"""
+    """Direct batting analytics endpoint if blueprint fails (legacy pattern)"""
     logger.info(f"Direct batting analytics endpoint called for team {team_id}")
     try:
         from services.analytics_service import AnalyticsService
@@ -188,7 +188,7 @@ def direct_team_batting_analytics(team_id):
 @app.route('/api/analytics/teams/<int:team_id>/fielding-analytics', methods=['GET'])
 @jwt_required()
 def direct_team_fielding_analytics(team_id):
-    """Direct fielding analytics endpoint if blueprint fails"""
+    """Direct fielding analytics endpoint if blueprint fails (legacy pattern)"""
     logger.info(f"Direct fielding analytics endpoint called for team {team_id}")
     try:
         from services.analytics_service import AnalyticsService
@@ -202,7 +202,7 @@ def direct_team_fielding_analytics(team_id):
 @app.route('/api/analytics/teams/<int:team_id>/analytics', methods=['GET'])
 @jwt_required()
 def direct_team_analytics(team_id):
-    """Direct team analytics endpoint if blueprint fails"""
+    """Direct team analytics endpoint if blueprint fails (legacy pattern)"""
     logger.info(f"Direct team analytics endpoint called for team {team_id}")
     try:
         from services.analytics_service import AnalyticsService
@@ -212,11 +212,54 @@ def direct_team_analytics(team_id):
         logger.error(f"Error in direct team analytics: {str(e)}")
         logger.error(traceback.format_exc())
         return jsonify({"error": f"Failed to get team analytics: {str(e)}"}), 500
+        
+# Direct team analytics endpoints - RESTful patterns
+@app.route('/api/analytics/teams/<int:team_id>', methods=['GET'])
+@jwt_required()
+def direct_team_analytics_restful(team_id):
+    """Direct RESTful team analytics endpoint if blueprint fails"""
+    logger.info(f"Direct RESTful team analytics endpoint called for team {team_id}")
+    try:
+        from services.analytics_service import AnalyticsService
+        analytics = AnalyticsService.get_team_analytics(team_id)
+        return jsonify(analytics), 200
+    except Exception as e:
+        logger.error(f"Error in direct RESTful team analytics: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({"error": f"Failed to get team analytics: {str(e)}"}), 500
 
-# Add diagnostic route directly to app
+@app.route('/api/analytics/teams/<int:team_id>/players/batting', methods=['GET'])
+@jwt_required()
+def direct_player_batting_analytics(team_id):
+    """Direct RESTful player batting analytics endpoint if blueprint fails"""
+    logger.info(f"Direct RESTful player batting analytics endpoint called for team {team_id}")
+    try:
+        from services.analytics_service import AnalyticsService
+        analytics = AnalyticsService.get_player_batting_analytics(team_id)
+        return jsonify(analytics), 200
+    except Exception as e:
+        logger.error(f"Error in direct RESTful player batting analytics: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({"error": f"Failed to get player batting analytics: {str(e)}"}), 500
+
+@app.route('/api/analytics/teams/<int:team_id>/players/fielding', methods=['GET'])
+@jwt_required()
+def direct_player_fielding_analytics(team_id):
+    """Direct RESTful player fielding analytics endpoint if blueprint fails"""
+    logger.info(f"Direct RESTful player fielding analytics endpoint called for team {team_id}")
+    try:
+        from services.analytics_service import AnalyticsService
+        analytics = AnalyticsService.get_player_fielding_analytics(team_id)
+        return jsonify(analytics), 200
+    except Exception as e:
+        logger.error(f"Error in direct RESTful player fielding analytics: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({"error": f"Failed to get player fielding analytics: {str(e)}"}), 500
+
+# Add enhanced diagnostic route directly to app
 @app.route('/api/debug/analytics-status', methods=['GET'])
 def analytics_status_debug():
-    """Diagnostic endpoint to verify routing is working"""
+    """Enhanced diagnostic endpoint to verify routing is working"""
     logger.info("Debug analytics status endpoint called")
     
     # Collect registered blueprints for debugging
@@ -234,22 +277,24 @@ def analytics_status_debug():
     # Check if the analytics module and service are available
     has_analytics_service = False
     has_analytics_bp = False
+    has_analytics_module = False
     analytics_routes = []
     
     try:
         from services.analytics_service import AnalyticsService
         has_analytics_service = True
-    except ImportError:
-        pass
+    except ImportError as e:
+        logger.error(f"Could not import AnalyticsService: {e}")
     
     try:
-        from api.analytics import analytics_bp
+        from api.analytics import analytics_bp, ANALYTICS_MODULE_LOADED
         has_analytics_bp = True
+        has_analytics_module = ANALYTICS_MODULE_LOADED
         
         # Note that we have the analytics blueprint
         analytics_routes.append("analytics_bp is available")
         
-        # Try to get routes if possible, but this is optional
+        # Try to get routes if possible
         try:
             if hasattr(analytics_bp, 'deferred_functions'):
                 for rule in analytics_bp.deferred_functions:
@@ -257,15 +302,34 @@ def analytics_status_debug():
                         analytics_routes.append(rule.__name__)
         except Exception as e:
             analytics_routes.append(f"Error getting routes: {str(e)}")
-    except ImportError:
-        pass
+    except ImportError as e:
+        logger.error(f"Could not import analytics_bp: {e}")
+    except Exception as e:
+        logger.error(f"Error checking analytics module: {e}")
+    
+    # Check for RESTful routes specifically
+    has_restful_team = False
+    has_restful_batting = False
+    has_restful_fielding = False
     
     # Collect all API routes
     all_routes = []
+    api_analytics_routes = []
+    
     for rule in app.url_map.iter_rules():
         rule_str = str(rule)
+        all_routes.append(rule_str)
+        
         if '/api/analytics' in rule_str:
-            all_routes.append(rule_str)
+            api_analytics_routes.append(rule_str)
+            
+            # Check for RESTful endpoints
+            if '/api/analytics/teams/<' in rule_str and rule_str.endswith('>'):
+                has_restful_team = True
+            elif '/api/analytics/teams/<' in rule_str and '/players/batting' in rule_str:
+                has_restful_batting = True
+            elif '/api/analytics/teams/<' in rule_str and '/players/fielding' in rule_str:
+                has_restful_fielding = True
     
     # Return comprehensive diagnostic information
     return jsonify({
@@ -275,9 +339,18 @@ def analytics_status_debug():
         'analytics_registered': analytics_registered,
         'has_analytics_service': has_analytics_service,
         'has_analytics_bp': has_analytics_bp,
+        'has_analytics_module': has_analytics_module,
         'analytics_routes': analytics_routes,
-        'api_analytics_routes': all_routes,
+        'api_analytics_routes': api_analytics_routes,
+        'restful_endpoints': {
+            'team_analytics': has_restful_team,
+            'batting_analytics': has_restful_batting,
+            'fielding_analytics': has_restful_fielding
+        },
+        'app_version': '1.1.0',  # Increment for tracking deployment
         'environment': os.environ.get('FLASK_ENV', 'undefined'),
+        'registered_endpoint_count': len(all_routes),
+        'registered_analytics_count': len(api_analytics_routes)
     }), 200
     
 # Add data diagnostic route for analytics data

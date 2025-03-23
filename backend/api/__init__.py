@@ -82,26 +82,31 @@ register_blueprint(api, 'admin', 'admin', '/admin')
 
 # Register analytics blueprint (for team and player analytics)
 try:
-    # First try to import from the routes.py in the analytics package
-    try:
-        from api.analytics.routes import analytics_bp
-        api.register_blueprint(analytics_bp, url_prefix='/analytics')
-        print(f"SUCCESS: Registered RESTful analytics blueprint with URL prefix /analytics")
-        analytics_registered = True
-    except ImportError as e:
-        print(f"WARNING: Could not import from api.analytics.routes: {e}")
-        
-        # Fallback to the analytics.py module if the package structure fails
-        try:
-            from api.analytics import analytics_bp
-            api.register_blueprint(analytics_bp, url_prefix='/analytics')
-            print(f"SUCCESS: Registered legacy analytics blueprint with URL prefix /analytics")
-            analytics_registered = True
-        except Exception as e:
-            print(f"ERROR: Analytics blueprint fallback registration failed: {e}")
-            analytics_registered = False
+    # Simplified approach - import from analytics.py directly
+    from api.analytics import analytics_bp
+    
+    # Register blueprint with proper URL prefix
+    api.register_blueprint(analytics_bp, url_prefix='/analytics')
+    print(f"SUCCESS: Registered analytics blueprint with URL prefix /analytics")
+    
+    # Print route information for debugging
+    analytics_routes = []
+    for rule in analytics_bp.deferred_functions:
+        if hasattr(rule, '__name__'):
+            analytics_routes.append(rule.__name__)
+    
+    if analytics_routes:
+        print(f"Registered analytics routes: {', '.join(analytics_routes)}")
+    else:
+        print("WARNING: No routes found in analytics blueprint")
+    
+    analytics_registered = True
+except ImportError as e:
+    print(f"ERROR: Could not import analytics module: {e}")
+    print(f"Stack trace: {traceback.format_exc()}")
+    analytics_registered = False
 except Exception as e:
-    print(f"GENERAL ERROR: Error registering analytics blueprint: {e}")
+    print(f"ERROR: Error registering analytics blueprint: {e}")
     print(f"Stack trace: {traceback.format_exc()}")
     analytics_registered = False
 

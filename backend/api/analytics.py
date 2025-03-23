@@ -27,7 +27,7 @@ def analytics_status():
 @jwt_required
 def get_team_batting_analytics(team_id):
     """
-    Get batting analytics for all players in a team.
+    Get batting analytics for all players in a team (legacy pattern).
     
     Args:
         team_id: Team ID
@@ -58,13 +58,20 @@ def get_player_batting_analytics(team_id):
         JSON response with player batting analytics
     """
     logger.info(f"API request: get_player_batting_analytics (RESTful) for team_id: {team_id}")
-    return get_team_batting_analytics(team_id)
+    try:
+        analytics = AnalyticsService.get_player_batting_analytics(team_id)
+        logger.info(f"Successfully retrieved RESTful batting analytics for team_id: {team_id}")
+        return jsonify(analytics), 200
+    except Exception as e:
+        logger.error(f"Error getting RESTful batting analytics for team_id {team_id}: {str(e)}")
+        logger.error(traceback.format_exc())
+        return db_error_response(e, "Failed to get batting analytics")
 
 @analytics_bp.route('/teams/<int:team_id>/fielding-analytics', methods=['GET'])
 @jwt_required
 def get_team_fielding_analytics(team_id):
     """
-    Get fielding analytics for all players in a team.
+    Get fielding analytics for all players in a team (legacy pattern).
     
     Args:
         team_id: Team ID
@@ -95,13 +102,20 @@ def get_player_fielding_analytics(team_id):
         JSON response with player fielding analytics
     """
     logger.info(f"API request: get_player_fielding_analytics (RESTful) for team_id: {team_id}")
-    return get_team_fielding_analytics(team_id)
+    try:
+        analytics = AnalyticsService.get_player_fielding_analytics(team_id)
+        logger.info(f"Successfully retrieved RESTful fielding analytics for team_id: {team_id}")
+        return jsonify(analytics), 200
+    except Exception as e:
+        logger.error(f"Error getting RESTful fielding analytics for team_id {team_id}: {str(e)}")
+        logger.error(traceback.format_exc())
+        return db_error_response(e, "Failed to get fielding analytics")
 
 @analytics_bp.route('/teams/<int:team_id>/analytics', methods=['GET'])
 @jwt_required
 def get_team_analytics(team_id):
     """
-    Get team analytics across all games.
+    Get team analytics across all games (legacy pattern).
     
     Args:
         team_id: Team ID
@@ -132,4 +146,11 @@ def get_team_analytics_restful(team_id):
         JSON response with team analytics
     """
     logger.info(f"API request: get_team_analytics_restful for team_id: {team_id}")
-    return get_team_analytics(team_id)
+    try:
+        analytics = AnalyticsService.get_team_analytics(team_id)
+        logger.info(f"Successfully retrieved RESTful team analytics for team_id: {team_id}")
+        return jsonify(analytics), 200
+    except Exception as e:
+        logger.error(f"Error getting RESTful team analytics for team_id {team_id}: {str(e)}")
+        logger.error(traceback.format_exc())
+        return db_error_response(e, "Failed to get team analytics")
