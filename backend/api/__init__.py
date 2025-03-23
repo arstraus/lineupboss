@@ -82,37 +82,24 @@ register_blueprint(api, 'admin', 'admin', '/admin')
 
 # Register analytics blueprint (for team and player analytics)
 try:
-    # Use the same pattern as the other blueprints for consistency
-    from api.analytics import analytics_bp
-    
-    # Register it using the standard register_blueprint helper
-    success = register_blueprint(api, 'analytics', 'analytics_bp', '/analytics')
-    
-    if success:
-        print(f"SUCCESS: Registered analytics blueprint with URL prefix /analytics")
-        # Store blueprint for direct app registration later
+    # First try to import from the routes.py in the analytics package
+    try:
+        from api.analytics.routes import analytics_bp
+        api.register_blueprint(analytics_bp, url_prefix='/analytics')
+        print(f"SUCCESS: Registered RESTful analytics blueprint with URL prefix /analytics")
         analytics_registered = True
-    else:
-        analytics_registered = False
-        print(f"WARNING: Failed to register analytics blueprint using helper")
+    except ImportError as e:
+        print(f"WARNING: Could not import from api.analytics.routes: {e}")
         
-        # Fallback: Try direct registration
+        # Fallback to the analytics.py module if the package structure fails
         try:
+            from api.analytics import analytics_bp
             api.register_blueprint(analytics_bp, url_prefix='/analytics')
-            print(f"SUCCESS: Registered analytics blueprint directly with URL prefix /analytics")
+            print(f"SUCCESS: Registered legacy analytics blueprint with URL prefix /analytics")
             analytics_registered = True
         except Exception as e:
-            print(f"ERROR: Direct blueprint registration also failed: {e}")
+            print(f"ERROR: Analytics blueprint fallback registration failed: {e}")
             analytics_registered = False
-            
-except ImportError as e:
-    print(f"IMPORT ERROR: Could not import analytics module: {e}")
-    print(f"Stack trace: {traceback.format_exc()}")
-    analytics_registered = False
-except AttributeError as e:
-    print(f"ATTRIBUTE ERROR: Could not find analytics_bp in analytics module: {e}")
-    print(f"Stack trace: {traceback.format_exc()}")
-    analytics_registered = False
 except Exception as e:
     print(f"GENERAL ERROR: Error registering analytics blueprint: {e}")
     print(f"Stack trace: {traceback.format_exc()}")

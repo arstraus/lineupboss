@@ -365,7 +365,8 @@ The API standardization effort has made significant progress with a systematic a
     - `GET /api/analytics/teams/{teamId}`
     - `GET /api/analytics/teams/{teamId}/players/batting`
     - `GET /api/analytics/teams/{teamId}/players/fielding`
-  - Update frontend API client to use these new endpoints
+  - The code for these endpoints has been implemented in `analytics.py` but is not properly registered (confirmed by debug test showing `"analytics_registered": false`)
+  - The frontend API client is already updated to use these new endpoints, but they are not yet accessible
 
 #### 📊 Testing Results
 
@@ -380,18 +381,18 @@ The API standardization effort has made significant progress with a systematic a
 
 Based on our progress and testing results, we've created a timeline for completing the remaining standardization work:
 
-**Day 1:**
-- ✅ Fix the user approval endpoint issue (COMPLETED)
-- Begin implementing the first analytics endpoint
+**Day 1 (COMPLETED):**
+- ✅ Fix the user approval endpoint issue
+- ✅ Verification of current analytics endpoint status
 
-**Day 2:**
-- Complete the remaining analytics endpoints
-- Update frontend API client for analytics
-- Run comprehensive tests on all endpoints
+**Day 2 (IN PROGRESS):**
+- ✅ Create fixes for analytics blueprint registration
+- ✅ Develop comprehensive tests for analytics endpoints
+- ▶️ Deploy fixes to Heroku to enable RESTful analytics endpoints
 
-**Day 3:**
+**Day 3 (PENDING):**
+- Verify that RESTful analytics endpoints are working after deployment
 - Document the new API patterns
-- Add any necessary test improvements
 - Consider performance optimizations for slow endpoints
 
 After completing these steps, we'll have fully standardized the API according to RESTful principles while maintaining backward compatibility. The resulting API will be more maintainable, better documented, and follow industry best practices.
