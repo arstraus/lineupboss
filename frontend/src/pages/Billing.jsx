@@ -130,10 +130,12 @@ const Billing = () => {
                 <h4 className="h6">Rookie (Free)</h4>
                 <ul className="list-unstyled">
                   <li><i className="bi bi-check-circle-fill text-success me-2"></i> Create up to 2 teams</li>
-                  <li><i className="bi bi-check-circle-fill text-success me-2"></i> Standard lineup rotations</li>
-                  <li><i className="bi bi-check-circle-fill text-success me-2"></i> Basic player management</li>
-                  <li><i className="bi bi-x-circle-fill text-muted me-2"></i> Advanced stats</li>
-                  <li><i className="bi bi-x-circle-fill text-muted me-2"></i> Team collaboration</li>
+                  <li><i className="bi bi-check-circle-fill text-success me-2"></i> Roster management</li>
+                  <li><i className="bi bi-check-circle-fill text-success me-2"></i> Batting order management</li>
+                  <li><i className="bi bi-check-circle-fill text-success me-2"></i> Basic fielding rotations</li>
+                  <li><i className="bi bi-check-circle-fill text-success me-2"></i> Gameday lineup summaries and export</li>
+                  <li><i className="bi bi-x-circle-fill text-muted me-2"></i> AI-powered features</li>
+                  <li><i className="bi bi-x-circle-fill text-muted me-2"></i> Analytics dashboard</li>
                 </ul>
               </div>
               
@@ -141,10 +143,10 @@ const Billing = () => {
                 <h4 className="h6">Pro (Coming Soon)</h4>
                 <ul className="list-unstyled">
                   <li><i className="bi bi-check-circle-fill text-success me-2"></i> Unlimited teams</li>
-                  <li><i className="bi bi-check-circle-fill text-success me-2"></i> Advanced rotation algorithms</li>
-                  <li><i className="bi bi-check-circle-fill text-success me-2"></i> Enhanced player tracking</li>
-                  <li><i className="bi bi-check-circle-fill text-success me-2"></i> Performance analytics</li>
                   <li><i className="bi bi-check-circle-fill text-success me-2"></i> Multiple coach access</li>
+                  <li><i className="bi bi-check-circle-fill text-success me-2"></i> AI generated fielding rotations</li>
+                  <li><i className="bi bi-check-circle-fill text-success me-2"></i> Player and Team analytics</li>
+                  <li><i className="bi bi-check-circle-fill text-success me-2"></i> All Rookie features included</li>
                 </ul>
               </div>
               
