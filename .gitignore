@@ -107,3 +107,7 @@ staticfiles/
 
 # Testing
 /testing/
+
+# Documentation (exclude all .md files except README.md)
+*.md
+!README.md

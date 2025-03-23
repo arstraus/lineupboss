@@ -24,10 +24,12 @@ const PlayerAnalytics = ({ teamId }) => {
         
         // Fetch batting analytics
         const battingResponse = await getBattingAnalytics(teamId);
+        console.log('Batting analytics data:', battingResponse.data);
         setBattingAnalytics(battingResponse.data);
         
         // Fetch fielding analytics
         const fieldingResponse = await getFieldingAnalytics(teamId);
+        console.log('Fielding analytics data:', fieldingResponse.data);
         setFieldingAnalytics(fieldingResponse.data);
         
         // Set the first player as selected by default if available
@@ -37,7 +39,7 @@ const PlayerAnalytics = ({ teamId }) => {
         
       } catch (err) {
         setError("Failed to load analytics data. Please try again.");
-        console.error(err);
+        console.error("API Error:", err);
       } finally {
         setLoading(false);
       }
@@ -60,17 +62,21 @@ const PlayerAnalytics = ({ teamId }) => {
   // Update selected player when tab changes
   useEffect(() => {
     // When switching tabs, find the corresponding player data
-    if (selectedPlayer && selectedPlayer.player_id) {
-      const playerId = selectedPlayer.player_id;
-      if (activeTab === "batting") {
-        const player = battingAnalytics.find(p => p.player_id === playerId);
-        setSelectedPlayer(player || (battingAnalytics.length > 0 ? battingAnalytics[0] : null));
-      } else {
-        const player = fieldingAnalytics.find(p => p.player_id === playerId);
-        setSelectedPlayer(player || (fieldingAnalytics.length > 0 ? fieldingAnalytics[0] : null));
-      }
+    console.log("Tab changed to:", activeTab);
+    console.log("Current selected player:", selectedPlayer);
+    console.log("Batting analytics players:", battingAnalytics?.length);
+    console.log("Fielding analytics players:", fieldingAnalytics?.length);
+    
+    if (activeTab === "fielding" && fieldingAnalytics?.length > 0) {
+      // Force select the first player from fielding data when switching to fielding tab
+      console.log("Setting fielding player:", fieldingAnalytics[0]);
+      setSelectedPlayer(fieldingAnalytics[0]);
+    } else if (activeTab === "batting" && battingAnalytics?.length > 0) {
+      // Force select the first player from batting data when switching to batting tab
+      console.log("Setting batting player:", battingAnalytics[0]);
+      setSelectedPlayer(battingAnalytics[0]);
     }
-  }, [activeTab, selectedPlayer, battingAnalytics, fieldingAnalytics]);
+  }, [activeTab, battingAnalytics, fieldingAnalytics]);
   
   // Function to transform batting position data for charts
   const prepareBattingPositionData = (player) => {
@@ -84,25 +90,48 @@ const PlayerAnalytics = ({ teamId }) => {
   
   // Function to transform fielding position data for charts
   const prepareFieldingPositionData = (player) => {
-    if (!player || !player.position_count) return [];
+    if (!player) return [];
     
-    return Object.entries(player.position_count)
-      .filter(([position, _]) => position !== "Bench")  // Exclude Bench from this chart
-      .map(([position, count]) => ({
-        position,
-        count
-      }))
-      .sort((a, b) => b.count - a.count);  // Sort by count descending
+    console.log("Preparing position data for player:", player);
+    
+    // Safety check to ensure position_count exists and is an object
+    if (!player.position_count || typeof player.position_count !== 'object') {
+      console.error("Missing or invalid position_count data:", player.position_count);
+      return [];
+    }
+    
+    try {
+      const positionData = Object.entries(player.position_count)
+        .filter(([position, _]) => position !== "Bench")  // Exclude Bench from this chart
+        .map(([position, count]) => ({
+          position,
+          count: count || 0  // Ensure we have a valid number
+        }))
+        .sort((a, b) => b.count - a.count);  // Sort by count descending
+      
+      console.log("Prepared position data:", positionData);
+      return positionData;
+    } catch (err) {
+      console.error("Error preparing fielding position data:", err);
+      return [];
+    }
   };
   
   // Function to prepare the category data (infield/outfield/bench)
   const prepareFieldingCategoryData = (player) => {
     if (!player) return [];
     
+    // Make sure we have valid numeric values (defaults to 0 if undefined)
+    const infield = player.infield_innings || 0; 
+    const outfield = player.outfield_innings || 0;
+    const bench = player.bench_innings || 0;
+    
+    console.log("Preparing fielding category data:", { infield, outfield, bench });
+    
     return [
-      { name: "Infield", value: player.infield_innings },
-      { name: "Outfield", value: player.outfield_innings },
-      { name: "Bench", value: player.bench_innings }
+      { name: "Infield", value: infield },
+      { name: "Outfield", value: outfield },
+      { name: "Bench", value: bench }
     ];
   };
   
