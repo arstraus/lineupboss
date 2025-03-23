@@ -57,6 +57,21 @@ const PlayerAnalytics = ({ teamId }) => {
     }
   };
   
+  // Update selected player when tab changes
+  useEffect(() => {
+    // When switching tabs, find the corresponding player data
+    if (selectedPlayer && selectedPlayer.player_id) {
+      const playerId = selectedPlayer.player_id;
+      if (activeTab === "batting") {
+        const player = battingAnalytics.find(p => p.player_id === playerId);
+        setSelectedPlayer(player || (battingAnalytics.length > 0 ? battingAnalytics[0] : null));
+      } else {
+        const player = fieldingAnalytics.find(p => p.player_id === playerId);
+        setSelectedPlayer(player || (fieldingAnalytics.length > 0 ? fieldingAnalytics[0] : null));
+      }
+    }
+  }, [activeTab, selectedPlayer, battingAnalytics, fieldingAnalytics]);
+  
   // Function to transform batting position data for charts
   const prepareBattingPositionData = (player) => {
     if (!player || !player.batting_positions) return [];
