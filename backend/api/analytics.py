@@ -45,6 +45,21 @@ def get_team_batting_analytics(team_id):
         logger.error(traceback.format_exc())
         return db_error_response(e, "Failed to get batting analytics")
 
+@analytics_bp.route('/teams/<int:team_id>/players/batting', methods=['GET'])
+@jwt_required
+def get_player_batting_analytics(team_id):
+    """
+    Get batting analytics for all players in a team using RESTful pattern.
+    
+    Args:
+        team_id: Team ID
+        
+    Returns:
+        JSON response with player batting analytics
+    """
+    logger.info(f"API request: get_player_batting_analytics (RESTful) for team_id: {team_id}")
+    return get_team_batting_analytics(team_id)
+
 @analytics_bp.route('/teams/<int:team_id>/fielding-analytics', methods=['GET'])
 @jwt_required
 def get_team_fielding_analytics(team_id):
@@ -67,6 +82,21 @@ def get_team_fielding_analytics(team_id):
         logger.error(traceback.format_exc())
         return db_error_response(e, "Failed to get fielding analytics")
 
+@analytics_bp.route('/teams/<int:team_id>/players/fielding', methods=['GET'])
+@jwt_required
+def get_player_fielding_analytics(team_id):
+    """
+    Get fielding analytics for all players in a team using RESTful pattern.
+    
+    Args:
+        team_id: Team ID
+        
+    Returns:
+        JSON response with player fielding analytics
+    """
+    logger.info(f"API request: get_player_fielding_analytics (RESTful) for team_id: {team_id}")
+    return get_team_fielding_analytics(team_id)
+
 @analytics_bp.route('/teams/<int:team_id>/analytics', methods=['GET'])
 @jwt_required
 def get_team_analytics(team_id):
@@ -88,3 +118,18 @@ def get_team_analytics(team_id):
         logger.error(f"Error getting team analytics for team_id {team_id}: {str(e)}")
         logger.error(traceback.format_exc())
         return db_error_response(e, "Failed to get team analytics")
+
+@analytics_bp.route('/teams/<int:team_id>', methods=['GET'])
+@jwt_required
+def get_team_analytics_restful(team_id):
+    """
+    Get team analytics across all games using RESTful pattern.
+    
+    Args:
+        team_id: Team ID
+        
+    Returns:
+        JSON response with team analytics
+    """
+    logger.info(f"API request: get_team_analytics_restful for team_id: {team_id}")
+    return get_team_analytics(team_id)
