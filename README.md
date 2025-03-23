@@ -19,6 +19,7 @@ A comprehensive baseball lineup management application for coaches to create fai
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 - **User Authentication**: Secure access with JWT-based authentication and user accounts
 - **AI-Powered Rotations**: Generate balanced fielding rotations with AI assistance
+- **Analytics Dashboard**: Track player statistics and participation across the season
 
 ## Technical Architecture
 
@@ -32,6 +33,7 @@ LineupBoss employs a modern, maintainable architecture:
 - **API Documentation**: Interactive Swagger documentation
 - **Error Handling**: Comprehensive error handling and reporting
 - **Standardized Routes**: Consistent RESTful resource patterns
+- **Analytics Services**: Advanced player and team statistics calculation
 
 ### Frontend (React/JavaScript)
 - **Component Architecture**: Reusable, modular React components
@@ -42,12 +44,14 @@ LineupBoss employs a modern, maintainable architecture:
 - **Form Validation**: Client-side validation for all input forms
 - **PDF Export**: Generate downloadable game plans with HTML2PDF
 - **Drag and Drop**: Intuitive lineup management with react-beautiful-dnd
+- **Data Visualization**: Interactive charts for analytics using Recharts
 
 ### Cross-Cutting Concerns
 - **Shared Models**: Common data models between frontend and backend
 - **Consistent Error Handling**: Standardized error responses and handling
 - **Responsive Design**: Mobile-first approach for all user interfaces
 - **Database Session Management**: Optimized database access patterns
+- **Token Refresh**: Automatic JWT token refresh for uninterrupted user sessions
 
 ## Getting Started
 
@@ -153,10 +157,12 @@ The application will be available at:
 2. **PDF Export**: Generate a printable PDF of your game plan
 3. **Mobile Access**: Access lineups from your phone during the game
 
-### 6. Season Management
-1. **Fairness Analysis**: Review position distribution across the season
-2. **Adjustment Tools**: Easily modify lineups based on analysis
-3. **Historical Data**: Access previous game plans throughout the season
+### 6. Season Analytics
+1. **Team Analytics**: View game distribution by day and month
+2. **Batting Analytics**: Track batting position history and distribution
+3. **Fielding Analytics**: Analyze position distribution and playing time
+4. **Fairness Analysis**: Review position distribution across the season
+5. **Historical Data**: Access previous game plans throughout the season
 
 ## API Architecture
 
@@ -173,6 +179,10 @@ LineupBoss uses a RESTful API architecture with standardized routes:
   /players             - Player management
   /games               - Game management
   /admin               - Admin functions
+  /analytics           - Analytics endpoints
+    /teams/<team_id>                  - Team analytics
+    /teams/<team_id>/players/batting  - Player batting analytics
+    /teams/<team_id>/players/fielding - Player fielding analytics
   /docs                - API documentation
 ```
 
@@ -182,6 +192,7 @@ LineupBoss uses a RESTful API architecture with standardized routes:
 - Players: `/api/teams/<team_id>/players`, `/api/players/<player_id>`
 - Games: `/api/teams/<team_id>/games`, `/api/games/<game_id>`
 - Game Details: `/api/games/<game_id>/batting-order`, `/api/games/<game_id>/fielding-rotations`
+- Analytics: `/api/analytics/teams/<team_id>`, `/api/analytics/teams/<team_id>/players/batting`
 - User Profile: `/api/user/profile`
 
 ## Deployment Guide
@@ -249,6 +260,7 @@ netlify deploy --prod
 - Set appropriate environment variables for production
 - Configure a proper domain for production use
 - Enable HTTPS for secure communication
+- Add appropriate backup procedures for the database
 
 ## Recent Improvements
 
@@ -257,6 +269,7 @@ netlify deploy --prod
 - Eliminated legacy emergency routes
 - Improved average response time by 13.9%
 - Reduced slow endpoints from 22 to 4
+- Implemented analytics endpoints with RESTful patterns
 
 ### UI Enhancements (2025)
 - **New Landing Page**: Baseball-themed landing page with clear features and benefits
@@ -265,10 +278,24 @@ netlify deploy --prod
 - **Fielding Rotations**: Enhanced position validation with clearer visual feedback
 - **Mobile Responsiveness**: Improved layout for all screen sizes
 - **Visual Consistency**: Unified design language across all app screens
+- **Analytics Dashboard**: Added comprehensive analytics with intuitive data visualization
 
 ### AI-Powered Features
 - **Fielding Rotations**: AI-assisted generation of balanced fielding rotations
 - **Position Fairness**: Intelligent suggestions for player positions
+
+## Known Issues and Troubleshooting
+
+### Common Issues
+- If the fielding analytics page appears blank, refresh the page. This issue is being addressed in the next release.
+- Token refresh issues may occur on mobile devices with backgrounded tabs; if you see authentication errors, please log in again.
+- Position validation warnings are intended as suggestions only; you can still save lineups with these warnings.
+
+### Troubleshooting
+- **Authentication Issues**: Clear browser cookies/storage and log in again
+- **Missing Data**: Verify all fields are completed when creating games or players
+- **API Connectivity**: Check that both frontend and backend are running and connected properly
+- **Database Errors**: Ensure PostgreSQL is running and the connection string is correctly set in .env
 
 ## Code Style Guidelines
 
@@ -312,11 +339,34 @@ netlify deploy --prod
 - React Bootstrap 2.10+
 - HTML2PDF 0.10+
 - React Beautiful DnD 13.1+
+- Recharts 2.7+ (for analytics visualizations)
+
+## Future Development Roadmap
+
+### Planned Features
+- **Team Collaboration**: Allow multiple coaches to manage the same team
+- **Season Templates**: Save and reuse successful lineup strategies
+- **Advanced Analytics**: Player performance tracking and position recommendations
+- **Parent Portal**: Limited access for parents to view game schedules and positions
+- **Email Notifications**: Automated game reminders and lineup distributions
+- **Tournament Mode**: Special scheduling and lineup tools for tournament play
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+Please ensure your code follows the project's style guidelines and includes appropriate tests.
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Contact & Support
+
+For questions, issues, or feature requests, please open an issue on GitHub or contact the maintainers at support@lineupboss.app.
