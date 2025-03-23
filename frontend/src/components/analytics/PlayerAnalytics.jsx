@@ -404,27 +404,37 @@ const PlayerAnalytics = ({ teamId }) => {
                             </tr>
                           </thead>
                           <tbody>
-                            {selectedPlayer.position_history.map((game, index) => (
-                              <tr key={index}>
-                                <td>{game.game_date || "No date"}</td>
-                                <td>{game.opponent || "Unknown"}</td>
-                                <td>
-                                  {game.innings.map((inning, i) => (
-                                    <span 
-                                      key={i} 
-                                      className={`badge me-1 mb-1 ${
-                                        inning.position === "Bench" ? "bg-warning" :
-                                        ["Pitcher", "1B", "2B", "3B", "SS"].includes(inning.position) ? "bg-primary" :
-                                        "bg-success"
-                                      }`}
-                                      title={`Inning ${inning.inning}`}
-                                    >
-                                      {inning.position}
-                                    </span>
-                                  ))}
-                                </td>
+                            {selectedPlayer && selectedPlayer.position_history && Array.isArray(selectedPlayer.position_history) ? (
+                              selectedPlayer.position_history.map((game, index) => (
+                                <tr key={index}>
+                                  <td>{game.game_date || "No date"}</td>
+                                  <td>{game.opponent || "Unknown"}</td>
+                                  <td>
+                                    {game.innings && Array.isArray(game.innings) ? (
+                                      game.innings.map((inning, i) => (
+                                        <span 
+                                          key={i} 
+                                          className={`badge me-1 mb-1 ${
+                                            inning.position === "Bench" ? "bg-warning" :
+                                            ["Pitcher", "1B", "2B", "3B", "SS"].includes(inning.position) ? "bg-primary" :
+                                            "bg-success"
+                                          }`}
+                                          title={`Inning ${inning.inning}`}
+                                        >
+                                          {inning.position}
+                                        </span>
+                                      ))
+                                    ) : (
+                                      <span className="text-muted">No innings data available</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan="3" className="text-center">No position history available</td>
                               </tr>
-                            ))}
+                            )}
                           </tbody>
                         </table>
                       </div>
