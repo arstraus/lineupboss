@@ -1,6 +1,5 @@
 import React, { useState, useRef } from "react";
 import axios from "axios";
-import { getAuthToken } from "../../services/auth";
 
 const CSVUploadForm = ({ teamId, onUploadComplete, onCancel, hasExistingPlayers }) => {
   const [file, setFile] = useState(null);
@@ -29,12 +28,15 @@ const CSVUploadForm = ({ teamId, onUploadComplete, onCancel, hasExistingPlayers 
   const downloadTemplate = async () => {
     try {
       setLoading(true);
-      const token = getAuthToken();
       
       // Use XMLHttpRequest for blob download
       const xhr = new XMLHttpRequest();
       xhr.open('GET', `${process.env.REACT_APP_API_URL || ''}/teams/${teamId}/players/csv-template`, true);
-      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      // Token will be added automatically by axios interceptor
+      const token = localStorage.getItem('token');
+      if (token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      }
       xhr.responseType = 'blob';
       
       xhr.onload = function() {
@@ -95,15 +97,13 @@ const CSVUploadForm = ({ teamId, onUploadComplete, onCancel, hasExistingPlayers 
       formData.append('file', file);
       formData.append('overrideExisting', overrideExisting);
       
-      const token = getAuthToken();
-      
+      // Get token from localStorage (axios will add it to the header automatically)
       const response = await axios.post(
         `${process.env.REACT_APP_API_URL || ''}/teams/${teamId}/players`,
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${token}`
+            'Content-Type': 'multipart/form-data'
           }
         }
       );
