@@ -1,7 +1,27 @@
 import axios from 'axios';
 
 // Configure axios with base settings
-axios.defaults.baseURL = process.env.REACT_APP_API_URL || '';
+// Make sure we never have a double /api prefix
+let apiBaseUrl = process.env.REACT_APP_API_URL || '';
+// Strip any trailing slashes
+apiBaseUrl = apiBaseUrl.replace(/\/+$/, '');
+
+// Helper function to ensure consistent API URL formatting
+export const getApiUrl = (path) => {
+  // If path starts with a slash, remove it
+  const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+  
+  // If the baseURL already has /api, don't add it again
+  if (apiBaseUrl.includes('/api')) {
+    return `${apiBaseUrl}/${cleanPath}`;
+  }
+  
+  // Otherwise add /api prefix
+  return `${apiBaseUrl}/api/${cleanPath}`;
+};
+
+// Remove any trailing slashes from baseURL
+axios.defaults.baseURL = apiBaseUrl.replace(/\/+$/, '');
 if (process.env.NODE_ENV === 'development') {
   console.log(`[API] Base URL: ${axios.defaults.baseURL || '(none)'}`);
 }
@@ -9,6 +29,21 @@ if (process.env.NODE_ENV === 'development') {
 // Add request interceptor to automatically add token to requests
 axios.interceptors.request.use(
   config => {
+    // Fix URL path to avoid /api/api prefix
+    if (config.url && !config.url.startsWith('http')) {
+      // For relative URLs, ensure correct formatting
+      config.url = config.url.replace(/^\/+api\/*/, '');
+      
+      if (config.url.startsWith('/')) {
+        config.url = config.url.substring(1);
+      }
+      
+      // Make sure we have the correct prefix
+      if (!axios.defaults.baseURL.includes('/api') && !config.url.startsWith('api/')) {
+        config.url = `api/${config.url}`;
+      }
+    }
+    
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

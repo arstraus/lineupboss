@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import axios from "axios";
-import { api } from "../../services/api";
+import { getApiUrl } from "../../services/api";
 
 const CSVUploadForm = ({ teamId, onUploadComplete, onCancel, hasExistingPlayers }) => {
   const [file, setFile] = useState(null);
@@ -30,39 +30,30 @@ const CSVUploadForm = ({ teamId, onUploadComplete, onCancel, hasExistingPlayers 
     try {
       setLoading(true);
       
-      // Get the token from localStorage
-      const token = localStorage.getItem('token');
+      // Get template download URL using the helper
+      const url = getApiUrl(`teams/${teamId}/players/csv-template`);
       
-      // Create the base URL correctly
-      const baseUrl = axios.defaults.baseURL || '';
-      
-      // Use fetch API for blob download
-      const response = await fetch(`${baseUrl}/teams/${teamId}/players/csv-template`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      // Use axios for blob download
+      const response = await axios.get(url, {
+        responseType: 'blob'
       });
       
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `players_template.csv`);
-        
-        // Append to html
-        document.body.appendChild(link);
-        
-        // Start download
-        link.click();
-        
-        // Clean up and remove the link
-        link.parentNode.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      } else {
-        setError("Failed to download template");
-      }
+      // Create blob link to download
+      const blob = new Blob([response.data]);
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', `players_template.csv`);
+      
+      // Append to html
+      document.body.appendChild(link);
+      
+      // Start download
+      link.click();
+      
+      // Clean up and remove the link
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
     } catch (err) {
       setError("Failed to download template. Please try again.");
       console.error(err);
@@ -93,27 +84,29 @@ const CSVUploadForm = ({ teamId, onUploadComplete, onCancel, hasExistingPlayers 
       formData.append('file', file);
       formData.append('overrideExisting', overrideExisting);
       
-      // Use api instance which already handles the base URL and authentication
-      const response = await axios({
-        method: 'post',
-        url: `/teams/${teamId}/players`,
-        data: formData,
+      // Get API URL using the helper
+      const url = getApiUrl(`teams/${teamId}/players`);
+      
+      // Use axios to make the request
+      const response = await axios.post(url, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
       
+      const data = response.data;
+      
       // Handle response (could have partial success)
       if (response.status === 207) {
         // Some rows had errors
-        setError(`Imported ${response.data.imported_count} players with ${response.data.errors.length} errors: ${response.data.errors.join(', ')}`);
+        setError(`Imported ${data.imported_count} players with ${data.errors.length} errors: ${data.errors.join(', ')}`);
       }
       
       // Signal completion to parent component
       onUploadComplete();
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || "Failed to upload players. Please check your file format.");
+      setError(err.message || "Failed to upload players. Please check your file format.");
     } finally {
       setLoading(false);
       setConfirmOverride(false);
