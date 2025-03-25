@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { get, post, put, del as deleteMethod } from "../../services/api";
+import axios from "axios";
 import PlayerForm from "./PlayerForm";
+import CSVUploadForm from "./CSVUploadForm";
 
 const PlayerList = ({ teamId }) => {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showCSVUpload, setShowCSVUpload] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState(null);
 
   useEffect(() => {
@@ -68,16 +71,35 @@ const PlayerList = ({ teamId }) => {
     return <div className="text-center mt-3"><div className="spinner-border"></div></div>;
   }
 
+  const handleCSVUploadComplete = () => {
+    setShowCSVUpload(false);
+    fetchPlayers();
+  };
+
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h3>Players</h3>
-        <button 
-          className="btn btn-success" 
-          onClick={() => setShowAddForm(!showAddForm)}
-        >
-          {showAddForm ? "Cancel" : "Add Player"}
-        </button>
+        <div className="btn-group">
+          <button 
+            className="btn btn-success" 
+            onClick={() => {
+              setShowAddForm(!showAddForm);
+              setShowCSVUpload(false);
+            }}
+          >
+            {showAddForm ? "Cancel" : "Add Player"}
+          </button>
+          <button
+            className="btn btn-outline-primary"
+            onClick={() => {
+              setShowCSVUpload(!showCSVUpload);
+              setShowAddForm(false);
+            }}
+          >
+            {showCSVUpload ? "Cancel" : "Upload CSV"}
+          </button>
+        </div>
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
@@ -94,6 +116,15 @@ const PlayerList = ({ teamId }) => {
             />
           </div>
         </div>
+      )}
+      
+      {showCSVUpload && (
+        <CSVUploadForm
+          teamId={teamId}
+          onUploadComplete={handleCSVUploadComplete}
+          onCancel={() => setShowCSVUpload(false)}
+          hasExistingPlayers={players.length > 0}
+        />
       )}
 
       {players.length === 0 ? (
