@@ -1,0 +1,21 @@
+.game-table th,
+.game-table td {
+  vertical-align: middle;
+}
+
+.game-table .btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .game-table .btn-sm {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+  }
+  
+  .game-actions-column {
+    min-width: 160px;
+  }
+}

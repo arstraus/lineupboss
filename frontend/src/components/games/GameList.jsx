@@ -2,12 +2,15 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { get, post, put, del as deleteMethod } from "../../services/api";
 import GameForm from "./GameForm";
+import CSVUploadForm from "./CSVUploadForm";
+import "./GameList.css";
 
 const GameList = ({ teamId }) => {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showCSVUpload, setShowCSVUpload] = useState(false);
   const [editingGame, setEditingGame] = useState(null);
 
   useEffect(() => {
@@ -129,16 +132,35 @@ const GameList = ({ teamId }) => {
     return <div className="text-center mt-3"><div className="spinner-border"></div></div>;
   }
 
+  const handleCSVUploadComplete = () => {
+    setShowCSVUpload(false);
+    fetchGames();
+  };
+
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h3>Games</h3>
-        <button 
-          className="btn btn-success" 
-          onClick={() => setShowAddForm(!showAddForm)}
-        >
-          {showAddForm ? "Cancel" : "Add Game"}
-        </button>
+        <div className="btn-group">
+          <button 
+            className="btn btn-success" 
+            onClick={() => {
+              setShowAddForm(!showAddForm);
+              setShowCSVUpload(false);
+            }}
+          >
+            {showAddForm ? "Cancel" : "Add Game"}
+          </button>
+          <button
+            className="btn btn-outline-primary"
+            onClick={() => {
+              setShowCSVUpload(!showCSVUpload);
+              setShowAddForm(false);
+            }}
+          >
+            {showCSVUpload ? "Cancel" : "Upload CSV"}
+          </button>
+        </div>
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
@@ -156,53 +178,72 @@ const GameList = ({ teamId }) => {
           </div>
         </div>
       )}
+      
+      {showCSVUpload && (
+        <CSVUploadForm
+          teamId={teamId}
+          onUploadComplete={handleCSVUploadComplete}
+          onCancel={() => setShowCSVUpload(false)}
+          hasExistingGames={games.length > 0}
+        />
+      )}
 
       {games.length === 0 ? (
         <div className="alert alert-info">
           No games scheduled yet. Click "Add Game" to get started.
         </div>
       ) : (
-        <div className="game-list">
-          {games.map(game => (
-            <div className="game-list-item mb-3" key={game.id}>
-              <div className="card">
-                <div className="card-header d-flex justify-content-between align-items-center">
-                  <h5 className="mb-0">
-                    Game #{game.game_number} - {game.opponent}
-                  </h5>
-                  <div>
-                    <button 
-                      className="btn btn-outline-secondary btn-sm me-2"
-                      onClick={() => setEditingGame(game)}
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      className="btn btn-outline-danger btn-sm"
-                      onClick={() => handleDeleteGame(game.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-                <div className="card-body">
-                  <div className="row">
-                    <div className="col-md-8">
-                      <p><strong>Date:</strong> {formatDate(game.date)}</p>
-                      <p><strong>Time:</strong> {formatTime(game.time)}</p>
-                      <p><strong>Innings:</strong> {game.innings}</p>
-                    </div>
-                    <div className="col-md-4 d-flex align-items-center justify-content-center">
-                      <Link to={`/games/${game.id}`} className="btn btn-primary">
-                        Manage Game
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+        <>
+        <div className="d-flex justify-content-between align-items-center mb-2">
+          <div><small className="text-muted">{games.length} game{games.length !== 1 ? 's' : ''} total</small></div>
         </div>
+        <div className="table-responsive">
+          <table className="table table-striped game-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Opponent</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Innings</th>
+                <th className="text-center game-actions-column">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {games.map(game => (
+                <tr key={game.id}>
+                  <td>{game.game_number}</td>
+                  <td>{game.opponent}</td>
+                  <td>{formatDate(game.date)}</td>
+                  <td>{formatTime(game.time)}</td>
+                  <td>{game.innings}</td>
+                  <td className="text-center">
+                    <div className="btn-group">
+                      <Link to={`/games/${game.id}`} className="btn btn-primary btn-sm">
+                        Manage
+                      </Link>
+                      <button 
+                        className="btn btn-outline-secondary btn-sm"
+                        onClick={() => setEditingGame(game)}
+                        title="Edit Game"
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        className="btn btn-outline-danger btn-sm"
+                        onClick={() => handleDeleteGame(game.id)}
+                        title="Delete Game"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        </>
       )}
 
       {editingGame && (

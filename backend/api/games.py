@@ -1,5 +1,5 @@
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from shared.database import db_session, db_error_response, db_get_or_404
 from datetime import datetime
@@ -7,12 +7,78 @@ from services.team_service import TeamService
 from services.game_service import GameService
 from services.ai_service import AIService
 from shared.models import Game, Team
+import csv
+import io
+import os
+import tempfile
 
 # Main games blueprint
 games = Blueprint("games", __name__)
 
 # Nested routes blueprint for team-specific game operations
 games_nested = Blueprint("games_nested", __name__)
+
+@games_nested.route('/<int:team_id>/games/csv-template', methods=['GET'])
+@jwt_required()
+def download_games_csv_template(team_id):
+    """Download a CSV template for game imports.
+    
+    Provides a template CSV file with headers that match the required fields
+    for game imports.
+    """
+    user_id = get_jwt_identity()
+    
+    try:
+        # Convert user_id to integer if it's a string
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid user ID format'}), 400
+    
+    try:
+        # Using read_only mode since this is just a query operation
+        with db_session(read_only=True) as session:
+            # Verify team belongs to user
+            team = TeamService.get_team(session, team_id, user_id)
+            if not team:
+                return jsonify({'error': 'Team not found or unauthorized'}), 404
+            
+            # Create CSV template in memory
+            csv_data = io.StringIO()
+            writer = csv.writer(csv_data)
+            
+            # Write headers
+            writer.writerow(["game_number", "opponent", "date", "time", "innings"])
+            
+            # Write sample data
+            writer.writerow(["1", "Tigers", "2025-05-01", "18:00", "6"])
+            writer.writerow(["2", "Eagles", "2025-05-08", "17:30", "6"])
+            
+            # Prepare file for download
+            csv_data.seek(0)
+            
+            # Create temporary file
+            temp_file = tempfile.NamedTemporaryFile(delete=False)
+            temp_file.write(csv_data.getvalue().encode('utf-8'))
+            temp_file_path = temp_file.name
+            temp_file.close()
+            
+            file_name = f"{team.name.replace(' ', '_')}_games_template.csv"
+            
+            try:
+                return send_file(
+                    temp_file_path,
+                    mimetype='text/csv',
+                    as_attachment=True,
+                    download_name=file_name
+                )
+            finally:
+                # Clean up temp file after response is sent
+                os.remove(temp_file_path)
+                
+    except Exception as e:
+        print(f"Error creating games CSV template: {str(e)}")
+        return db_error_response(e, "Failed to generate games CSV template")
 
 # Keep the original route for backward compatibility
 @games.route('/team/<int:team_id>', methods=['GET'])
@@ -106,12 +172,12 @@ def create_game_legacy(team_id):
 @games_nested.route('/<int:team_id>/games', methods=['POST'])
 @jwt_required()
 def create_game(team_id):
-    """Create a new game for a specific team.
+    """Create a new game for a specific team or upload multiple games via CSV.
     
     Uses standardized database access patterns:
     - db_session context manager with automatic commit
     - Structured error handling with db_error_response
-    - Two-phase operation: verify team ownership, then create game
+    - Two-phase operation: verify team ownership, then create game(s)
     """
     user_id = get_jwt_identity()
     
@@ -121,52 +187,150 @@ def create_game(team_id):
             user_id = int(user_id)
     except ValueError:
         return jsonify({'error': 'Invalid user ID format'}), 400
+    
+    content_type = request.headers.get('Content-Type', '')
+    
+    # Handle CSV file upload
+    if 'multipart/form-data' in content_type:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+            
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+            
+        if not file.filename.endswith('.csv'):
+            return jsonify({'error': 'File must be a CSV file'}), 400
         
-    data = request.get_json()
+        try:
+            # Parse CSV file
+            csv_file = io.StringIO(file.read().decode('utf-8'))
+            csv_reader = csv.DictReader(csv_file)
+            
+            # Check for required headers
+            required_fields = ['game_number', 'opponent']
+            optional_fields = ['date', 'time', 'innings']
+            if not all(field in csv_reader.fieldnames for field in required_fields):
+                return jsonify({'error': 'CSV file must include headers: game_number, opponent'}), 400
+            
+            # Using commit=True to automatically commit successful operations
+            with db_session(commit=True) as session:
+                # Verify team belongs to user
+                team = TeamService.get_team(session, team_id, user_id)
+                if not team:
+                    return jsonify({'error': 'Team not found or unauthorized'}), 404
+                
+                # Delete existing games if overrideExisting flag is set
+                override_existing = request.form.get('overrideExisting', 'false').lower() == 'true'
+                if override_existing:
+                    existing_games = GameService.get_games_by_team(session, team_id)
+                    for game in existing_games:
+                        session.delete(game)
+                    session.flush()
+                
+                games_imported = 0
+                errors = []
+                
+                # Process each row in the CSV file
+                for idx, row in enumerate(csv_reader, start=2):  # start=2 for 1-based indexing and skipping header
+                    try:
+                        # Validate row data for required fields
+                        for field in required_fields:
+                            if not row.get(field, '').strip():
+                                errors.append(f"Row {idx}: Missing {field}")
+                                continue
+                        
+                        # Create game data dictionary
+                        game_data = {
+                            'game_number': row['game_number'],
+                            'opponent': row['opponent'],
+                            'innings': int(row.get('innings', 6))
+                        }
+                        
+                        # Handle date if provided
+                        if 'date' in row and row['date'].strip():
+                            try:
+                                game_data['date'] = datetime.fromisoformat(row['date']).date()
+                            except ValueError:
+                                errors.append(f"Row {idx}: Invalid date format. Use ISO format (YYYY-MM-DD)")
+                                continue
+                        
+                        # Handle time if provided
+                        if 'time' in row and row['time'].strip():
+                            try:
+                                game_data['time'] = datetime.strptime(row['time'], '%H:%M').time()
+                            except ValueError:
+                                errors.append(f"Row {idx}: Invalid time format. Use 24-hour format (HH:MM)")
+                                continue
+                        
+                        # Create game using service
+                        game = GameService.create_game(session, game_data, team_id)
+                        games_imported += 1
+                    except Exception as e:
+                        errors.append(f"Row {idx}: {str(e)}")
+                
+                if not errors:
+                    return jsonify({
+                        'message': f'Successfully imported {games_imported} games',
+                        'imported_count': games_imported
+                    }), 201
+                else:
+                    return jsonify({
+                        'message': f'Imported {games_imported} games with {len(errors)} errors',
+                        'imported_count': games_imported,
+                        'errors': errors
+                    }), 207  # 207 Multi-Status
+        except Exception as e:
+            print(f"Error importing games from CSV: {str(e)}")
+            return db_error_response(e, "Failed to import games from CSV")
     
-    if not data or not data.get('game_number') or not data.get('opponent'):
-        return jsonify({'error': 'Game number and opponent are required'}), 400
-    
-    try:
-        # Using commit=True to automatically commit successful operations
-        with db_session(commit=True) as session:
-            # Verify team belongs to user
-            team = TeamService.get_team(session, team_id, user_id)
-            if not team:
-                return jsonify({'error': 'Team not found or unauthorized'}), 404
-            
-            # Process date and time if provided
-            game_data = {
-                'game_number': data['game_number'],
-                'opponent': data['opponent'],
-                'innings': data.get('innings', 6)
-            }
-            
-            # Handle date and time if provided
-            if data.get('date'):
-                try:
-                    game_data['date'] = datetime.fromisoformat(data['date']).date()
-                except ValueError:
-                    return jsonify({'error': 'Invalid date format. Use ISO format (YYYY-MM-DD)'}), 400
-                    
-            if data.get('time'):
-                try:
-                    game_data['time'] = datetime.strptime(data['time'], '%H:%M').time()
-                except ValueError:
-                    return jsonify({'error': 'Invalid time format. Use 24-hour format (HH:MM)'}), 400
-            
-            # Create new game via service
-            game = GameService.create_game(session, game_data, team_id)
-            
-            # Return successful response
-            result = GameService.serialize_game(game)
-            result['message'] = 'Game created successfully'
-            
-            return jsonify(result), 201
-    except Exception as e:
-        print(f"Error creating game: {str(e)}")
-        # Use standardized error response - no need to manually rollback
-        return db_error_response(e, "Failed to create game")
+    # Handle JSON requests (single game creation)
+    else:
+        data = request.get_json()
+        
+        if not data or not data.get('game_number') or not data.get('opponent'):
+            return jsonify({'error': 'Game number and opponent are required'}), 400
+        
+        try:
+            # Using commit=True to automatically commit successful operations
+            with db_session(commit=True) as session:
+                # Verify team belongs to user
+                team = TeamService.get_team(session, team_id, user_id)
+                if not team:
+                    return jsonify({'error': 'Team not found or unauthorized'}), 404
+                
+                # Process date and time if provided
+                game_data = {
+                    'game_number': data['game_number'],
+                    'opponent': data['opponent'],
+                    'innings': data.get('innings', 6)
+                }
+                
+                # Handle date and time if provided
+                if data.get('date'):
+                    try:
+                        game_data['date'] = datetime.fromisoformat(data['date']).date()
+                    except ValueError:
+                        return jsonify({'error': 'Invalid date format. Use ISO format (YYYY-MM-DD)'}), 400
+                        
+                if data.get('time'):
+                    try:
+                        game_data['time'] = datetime.strptime(data['time'], '%H:%M').time()
+                    except ValueError:
+                        return jsonify({'error': 'Invalid time format. Use 24-hour format (HH:MM)'}), 400
+                
+                # Create new game via service
+                game = GameService.create_game(session, game_data, team_id)
+                
+                # Return successful response
+                result = GameService.serialize_game(game)
+                result['message'] = 'Game created successfully'
+                
+                return jsonify(result), 201
+        except Exception as e:
+            print(f"Error creating game: {str(e)}")
+            # Use standardized error response - no need to manually rollback
+            return db_error_response(e, "Failed to create game")
 
 @games.route('/<int:game_id>', methods=['PUT'])
 @jwt_required()
