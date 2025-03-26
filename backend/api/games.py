@@ -7,6 +7,7 @@ from services.team_service import TeamService
 from services.game_service import GameService
 from services.ai_service import AIService
 from shared.models import Game, Team
+from backend.utils import feature_required
 import csv
 import io
 import os
@@ -892,6 +893,7 @@ def batch_save_player_availability(game_id):
 # AI Fielding Rotation endpoint
 @games.route('/<int:game_id>/ai-fielding-rotation', methods=['POST'])
 @jwt_required()
+@feature_required('ai_lineup_generation')
 def generate_ai_fielding_rotation(game_id):
     """Generate AI-based fielding rotation for a specific game.
     

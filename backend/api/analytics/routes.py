@@ -8,6 +8,7 @@ from sqlalchemy import func
 from shared.database import db_session, db_error_response
 from services.analytics_service import AnalyticsService
 from middleware.auth import jwt_required
+from backend.utils import feature_required
 from shared.models import Team, Game, BattingOrder, FieldingRotation
 
 # Set up logging
@@ -19,6 +20,7 @@ analytics_bp = Blueprint('analytics', __name__)
 
 @analytics_bp.route('/teams/<int:team_id>/players/batting', methods=['GET'])
 @jwt_required
+@feature_required('advanced_analytics')
 def get_player_batting_analytics(team_id):
     """
     Get batting analytics for all players in a team using RESTful pattern.
@@ -33,6 +35,7 @@ def get_player_batting_analytics(team_id):
 
 @analytics_bp.route('/teams/<int:team_id>/batting-analytics', methods=['GET'])
 @jwt_required
+@feature_required('advanced_analytics')
 def get_team_batting_analytics(team_id):
     """
     Get batting analytics for all players in a team.
@@ -55,6 +58,7 @@ def get_team_batting_analytics(team_id):
 
 @analytics_bp.route('/teams/<int:team_id>/players/fielding', methods=['GET'])
 @jwt_required
+@feature_required('advanced_analytics')
 def get_player_fielding_analytics(team_id):
     """
     Get fielding analytics for all players in a team using RESTful pattern.
@@ -69,6 +73,7 @@ def get_player_fielding_analytics(team_id):
 
 @analytics_bp.route('/teams/<int:team_id>/fielding-analytics', methods=['GET'])
 @jwt_required
+@feature_required('advanced_analytics')
 def get_team_fielding_analytics(team_id):
     """
     Get fielding analytics for all players in a team.
@@ -99,6 +104,7 @@ def analytics_status():
 
 @analytics_bp.route('/teams/<int:team_id>', methods=['GET'])
 @jwt_required
+@feature_required('advanced_analytics')
 def get_team_analytics_restful(team_id):
     """
     Get team analytics across all games using RESTful pattern.
@@ -113,6 +119,7 @@ def get_team_analytics_restful(team_id):
 
 @analytics_bp.route('/teams/<int:team_id>/analytics', methods=['GET'])
 @jwt_required
+@feature_required('advanced_analytics')
 def get_team_analytics(team_id):
     """
     Get team analytics across all games.

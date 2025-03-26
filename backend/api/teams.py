@@ -4,6 +4,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from shared.database import db_session, db_error_response, db_get_or_404
 from services.team_service import TeamService
 from shared.models import Team
+from backend.utils import team_limit_check
 
 teams = Blueprint('teams', __name__)
 
@@ -91,6 +92,7 @@ def get_team(team_id):
 
 @teams.route('/', methods=['POST'])
 @jwt_required()
+@team_limit_check
 def create_team():
     """Create a new team.
     

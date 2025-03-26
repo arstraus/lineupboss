@@ -219,6 +219,32 @@ const AdminDashboard = () => {
     }
   };
   
+  const handleSubscriptionChange = async (userId, tier) => {
+    try {
+      setLoading(true);
+      setError("");
+      await api.put(`/admin/users/${userId}/subscription`, { subscription_tier: tier });
+      
+      // Update subscription tier in the list
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, subscription_tier: tier } : user
+      ));
+      
+      setSuccess(`User subscription updated to ${tier} tier successfully`);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Error updating subscription tier:", err);
+      
+      // Try to handle auth errors first
+      const handled = await handleAuthError(err);
+      if (!handled) {
+        setError("Failed to update subscription tier. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   const handleDelete = async (userId) => {
     if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
       return;
@@ -277,6 +303,18 @@ const AdminDashboard = () => {
         return <span className="badge bg-secondary">User</span>;
       default:
         return <span className="badge bg-secondary">{role}</span>;
+    }
+  };
+  
+  // Subscription tier badge helper
+  const getSubscriptionBadge = (tier) => {
+    switch (tier) {
+      case "rookie":
+        return <span className="badge bg-primary">Rookie</span>;
+      case "pro":
+        return <span className="badge bg-success">Pro</span>;
+      default:
+        return <span className="badge bg-secondary">{tier}</span>;
     }
   };
 
@@ -415,6 +453,7 @@ const AdminDashboard = () => {
                 <th>ID</th>
                 <th>Email</th>
                 <th>Role</th>
+                <th>Subscription</th>
                 <th>Status</th>
                 <th>Created At</th>
                 <th>Approved At</th>
@@ -427,60 +466,102 @@ const AdminDashboard = () => {
                   <td>{user.id}</td>
                   <td>{user.email}</td>
                   <td>{getRoleBadge(user.role)}</td>
+                  <td>{getSubscriptionBadge(user.subscription_tier)}</td>
                   <td>{getStatusBadge(user.status)}</td>
                   <td>{formatDate(user.created_at)}</td>
                   <td>{formatDate(user.approved_at)}</td>
                   <td>
-                    <div className="btn-group btn-group-sm">
-                      {user.status === 'pending' && (
-                        <>
+                    <div className="d-flex flex-column gap-1">
+                      <div className="btn-group btn-group-sm">
+                        {user.status === 'pending' && (
+                          <>
+                            <button 
+                              className="btn btn-success"
+                              onClick={() => handleApprove(user.id)}
+                              disabled={loading}
+                            >
+                              <i className="bi bi-check"></i> Approve
+                            </button>
+                            <button 
+                              className="btn btn-danger"
+                              onClick={() => handleReject(user.id)}
+                              disabled={loading}
+                            >
+                              <i className="bi bi-x"></i> Reject
+                            </button>
+                          </>
+                        )}
+                        
+                        {user.status === 'approved' && user.role !== 'admin' && (
                           <button 
-                            className="btn btn-success"
-                            onClick={() => handleApprove(user.id)}
+                            className="btn btn-info"
+                            onClick={() => handlePromote(user.id)}
                             disabled={loading}
                           >
-                            <i className="bi bi-check"></i> Approve
+                            <i className="bi bi-arrow-up"></i> Make Admin
                           </button>
+                        )}
+                        
+                        {user.role === 'admin' && user.id !== 1 && (
                           <button 
-                            className="btn btn-danger"
-                            onClick={() => handleReject(user.id)}
+                            className="btn btn-secondary"
+                            onClick={() => handleDemote(user.id)}
                             disabled={loading}
                           >
-                            <i className="bi bi-x"></i> Reject
+                            <i className="bi bi-arrow-down"></i> Remove Admin
                           </button>
-                        </>
-                      )}
+                        )}
+                        
+                        {/* Don't allow deleting self or user ID 1 (initial admin) */}
+                        {user.id !== 1 && (
+                          <button 
+                            className="btn btn-danger ms-1"
+                            onClick={() => handleDelete(user.id)}
+                            disabled={loading}
+                            title="Delete user"
+                          >
+                            <i className="bi bi-trash"></i> Delete
+                          </button>
+                        )}
+                      </div>
                       
-                      {user.status === 'approved' && user.role !== 'admin' && (
-                        <button 
-                          className="btn btn-info"
-                          onClick={() => handlePromote(user.id)}
-                          disabled={loading}
-                        >
-                          <i className="bi bi-arrow-up"></i> Make Admin
-                        </button>
-                      )}
-                      
-                      {user.role === 'admin' && user.id !== 1 && (
-                        <button 
-                          className="btn btn-secondary"
-                          onClick={() => handleDemote(user.id)}
-                          disabled={loading}
-                        >
-                          <i className="bi bi-arrow-down"></i> Remove Admin
-                        </button>
-                      )}
-                      
-                      {/* Don't allow deleting self or user ID 1 (initial admin) */}
-                      {user.id !== 1 && (
-                        <button 
-                          className="btn btn-danger ms-1"
-                          onClick={() => handleDelete(user.id)}
-                          disabled={loading}
-                          title="Delete user"
-                        >
-                          <i className="bi bi-trash"></i> Delete
-                        </button>
+                      {/* Subscription tier management dropdown */}
+                      {user.status === 'approved' && (
+                        <div className="dropdown mt-1">
+                          <button 
+                            className="btn btn-sm btn-outline-primary dropdown-toggle" 
+                            type="button" 
+                            id={`subscription-dropdown-${user.id}`} 
+                            data-bs-toggle="dropdown" 
+                            aria-expanded="false"
+                            disabled={loading}
+                          >
+                            <i className="bi bi-star"></i> Change Subscription
+                          </button>
+                          <ul 
+                            className="dropdown-menu" 
+                            aria-labelledby={`subscription-dropdown-${user.id}`}
+                          >
+                            <li>
+                              <button 
+                                className={`dropdown-item ${user.subscription_tier === 'rookie' ? 'active' : ''}`} 
+                                onClick={() => handleSubscriptionChange(user.id, 'rookie')}
+                                disabled={user.subscription_tier === 'rookie'}
+                              >
+                                <i className="bi bi-star"></i> Rookie (Free)
+                              </button>
+                            </li>
+                            <li>
+                              <button 
+                                className={`dropdown-item ${user.subscription_tier === 'pro' ? 'active' : ''}`} 
+                                onClick={() => handleSubscriptionChange(user.id, 'pro')}
+                                disabled={user.subscription_tier === 'pro'}
+                              >
+                                <i className="bi bi-star-fill"></i> Pro ($9.99/month)
+                              </button>
+                            </li>
+                          </ul>
+                        </div>
                       )}
                     </div>
                   </td>

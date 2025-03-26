@@ -14,6 +14,7 @@ from functools import wraps
 
 from services.auth_service import AuthService
 from shared.models import User
+from shared.subscription_tiers import ALL_TIERS
 
 admin = Blueprint('admin', __name__)
 
@@ -361,6 +362,68 @@ def get_pending_users_legacy():
     request.args = ImmutableMultiDict(args)
     
     return get_users()
+
+@admin.route('/users/<int:user_id>/subscription', methods=['PUT'])
+@admin_required
+def update_user_subscription(user_id):
+    """Update a user's subscription tier.
+    
+    Uses standardized database access patterns:
+    - db_session context manager with automatic commit
+    - Structured error handling with db_error_response
+    - Tier validation
+    """
+    admin_id = get_jwt_identity()
+    
+    try:
+        if isinstance(admin_id, str):
+            admin_id = int(admin_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid admin ID format'}), 400
+        
+    data = request.get_json()
+    
+    if not data or not data.get('subscription_tier'):
+        return jsonify({'error': 'Subscription tier is required'}), 400
+        
+    tier = data['subscription_tier']
+    if tier not in ALL_TIERS:
+        return jsonify({'error': f'Invalid subscription tier. Must be one of: {", ".join(ALL_TIERS)}'}), 400
+        
+    try:
+        # Using commit=True to automatically commit successful operations
+        with db_session(commit=True) as session:
+            # Get the user to update
+            user = AuthService.get_user_by_id(session, user_id)
+            
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
+                
+            # Update user subscription tier
+            previous_tier = user.subscription_tier
+            user.subscription_tier = tier
+            
+            # Send email notification
+            try:
+                send_email_notification(
+                    user.email,
+                    'Your LineupBoss Subscription Has Been Updated',
+                    f'Your LineupBoss subscription has been updated from {previous_tier} to {tier} tier.\n\n'
+                    f'Please log in to see your updated features and capabilities.'
+                )
+            except Exception as e:
+                print(f"Failed to send subscription update email: {e}")
+            
+            return jsonify({
+                'message': 'User subscription tier updated successfully',
+                'user': AuthService.serialize_user(user),
+                'previous_tier': previous_tier,
+                'new_tier': tier
+            }), 200
+    except Exception as e:
+        print(f"Error updating user subscription: {e}")
+        # Use standardized error response - no need to manually rollback
+        return db_error_response(e, "Failed to update user subscription")
 
 @admin.route('/pending-count', methods=['GET'])
 @admin_required
