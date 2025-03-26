@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
 import { getTeams, createTeam, deleteTeam, checkApiHealth } from "../services/api";
+import { AuthContext } from "../services/AuthContext";
 
 const Dashboard = () => {
   const [teams, setTeams] = useState([]);
@@ -16,6 +17,9 @@ const Dashboard = () => {
   });
 
   const [apiStatus, setApiStatus] = useState(null);
+  
+  // Access auth context for token refresh
+  const { refreshToken, currentUser } = useContext(AuthContext);
 
   useEffect(() => {
     // First check API health, then fetch teams if API is available
@@ -113,6 +117,11 @@ const Dashboard = () => {
       const token = localStorage.getItem("token");
       console.log("Creating team with token:", token ? "Present" : "Not found");
       
+      if (!token) {
+        setError("Not logged in. Please log in again.");
+        return;
+      }
+      
       // Make sure we have required fields
       if (!newTeam.name) {
         setError("Team name is required");
@@ -120,11 +129,12 @@ const Dashboard = () => {
       }
       
       // Add debug logging for API URL
-      console.log("Creating team at URL:", "/teams");
+      console.log("Creating team at URL:", "/teams/");
       
       const response = await createTeam(newTeam);
       console.log("Team creation response:", response);
       
+      // Clear form and reset state on success
       setNewTeam({
         name: "",
         league: "",
@@ -132,10 +142,24 @@ const Dashboard = () => {
         assistant_coach1: "",
         assistant_coach2: ""
       });
+      setError("");
       setShowNewTeamForm(false);
+      
+      // Fetch updated teams list
       fetchTeams();
     } catch (err) {
       console.error("Error creating team:", err);
+      
+      // Get request details for debugging
+      const requestConfig = err.config;
+      console.error("Request details:", {
+        url: requestConfig?.url,
+        method: requestConfig?.method,
+        headers: requestConfig?.headers,
+        baseURL: requestConfig?.baseURL,
+        data: requestConfig?.data
+      });
+      
       if (err.response) {
         console.error("Response status:", err.response.status);
         console.error("Response data:", err.response.data);
@@ -143,13 +167,38 @@ const Dashboard = () => {
         // More detailed error message based on status code
         if (err.response.status === 401) {
           setError("Authentication error. Please try logging out and logging in again.");
+          // Try to refresh token and user session
+          try {
+            const refreshed = await refreshToken();
+            if (refreshed) {
+              // If token refresh worked, try again
+              const response = await createTeam(newTeam);
+              
+              // Handle success case
+              setNewTeam({
+                name: "",
+                league: "",
+                head_coach: "",
+                assistant_coach1: "",
+                assistant_coach2: ""
+              });
+              setError("");
+              setShowNewTeamForm(false);
+              fetchTeams();
+              return;
+            }
+          } catch (refreshErr) {
+            console.error("Token refresh failed:", refreshErr);
+          }
         } else if (err.response.status === 400) {
           setError(`Bad request: ${err.response.data.error || 'Please check your input'}`);
         } else {
-          setError(`Failed to create team: ${err.response.data.error || 'Unknown error'}`);
+          setError(`Failed to create team: ${err.response.data.error || 'Unknown error'} (Status: ${err.response.status})`);
         }
+      } else if (err.request) {
+        setError("No response received from server. Please check your connection.");
       } else {
-        setError("Failed to create team. Please try again.");
+        setError(`Failed to create team: ${err.message || 'Unknown error'}`);
       }
     }
   };

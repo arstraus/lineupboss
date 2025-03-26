@@ -34,6 +34,7 @@ axios.interceptors.request.use(
       // For relative URLs, ensure correct formatting
       config.url = config.url.replace(/^\/+api\/*/, '');
       
+      // Keep trailing slashes intact, but remove leading slash
       if (config.url.startsWith('/')) {
         config.url = config.url.substring(1);
       }
@@ -41,6 +42,11 @@ axios.interceptors.request.use(
       // Make sure we have the correct prefix
       if (!axios.defaults.baseURL.includes('/api') && !config.url.startsWith('api/')) {
         config.url = `api/${config.url}`;
+      }
+      
+      // Log the final URL in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[API] Request URL: ${config.method.toUpperCase()} ${axios.defaults.baseURL}/${config.url}`);
       }
     }
     
@@ -50,6 +56,8 @@ axios.interceptors.request.use(
       if (process.env.NODE_ENV === 'development') {
         console.log(`[API] Added authentication token to ${config.method.toUpperCase()} ${config.url}`);
       }
+    } else {
+      console.warn(`[API] No authentication token available for ${config.method.toUpperCase()} ${config.url}`);
     }
     return config;
   },
@@ -266,7 +274,13 @@ export const getTeam = (teamId) => {
 
 export const createTeam = (teamData) => {
   // Use direct axios call to avoid duplicating the /api prefix from baseURL
-  return axios.post('/teams', teamData);
+  // Ensure we include the trailing slash to match backend routing
+  const token = localStorage.getItem('token');
+  return axios.post('/teams/', teamData, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
 };
 
 export const updateTeam = (teamId, teamData) => {
@@ -276,7 +290,13 @@ export const updateTeam = (teamId, teamData) => {
 
 export const deleteTeam = (teamId) => {
   // Use direct axios call to avoid duplicating the /api prefix from baseURL
-  return axios.delete(`/teams/${teamId}`);
+  // Ensure we include proper auth headers and URL formatting
+  const token = localStorage.getItem('token');
+  return axios.delete(`/teams/${teamId}/`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
 };
 
 // PLAYERS API
