@@ -151,6 +151,14 @@ app.register_blueprint(api)
 app.register_blueprint(docs, url_prefix='/api')
 app.register_blueprint(swagger_ui_blueprint)
 
+# Add direct route for authentication to bypass proxy recursion issues
+@app.route('/api/auth/login/', methods=['POST'])
+def direct_auth_login():
+    """Direct route for login to bypass proxy issues"""
+    print("Direct login route activated")
+    from api.auth import login
+    return login()
+
 # Directly register analytics blueprint with the app
 try:
     from api.analytics import analytics_bp
@@ -449,6 +457,14 @@ def static_proxy(path):
         # Log the API request for debugging
         print(f"API request: /{path} => {request.method} {request.endpoint or 'no endpoint'}")
         
+        # Redirect auth login requests to the direct route
+        if 'auth/login' in path:
+            print(f"Auth login request detected in proxy: {path} - redirecting to direct route")
+            return jsonify({
+                'error': 'Login should be handled by the direct route',
+                'message': 'Please retry your login request'
+            }), 307  # 307 preserves the request method and body
+        
         # Check for problematic double API prefixes and warn (these should no longer happen)
         if path.startswith('api/api/'):
             print(f"WARNING: Detected obsolete double API prefix in request path: /{path}")
@@ -461,25 +477,19 @@ def static_proxy(path):
         if request.endpoint:
             # Flask will handle API routes via blueprint
             try:
-                # The endpoint function may or may not expect a path parameter
+                # For non-auth routes, follow the original logic
                 endpoint_function = app.view_functions.get(request.endpoint)
                 
-                # Avoid inspect.signature which can cause recursion errors
-                # Instead use a simple try/except approach
-                try:
-                    # First try calling without parameters
+                # Use a safer approach without recursion
+                if endpoint_function.__code__.co_argcount == 0:
+                    # Function takes no arguments
                     return endpoint_function()
-                except TypeError as e:
-                    # If that fails due to missing arguments, try with the path parameter
-                    if "missing 1 required positional argument" in str(e):
-                        return endpoint_function(path)
-                    else:
-                        # Re-raise any other TypeError
-                        raise
+                else:
+                    # Function probably takes a path argument
+                    return endpoint_function(path)
+                    
             except Exception as e:
                 print(f"Error calling endpoint function: {str(e)}")
-                # Avoid traceback.print_exc() which can cause recursion errors
-                # Just log the error type and message instead
                 print(f"Exception type: {type(e).__name__}")
                 return jsonify({'error': f'Error processing request: {str(e)}'}), 500
         else:
