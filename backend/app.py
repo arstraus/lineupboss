@@ -218,6 +218,88 @@ def direct_team_delete(team_id):
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'Failed to delete team: {str(e)}'}), 500
+        
+# Player routes
+@app.route('/api/teams/<int:team_id>/players', methods=['POST'])
+def direct_player_create(team_id):
+    """Direct route for player creation that doesn't rely on decorators"""
+    print(f"Direct player create route activated for team {team_id}")
+    
+    try:
+        # Manually verify JWT token
+        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+        from flask import g
+        from api.players import create_player
+        
+        # Verify JWT token
+        print(f"Verifying JWT token for player creation: {team_id}")
+        verify_jwt_in_request()
+        
+        # Get user ID from token
+        user_id = get_jwt_identity()
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+        g.user_id = user_id
+        
+        print(f"Processing player creation for team {team_id}, user {user_id}")
+        
+        # Call the player creation function
+        return create_player(team_id)
+    except Exception as e:
+        print(f"Error in direct player create: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to create player: {str(e)}'}), 500
+
+@app.route('/api/players/<int:player_id>', methods=['DELETE'])
+def direct_player_delete(player_id):
+    """Direct route for player deletion that doesn't rely on decorators"""
+    print(f"Direct player delete route activated for player {player_id}")
+    
+    try:
+        # Manually verify JWT token
+        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+        from flask import g
+        from shared.database import db_session, db_error_response
+        from services.player_service import PlayerService
+        
+        # Verify JWT token
+        print(f"Verifying JWT token for player deletion: {player_id}")
+        verify_jwt_in_request()
+        
+        # Get user ID from token
+        user_id = get_jwt_identity()
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+        g.user_id = user_id
+        
+        print(f"Processing delete for player {player_id}, user {user_id}")
+        
+        # Use the same logic as the delete_player function but without relying on decorators
+        with db_session(commit=True) as session:
+            # Verify player belongs to user's team
+            player = PlayerService.get_player(session, player_id, user_id)
+            
+            if not player:
+                print(f"Player {player_id} not found or not owned by user {user_id}")
+                return jsonify({'error': 'Player not found or unauthorized'}), 404
+            
+            print(f"Player {player_id} found, proceeding with deletion")
+            
+            # Delete player via service
+            PlayerService.delete_player(session, player)
+            
+            print(f"Player {player_id} deleted successfully")
+            
+            return jsonify({
+                'message': 'Player deleted successfully'
+            }), 200
+            
+    except Exception as e:
+        print(f"Error in direct player delete: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to delete player: {str(e)}'}), 500
 
 # Directly register analytics blueprint with the app
 try:
@@ -533,6 +615,50 @@ def static_proxy(path):
                 'message': 'Please retry your request'
             }), 307
             
+        # Player creation - redirect to direct route
+        if request.method == 'POST' and 'teams' in path and 'players' in path:
+            print(f"Player create request detected in proxy: {path}")
+            
+            # Extract team_id from the path
+            team_id = None
+            parts = path.split('/')
+            for i, part in enumerate(parts):
+                if part == 'teams' and i+1 < len(parts) and parts[i+1].isdigit():
+                    team_id = int(parts[i+1])
+                    break
+                    
+            if team_id:
+                print(f"Redirecting to direct player creation for team {team_id}")
+                from werkzeug.utils import redirect
+                return redirect(f"/api/teams/{team_id}/players", code=307)
+            else:
+                return jsonify({
+                    'error': 'Invalid team ID in request path',
+                    'message': 'Could not extract team ID for player creation'
+                }), 400
+        
+        # Player deletion - redirect to direct route
+        if request.method == 'DELETE' and 'players' in path:
+            print(f"Player delete request detected in proxy: {path}")
+            
+            # Extract player_id from the path
+            player_id = None
+            parts = path.split('/')
+            for i, part in enumerate(parts):
+                if part == 'players' and i+1 < len(parts) and parts[i+1].isdigit():
+                    player_id = int(parts[i+1])
+                    break
+                    
+            if player_id:
+                print(f"Redirecting to direct player deletion for player {player_id}")
+                from werkzeug.utils import redirect
+                return redirect(f"/api/players/{player_id}", code=307)
+            else:
+                return jsonify({
+                    'error': 'Invalid player ID in request path',
+                    'message': 'Could not extract player ID for deletion'
+                }), 400
+                
         # More detailed debugging for DELETE requests
         if request.method == 'DELETE' and 'teams' in path:
             team_id = None
