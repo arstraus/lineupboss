@@ -490,12 +490,31 @@ def static_proxy(path):
                 'message': 'Please retry your request'
             }), 307
             
-        if request.method == 'DELETE' and 'api/teams/' in path and path.split('/')[-1].isdigit():
-            print(f"Team delete request detected in proxy: {path} - redirecting to direct route")
-            return jsonify({
-                'error': 'Team deletion should be handled by the direct route',
-                'message': 'Please retry your request'
-            }), 307
+        # More detailed debugging for DELETE requests
+        if request.method == 'DELETE' and 'teams' in path:
+            team_id = None
+            # Extract team_id from path more reliably
+            parts = path.split('/')
+            if len(parts) >= 3 and parts[-1].isdigit():
+                team_id = int(parts[-1])
+                
+            print(f"Team delete request detected in proxy: {path}, team_id extracted: {team_id}")
+            
+            # Direct call to the delete function rather than redirecting
+            if team_id:
+                from api.teams import delete_team
+                print(f"Calling delete_team({team_id}) directly from proxy")
+                try:
+                    return delete_team(team_id)
+                except Exception as e:
+                    print(f"Error calling delete_team directly: {str(e)}")
+                    print(f"Exception type: {type(e).__name__}")
+                    return jsonify({'error': f'Error deleting team: {str(e)}'}), 500
+            else:
+                return jsonify({
+                    'error': 'Invalid team ID format in DELETE request',
+                    'message': 'Please provide a valid team ID'
+                }), 400
         
         # Check for problematic double API prefixes and warn (these should no longer happen)
         if path.startswith('api/api/'):

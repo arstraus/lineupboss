@@ -3,7 +3,7 @@ Team service for handling team-related business logic.
 """
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from models.models import Team
+from shared.models import Team
 
 class TeamService:
     """Service for team operations."""
