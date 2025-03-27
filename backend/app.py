@@ -171,10 +171,53 @@ def direct_team_create():
 
 @app.route('/api/teams/<int:team_id>', methods=['DELETE'])
 def direct_team_delete(team_id):
-    """Direct route for team deletion to bypass proxy issues"""
+    """Direct route for team deletion that doesn't rely on decorators"""
     print(f"Direct team delete route activated for team {team_id}")
-    from api.teams import delete_team
-    return delete_team(team_id)
+    
+    try:
+        # Manually verify JWT token
+        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+        from flask import g
+        from shared.database import db_session, db_error_response
+        from services.team_service import TeamService
+        
+        # Verify JWT token
+        print(f"Verifying JWT token for team deletion: {team_id}")
+        verify_jwt_in_request()
+        
+        # Get user ID from token
+        user_id = get_jwt_identity()
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+        g.user_id = user_id
+        
+        print(f"Processing delete for team {team_id}, user {user_id}")
+        
+        # Use the same logic as the delete_team function but without relying on decorators
+        with db_session(commit=True) as session:
+            # Check if team exists and belongs to user
+            team = TeamService.get_team(session, team_id, user_id)
+            
+            if not team:
+                print(f"Team {team_id} not found or not owned by user {user_id}")
+                return jsonify({'error': 'Team not found or unauthorized'}), 404
+            
+            print(f"Team {team_id} found, proceeding with deletion")
+            
+            # Delete team via service
+            TeamService.delete_team(session, team)
+            
+            print(f"Team {team_id} deleted successfully")
+            
+            return jsonify({
+                'message': 'Team deleted successfully'
+            }), 200
+            
+    except Exception as e:
+        print(f"Error in direct team delete: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to delete team: {str(e)}'}), 500
 
 # Directly register analytics blueprint with the app
 try:
@@ -516,27 +559,14 @@ def static_proxy(path):
             
             print(f"Team delete request detected in proxy: {path}, team_id extracted: {team_id}")
             
-            # Direct call to the delete function rather than redirecting
+            # Redirect to our direct deletion endpoint
             if team_id:
-                from api.teams import delete_team
-                print(f"Calling delete_team({team_id}) directly from proxy")
-                try:
-                    # Need to pass the JWT token information through Flask's g object
-                    from flask import g
-                    from flask_jwt_extended import get_jwt_identity
-                    
-                    # Set g.user_id for the delete_team function
-                    user_id = get_jwt_identity()
-                    if isinstance(user_id, str):
-                        user_id = int(user_id)
-                    g.user_id = user_id
-                    print(f"Set g.user_id = {user_id} for delete operation")
-                    
-                    return delete_team(team_id)
-                except Exception as e:
-                    print(f"Error calling delete_team directly: {str(e)}")
-                    print(f"Exception type: {type(e).__name__}")
-                    return jsonify({'error': f'Error deleting team: {str(e)}'}), 500
+                from werkzeug.utils import redirect
+                print(f"Redirecting DELETE request to direct_team_delete for team_id={team_id}")
+                # Use 307 to preserve the DELETE method
+                target_url = f"/api/teams/{team_id}"
+                print(f"Redirecting to: {target_url}")
+                return redirect(target_url, code=307)
             else:
                 return jsonify({
                     'error': 'Invalid team ID format in DELETE request',
