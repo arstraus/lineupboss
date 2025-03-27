@@ -50,6 +50,9 @@ def token_required(f):
         # Store in Flask's g object for the duration of the request
         g.user_id = user_id
         
+        # Print useful debug info
+        print(f"Token validation successful. Set g.user_id={g.user_id}")
+        
         return f(*args, **kwargs)
     
     return decorated

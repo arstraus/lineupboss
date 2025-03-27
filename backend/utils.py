@@ -141,35 +141,47 @@ def team_limit_check(f):
     
     Usage:
     @team_limit_check
-    @token_required
+    @jwt_required()
     def create_team_route():
         # This will check if user is allowed to create more teams
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Verify user_id is in global context
-        if not hasattr(g, 'user_id'):
-            return jsonify({
-                'error': 'Authentication required',
-                'message': 'Please log in first'
-            }), 401
+        # Get user ID directly from JWT instead of relying on g.user_id
+        from flask_jwt_extended import get_jwt_identity
+        
+        user_id = get_jwt_identity()
+        # Convert to integer if string
+        if isinstance(user_id, str):
+            try:
+                user_id = int(user_id)
+            except ValueError:
+                return jsonify({"error": "Invalid user ID format"}), 400
+                
+        # Store in g for compatibility with the rest of the function
+        from flask import g
+        g.user_id = user_id
+        
+        print(f"Team limit check for user_id: {user_id}")
             
         # Check user's team count against their subscription limit
         with db_session(read_only=True) as session:
             from shared.models import User, Team
             
-            user = session.query(User).filter(User.id == g.user_id).first()
+            user = session.query(User).filter(User.id == user_id).first()
             if not user:
+                print(f"User not found: {user_id}")
                 return jsonify({
                     'error': 'User not found'
                 }), 404
                 
             # Admins bypass team limits
             if user.role == 'admin':
+                print(f"Admin user {user_id} bypassing team limit check")
                 return f(*args, **kwargs)
                 
             # Get the user's team count
-            team_count = session.query(Team).filter(Team.user_id == g.user_id).count()
+            team_count = session.query(Team).filter(Team.user_id == user_id).count()
             
             # Get the user's tier limit from the tier features
             tier = user.subscription_tier
@@ -177,6 +189,8 @@ def team_limit_check(f):
                 tier = "rookie"  # Default to rookie for unknown tiers
                 
             user_limit = TIER_FEATURES[tier].get("max_teams", 2)  # Default to 2 teams
+            
+            print(f"User {user_id} has {team_count} teams out of {user_limit} allowed for tier {tier}")
             
             # Check if user is at or over their limit
             if team_count >= user_limit and user_limit != float('inf'):

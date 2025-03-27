@@ -151,13 +151,30 @@ app.register_blueprint(api)
 app.register_blueprint(docs, url_prefix='/api')
 app.register_blueprint(swagger_ui_blueprint)
 
-# Add direct route for authentication to bypass proxy recursion issues
+# Add direct routes for key operations to bypass proxy recursion issues
+
+# Auth routes
 @app.route('/api/auth/login/', methods=['POST'])
 def direct_auth_login():
     """Direct route for login to bypass proxy issues"""
     print("Direct login route activated")
     from api.auth import login
     return login()
+
+# Team routes
+@app.route('/api/teams/', methods=['POST'])
+def direct_team_create():
+    """Direct route for team creation to bypass proxy issues"""
+    print("Direct team create route activated")
+    from api.teams import create_team
+    return create_team()
+
+@app.route('/api/teams/<int:team_id>', methods=['DELETE'])
+def direct_team_delete(team_id):
+    """Direct route for team deletion to bypass proxy issues"""
+    print(f"Direct team delete route activated for team {team_id}")
+    from api.teams import delete_team
+    return delete_team(team_id)
 
 # Directly register analytics blueprint with the app
 try:
@@ -457,13 +474,28 @@ def static_proxy(path):
         # Log the API request for debugging
         print(f"API request: /{path} => {request.method} {request.endpoint or 'no endpoint'}")
         
-        # Redirect auth login requests to the direct route
+        # Redirect requests to direct routes when available
         if 'auth/login' in path:
             print(f"Auth login request detected in proxy: {path} - redirecting to direct route")
             return jsonify({
                 'error': 'Login should be handled by the direct route',
                 'message': 'Please retry your login request'
             }), 307  # 307 preserves the request method and body
+            
+        # Team operations - redirect to direct routes
+        if request.method == 'POST' and path == 'api/teams/':
+            print(f"Team create request detected in proxy: {path} - redirecting to direct route")
+            return jsonify({
+                'error': 'Team creation should be handled by the direct route',
+                'message': 'Please retry your request'
+            }), 307
+            
+        if request.method == 'DELETE' and 'api/teams/' in path and path.split('/')[-1].isdigit():
+            print(f"Team delete request detected in proxy: {path} - redirecting to direct route")
+            return jsonify({
+                'error': 'Team deletion should be handled by the direct route',
+                'message': 'Please retry your request'
+            }), 307
         
         # Check for problematic double API prefixes and warn (these should no longer happen)
         if path.startswith('api/api/'):
