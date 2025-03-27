@@ -29,6 +29,12 @@ if (process.env.NODE_ENV === 'development') {
 // Add request interceptor to automatically add token to requests
 axios.interceptors.request.use(
   config => {
+    // IMPORTANT: Log full request details for auth-related issues
+    console.log(`[API] Request: ${config.method?.toUpperCase()} ${config.url}`, { 
+      headers: config.headers,
+      hasToken: !!localStorage.getItem('token')
+    });
+    
     // Fix URL path to avoid /api/api prefix
     if (config.url && !config.url.startsWith('http')) {
       // For relative URLs, ensure correct formatting
@@ -44,17 +50,30 @@ axios.interceptors.request.use(
         config.url = `api/${config.url}`;
       }
       
+      // Ensure trailing slash for POST endpoints (backend expects it)
+      if ((config.method === 'post' || config.method === 'delete') && 
+          !config.url.endsWith('/') && 
+          !config.url.includes('?') &&
+          !config.url.includes('refresh')) {
+        config.url = `${config.url}/`;
+      }
+      
       // Log the final URL in development
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[API] Request URL: ${config.method.toUpperCase()} ${axios.defaults.baseURL}/${config.url}`);
+        console.log(`[API] Final URL: ${config.method.toUpperCase()} ${axios.defaults.baseURL}/${config.url}`);
       }
     }
     
     const token = localStorage.getItem('token');
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      // Always set Authorization header for all requests
+      config.headers = {
+        ...config.headers,
+        'Authorization': `Bearer ${token}`
+      };
+      
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[API] Added authentication token to ${config.method.toUpperCase()} ${config.url}`);
+        console.log(`[API] Added token to ${config.method.toUpperCase()} ${config.url}`, token.substring(0, 10) + '...');
       }
     } else {
       console.warn(`[API] No authentication token available for ${config.method.toUpperCase()} ${config.url}`);
@@ -276,8 +295,18 @@ export const createTeam = (teamData) => {
   // Use direct axios call to avoid duplicating the /api prefix from baseURL
   // Ensure we include the trailing slash to match backend routing
   const token = localStorage.getItem('token');
-  return axios.post('/teams/', teamData, {
+  if (!token) {
+    console.error('[API] Unable to create team - no authentication token available');
+    return Promise.reject(new Error('Authentication required'));
+  }
+  
+  // Always use trailing slash and explicit headers for reliability
+  return axios({
+    method: 'post',
+    url: '/teams/',
+    data: teamData,
     headers: {
+      'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     }
   });
