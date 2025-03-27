@@ -478,8 +478,9 @@ def static_proxy(path):
                         raise
             except Exception as e:
                 print(f"Error calling endpoint function: {str(e)}")
-                import traceback
-                traceback.print_exc()
+                # Avoid traceback.print_exc() which can cause recursion errors
+                # Just log the error type and message instead
+                print(f"Exception type: {type(e).__name__}")
                 return jsonify({'error': f'Error processing request: {str(e)}'}), 500
         else:
             # If we don't have an endpoint, this could be a routing issue

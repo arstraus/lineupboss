@@ -342,9 +342,8 @@ def get_user_info():
             return jsonify(result), 200
             
     except Exception as e:
-        import traceback
-        print(f"Error in get_user_info: {str(e)}")
-        print(traceback.format_exc())
+        # Avoid using traceback.format_exc() which can cause recursion errors
+        print(f"Error in get_user_info: {str(e)}, type: {type(e).__name__}")
         
         # Use the standardized error response utility
         from shared.database import db_error_response
