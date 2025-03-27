@@ -334,101 +334,108 @@ const Dashboard = () => {
 
           {/* Team Creation Modal */}
           {showNewTeamModal && (
-            <div className="modal show d-block" tabIndex="-1" role="dialog">
-              <div className="modal-dialog modal-lg" role="document">
-                <div className="modal-content">
-                  <div className="modal-header bg-primary text-white">
-                    <h5 className="modal-title">Create New Team</h5>
-                    <button 
-                      type="button" 
-                      className="btn-close btn-close-white" 
-                      onClick={() => setShowNewTeamModal(false)}
-                      aria-label="Close"
-                    ></button>
-                  </div>
-                  <div className="modal-body">
-                    {error && <div className="alert alert-danger">{error}</div>}
-                    <form onSubmit={handleNewTeamSubmit}>
-                      <div className="mb-3">
-                        <label htmlFor="name" className="form-label">Team Name *</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          id="name"
-                          name="name"
-                          value={newTeam.name}
-                          onChange={handleNewTeamChange}
-                          required
-                        />
-                      </div>
-                      <div className="mb-3">
-                        <label htmlFor="league" className="form-label">League</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          id="league"
-                          name="league"
-                          value={newTeam.league}
-                          onChange={handleNewTeamChange}
-                        />
-                      </div>
-                      <div className="mb-3">
-                        <label htmlFor="head_coach" className="form-label">Head Coach</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          id="head_coach"
-                          name="head_coach"
-                          value={newTeam.head_coach}
-                          onChange={handleNewTeamChange}
-                        />
-                      </div>
-                      <div className="row">
-                        <div className="col-md-6">
-                          <div className="mb-3">
-                            <label htmlFor="assistant_coach1" className="form-label">Assistant Coach 1</label>
-                            <input
-                              type="text"
-                              className="form-control"
-                              id="assistant_coach1"
-                              name="assistant_coach1"
-                              value={newTeam.assistant_coach1}
-                              onChange={handleNewTeamChange}
-                            />
+            <div className="modal-wrapper" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1050 }}>
+              <div className="modal show d-block" style={{ position: 'relative', zIndex: 1055 }} tabIndex="-1" role="dialog">
+                <div className="modal-dialog modal-lg" role="document" onClick={e => e.stopPropagation()}>
+                  <div className="modal-content">
+                    <div className="modal-header bg-primary text-white">
+                      <h5 className="modal-title">Create New Team</h5>
+                      <button 
+                        type="button" 
+                        className="btn-close btn-close-white" 
+                        onClick={() => setShowNewTeamModal(false)}
+                        aria-label="Close"
+                      ></button>
+                    </div>
+                    <div className="modal-body">
+                      {error && <div className="alert alert-danger">{error}</div>}
+                      <form onSubmit={handleNewTeamSubmit} onClick={e => e.stopPropagation()}>
+                        <div className="mb-3">
+                          <label htmlFor="name" className="form-label">Team Name *</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="name"
+                            name="name"
+                            value={newTeam.name}
+                            onChange={handleNewTeamChange}
+                            required
+                            autoFocus
+                          />
+                        </div>
+                        <div className="mb-3">
+                          <label htmlFor="league" className="form-label">League</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="league"
+                            name="league"
+                            value={newTeam.league}
+                            onChange={handleNewTeamChange}
+                          />
+                        </div>
+                        <div className="mb-3">
+                          <label htmlFor="head_coach" className="form-label">Head Coach</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="head_coach"
+                            name="head_coach"
+                            value={newTeam.head_coach}
+                            onChange={handleNewTeamChange}
+                          />
+                        </div>
+                        <div className="row">
+                          <div className="col-md-6">
+                            <div className="mb-3">
+                              <label htmlFor="assistant_coach1" className="form-label">Assistant Coach 1</label>
+                              <input
+                                type="text"
+                                className="form-control"
+                                id="assistant_coach1"
+                                name="assistant_coach1"
+                                value={newTeam.assistant_coach1}
+                                onChange={handleNewTeamChange}
+                              />
+                            </div>
+                          </div>
+                          <div className="col-md-6">
+                            <div className="mb-3">
+                              <label htmlFor="assistant_coach2" className="form-label">Assistant Coach 2</label>
+                              <input
+                                type="text"
+                                className="form-control"
+                                id="assistant_coach2"
+                                name="assistant_coach2"
+                                value={newTeam.assistant_coach2}
+                                onChange={handleNewTeamChange}
+                              />
+                            </div>
                           </div>
                         </div>
-                        <div className="col-md-6">
-                          <div className="mb-3">
-                            <label htmlFor="assistant_coach2" className="form-label">Assistant Coach 2</label>
-                            <input
-                              type="text"
-                              className="form-control"
-                              id="assistant_coach2"
-                              name="assistant_coach2"
-                              value={newTeam.assistant_coach2}
-                              onChange={handleNewTeamChange}
-                            />
-                          </div>
+                        <div className="modal-footer">
+                          <button 
+                            type="button" 
+                            className="btn btn-secondary" 
+                            onClick={() => setShowNewTeamModal(false)}
+                          >
+                            Cancel
+                          </button>
+                          <button type="submit" className="btn btn-success">
+                            <i className="bi bi-check-circle me-2"></i>Create Team
+                          </button>
                         </div>
-                      </div>
-                      <div className="modal-footer">
-                        <button 
-                          type="button" 
-                          className="btn btn-secondary" 
-                          onClick={() => setShowNewTeamModal(false)}
-                        >
-                          Cancel
-                        </button>
-                        <button type="submit" className="btn btn-success">
-                          <i className="bi bi-check-circle me-2"></i>Create Team
-                        </button>
-                      </div>
-                    </form>
+                      </form>
+                    </div>
                   </div>
                 </div>
               </div>
-              {/* Modal backdrop */}
-              <div className="modal-backdrop show" onClick={() => setShowNewTeamModal(false)}></div>
+              {/* Modal backdrop with higher z-index */}
+              <div 
+                className="modal-backdrop show" 
+                style={{ zIndex: 1050 }} 
+                onClick={() => setShowNewTeamModal(false)}
+              ></div>
             </div>
           )}
 
