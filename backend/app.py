@@ -697,6 +697,30 @@ def static_proxy(path):
                 'message': 'Please retry your request'
             }), 307
             
+        # Game creation - direct call for RESTful path
+        if request.method == 'POST' and 'teams' in path and 'games' in path:
+            print(f"Game create request detected in proxy: {path}")
+            
+            # Extract team_id from the path
+            team_id = None
+            parts = path.split('/')
+            for i, part in enumerate(parts):
+                if part == 'teams' and i+1 < len(parts) and parts[i+1].isdigit():
+                    team_id = int(parts[i+1])
+                    break
+                    
+            if team_id:
+                print(f"Redirecting to direct game creation for team {team_id}")
+                from werkzeug.utils import redirect
+                target_url = f"/api/teams/{team_id}/games"
+                print(f"Redirecting to: {target_url}")
+                return redirect(target_url, code=307)  # 307 preserves the POST method and body
+            else:
+                return jsonify({
+                    'error': 'Invalid team ID in request path',
+                    'message': 'Could not extract team ID for game creation'
+                }), 400
+        
         # Player creation - direct call instead of redirect for RESTful path
         if request.method == 'POST' and 'teams' in path and 'players' in path:
             print(f"Player create request detected in proxy: {path}")
@@ -710,37 +734,39 @@ def static_proxy(path):
                     break
                     
             if team_id:
-                print(f"Directly handling player creation for team {team_id}")
-                # Import and run necessary code directly
-                try:
-                    # Manually verify JWT token
-                    from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
-                    from flask import g
-                    from api.players import create_player
-                    
-                    # Verify JWT token
-                    print(f"Verifying JWT token for player creation: {team_id}")
-                    verify_jwt_in_request()
-                    
-                    # Get user ID from token
-                    user_id = get_jwt_identity()
-                    if isinstance(user_id, str):
-                        user_id = int(user_id)
-                    g.user_id = user_id
-                    
-                    print(f"Processing player creation for team {team_id}, user {user_id}")
-                    
-                    # Call the player creation function
-                    return create_player(team_id)
-                except Exception as e:
-                    print(f"Error in direct player create: {str(e)}")
-                    import traceback
-                    traceback.print_exc()
-                    return jsonify({'error': f'Failed to create player: {str(e)}'}), 500
+                print(f"Redirecting to direct player creation for team {team_id}")
+                from werkzeug.utils import redirect
+                target_url = f"/api/teams/{team_id}/players"
+                print(f"Redirecting to: {target_url}")
+                return redirect(target_url, code=307)  # 307 preserves the POST method and body
             else:
                 return jsonify({
                     'error': 'Invalid team ID in request path',
                     'message': 'Could not extract team ID for player creation'
+                }), 400
+        
+        # Game deletion - redirect to direct route
+        if request.method == 'DELETE' and 'games' in path:
+            print(f"Game delete request detected in proxy: {path}")
+            
+            # Extract game_id from the path
+            game_id = None
+            parts = path.split('/')
+            for i, part in enumerate(parts):
+                if part == 'games' and i+1 < len(parts) and parts[i+1].isdigit():
+                    game_id = int(parts[i+1])
+                    break
+                    
+            if game_id:
+                print(f"Redirecting to direct game deletion for game {game_id}")
+                from werkzeug.utils import redirect
+                target_url = f"/api/games/{game_id}"
+                print(f"Redirecting to: {target_url}")
+                return redirect(target_url, code=307)  # 307 preserves the DELETE method
+            else:
+                return jsonify({
+                    'error': 'Invalid game ID in request path',
+                    'message': 'Could not extract game ID for deletion'
                 }), 400
         
         # Player deletion - redirect to direct route
@@ -758,7 +784,9 @@ def static_proxy(path):
             if player_id:
                 print(f"Redirecting to direct player deletion for player {player_id}")
                 from werkzeug.utils import redirect
-                return redirect(f"/api/players/{player_id}", code=307)
+                target_url = f"/api/players/{player_id}"
+                print(f"Redirecting to: {target_url}")
+                return redirect(target_url, code=307)  # 307 preserves the DELETE method
             else:
                 return jsonify({
                     'error': 'Invalid player ID in request path',
