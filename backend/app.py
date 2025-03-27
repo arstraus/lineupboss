@@ -463,14 +463,19 @@ def static_proxy(path):
             try:
                 # The endpoint function may or may not expect a path parameter
                 endpoint_function = app.view_functions.get(request.endpoint)
-                import inspect
-                sig = inspect.signature(endpoint_function)
-                if 'path' in sig.parameters:
-                    # If the function expects a path parameter, pass it
-                    return endpoint_function(path)
-                else:
-                    # Otherwise just call it with no arguments
+                
+                # Avoid inspect.signature which can cause recursion errors
+                # Instead use a simple try/except approach
+                try:
+                    # First try calling without parameters
                     return endpoint_function()
+                except TypeError as e:
+                    # If that fails due to missing arguments, try with the path parameter
+                    if "missing 1 required positional argument" in str(e):
+                        return endpoint_function(path)
+                    else:
+                        # Re-raise any other TypeError
+                        raise
             except Exception as e:
                 print(f"Error calling endpoint function: {str(e)}")
                 import traceback
