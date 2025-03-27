@@ -301,6 +301,88 @@ def direct_player_delete(player_id):
         traceback.print_exc()
         return jsonify({'error': f'Failed to delete player: {str(e)}'}), 500
 
+# Game routes
+@app.route('/api/teams/<int:team_id>/games', methods=['POST'])
+def direct_game_create(team_id):
+    """Direct route for game creation that doesn't rely on decorators"""
+    print(f"Direct game create route activated for team {team_id}")
+    
+    try:
+        # Manually verify JWT token
+        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+        from flask import g
+        from api.games import create_game
+        
+        # Verify JWT token
+        print(f"Verifying JWT token for game creation: {team_id}")
+        verify_jwt_in_request()
+        
+        # Get user ID from token
+        user_id = get_jwt_identity()
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+        g.user_id = user_id
+        
+        print(f"Processing game creation for team {team_id}, user {user_id}")
+        
+        # Call the game creation function
+        return create_game(team_id)
+    except Exception as e:
+        print(f"Error in direct game create: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to create game: {str(e)}'}), 500
+
+@app.route('/api/games/<int:game_id>', methods=['DELETE'])
+def direct_game_delete(game_id):
+    """Direct route for game deletion that doesn't rely on decorators"""
+    print(f"Direct game delete route activated for game {game_id}")
+    
+    try:
+        # Manually verify JWT token
+        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+        from flask import g
+        from shared.database import db_session, db_error_response
+        from services.game_service import GameService
+        
+        # Verify JWT token
+        print(f"Verifying JWT token for game deletion: {game_id}")
+        verify_jwt_in_request()
+        
+        # Get user ID from token
+        user_id = get_jwt_identity()
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+        g.user_id = user_id
+        
+        print(f"Processing delete for game {game_id}, user {user_id}")
+        
+        # Use the same logic as the delete_game function but without relying on decorators
+        with db_session(commit=True) as session:
+            # Verify game belongs to user's team
+            game = GameService.get_game(session, game_id, user_id)
+            
+            if not game:
+                print(f"Game {game_id} not found or not owned by user {user_id}")
+                return jsonify({'error': 'Game not found or unauthorized'}), 404
+            
+            print(f"Game {game_id} found, proceeding with deletion")
+            
+            # Delete game via service
+            GameService.delete_game(session, game)
+            
+            print(f"Game {game_id} deleted successfully")
+            
+            return jsonify({
+                'message': 'Game deleted successfully'
+            }), 200
+            
+    except Exception as e:
+        print(f"Error in direct game delete: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to delete game: {str(e)}'}), 500
+
 # Directly register analytics blueprint with the app
 try:
     from api.analytics import analytics_bp

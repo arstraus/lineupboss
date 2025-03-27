@@ -39,8 +39,8 @@ const GameList = ({ teamId }) => {
 
   const handleAddGame = async (gameData) => {
     try {
-      // Use the endpoint that matches the backend
-      await post(`/games/team/${teamId}`, gameData);
+      // Use the RESTful endpoint format
+      await post(`/teams/${teamId}/games`, gameData);
       setShowAddForm(false);
       fetchGames();
     } catch (err) {
