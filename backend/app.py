@@ -543,6 +543,41 @@ def direct_save_player_availability(game_id, player_id):
         traceback.print_exc()
         return jsonify({'error': f'Failed to save player availability: {str(e)}'}), 500
 
+# AI Fielding Rotation Route
+@app.route('/api/games/<int:game_id>/ai-fielding-rotation', methods=['POST'])
+def direct_generate_ai_fielding_rotation(game_id):
+    """Direct route for generating AI fielding rotation that doesn't rely on decorators"""
+    print(f"Direct AI fielding rotation generation route activated for game {game_id}")
+    
+    try:
+        # Manually verify JWT token
+        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+        from flask import g, request
+        from shared.database import db_session
+        from services.game_service import GameService
+        from api.games import generate_ai_fielding_rotation
+        
+        # Verify JWT token
+        print(f"Verifying JWT token for AI fielding rotation generation: {game_id}")
+        verify_jwt_in_request()
+        
+        # Get user ID from token
+        user_id = get_jwt_identity()
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+        g.user_id = user_id
+        
+        print(f"Processing AI fielding rotation generation for game {game_id}, user {user_id}")
+        
+        # Call the AI fielding rotation generation function directly
+        return generate_ai_fielding_rotation(game_id)
+            
+    except Exception as e:
+        print(f"Error in direct AI fielding rotation generation: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Error processing request: {str(e)}'}), 500
+
 # Directly register analytics blueprint with the app
 try:
     from api.analytics import analytics_bp
@@ -955,6 +990,30 @@ def static_proxy(path):
                 return jsonify({
                     'error': 'Invalid game ID or player ID in request path',
                     'message': 'Could not extract game ID or player ID for player availability save'
+                }), 400
+        
+        # AI Fielding Rotation - direct call for RESTful path
+        if request.method == 'POST' and 'games' in path and 'ai-fielding-rotation' in path:
+            print(f"AI fielding rotation request detected in proxy: {path}")
+            
+            # Extract game_id from the path
+            game_id = None
+            parts = path.split('/')
+            for i, part in enumerate(parts):
+                if part == 'games' and i+1 < len(parts) and parts[i+1].isdigit():
+                    game_id = int(parts[i+1])
+                    break
+                    
+            if game_id:
+                print(f"Redirecting to direct AI fielding rotation for game {game_id}")
+                from werkzeug.utils import redirect
+                target_url = f"/api/games/{game_id}/ai-fielding-rotation"
+                print(f"Redirecting to: {target_url}")
+                return redirect(target_url, code=307)  # 307 preserves the POST method and body
+            else:
+                return jsonify({
+                    'error': 'Invalid game ID in request path',
+                    'message': 'Could not extract game ID for AI fielding rotation generation'
                 }), 400
         
         # Player creation - direct call instead of redirect for RESTful path
