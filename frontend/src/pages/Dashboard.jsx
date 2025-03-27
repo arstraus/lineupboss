@@ -197,10 +197,10 @@ const Dashboard = () => {
               <div>
                 <strong>Team limit reached:</strong> {err.response.data.message}
                 <div className="mt-2">
-                  <a href="/account/billing" className="btn btn-sm btn-primary">
+                  <Link to="/billing" className="btn btn-sm btn-primary" onClick={() => setShowNewTeamModal(false)}>
                     <i className="bi bi-arrow-up-circle me-1"></i>
                     Upgrade Now
-                  </a>
+                  </Link>
                 </div>
               </div>
             );
