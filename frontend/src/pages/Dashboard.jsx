@@ -7,7 +7,7 @@ const Dashboard = () => {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showNewTeamForm, setShowNewTeamForm] = useState(false);
+  const [showNewTeamModal, setShowNewTeamModal] = useState(false);
   const [newTeam, setNewTeam] = useState({
     name: "",
     league: "",
@@ -143,7 +143,7 @@ const Dashboard = () => {
         assistant_coach2: ""
       });
       setError("");
-      setShowNewTeamForm(false);
+      setShowNewTeamModal(false);
       
       // Fetch updated teams list
       fetchTeams();
@@ -183,12 +183,29 @@ const Dashboard = () => {
                 assistant_coach2: ""
               });
               setError("");
-              setShowNewTeamForm(false);
+              setShowNewTeamModal(false);
               fetchTeams();
               return;
             }
           } catch (refreshErr) {
             console.error("Token refresh failed:", refreshErr);
+          }
+        } else if (err.response.status === 403) {
+          // Team limit reached - subscription tier limit
+          if (err.response.data && err.response.data.error === 'Team limit reached') {
+            setError(
+              <div>
+                <strong>Team limit reached:</strong> {err.response.data.message}
+                <div className="mt-2">
+                  <a href="/account/billing" className="btn btn-sm btn-primary">
+                    <i className="bi bi-arrow-up-circle me-1"></i>
+                    Upgrade Now
+                  </a>
+                </div>
+              </div>
+            );
+          } else {
+            setError(`Permission error: ${err.response.data.error || 'You don\'t have permission to perform this action'}`);
           }
         } else if (err.response.status === 400) {
           setError(`Bad request: ${err.response.data.error || 'Please check your input'}`);
@@ -305,86 +322,115 @@ const Dashboard = () => {
             </h2>
             <button 
               className="btn btn-primary" 
-              onClick={() => setShowNewTeamForm(!showNewTeamForm)}
+              onClick={() => setShowNewTeamModal(true)}
               disabled={apiStatus && apiStatus.status === 'error'}
             >
               <i className="bi bi-plus-circle me-2"></i>
-              {showNewTeamForm ? "Cancel" : "Add New Team"}
+              Add New Team
             </button>
           </div>
 
           {error && !apiStatus && <div className="alert alert-danger">{error}</div>}
 
-          {showNewTeamForm && (
-            <div className="card mb-4 new-team-card">
-            <div className="card-header bg-primary text-white">
-              <h3 className="mb-0">Create New Team</h3>
+          {/* Team Creation Modal */}
+          {showNewTeamModal && (
+            <div className="modal show d-block" tabIndex="-1" role="dialog">
+              <div className="modal-dialog modal-lg" role="document">
+                <div className="modal-content">
+                  <div className="modal-header bg-primary text-white">
+                    <h5 className="modal-title">Create New Team</h5>
+                    <button 
+                      type="button" 
+                      className="btn-close btn-close-white" 
+                      onClick={() => setShowNewTeamModal(false)}
+                      aria-label="Close"
+                    ></button>
+                  </div>
+                  <div className="modal-body">
+                    {error && <div className="alert alert-danger">{error}</div>}
+                    <form onSubmit={handleNewTeamSubmit}>
+                      <div className="mb-3">
+                        <label htmlFor="name" className="form-label">Team Name *</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="name"
+                          name="name"
+                          value={newTeam.name}
+                          onChange={handleNewTeamChange}
+                          required
+                        />
+                      </div>
+                      <div className="mb-3">
+                        <label htmlFor="league" className="form-label">League</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="league"
+                          name="league"
+                          value={newTeam.league}
+                          onChange={handleNewTeamChange}
+                        />
+                      </div>
+                      <div className="mb-3">
+                        <label htmlFor="head_coach" className="form-label">Head Coach</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="head_coach"
+                          name="head_coach"
+                          value={newTeam.head_coach}
+                          onChange={handleNewTeamChange}
+                        />
+                      </div>
+                      <div className="row">
+                        <div className="col-md-6">
+                          <div className="mb-3">
+                            <label htmlFor="assistant_coach1" className="form-label">Assistant Coach 1</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              id="assistant_coach1"
+                              name="assistant_coach1"
+                              value={newTeam.assistant_coach1}
+                              onChange={handleNewTeamChange}
+                            />
+                          </div>
+                        </div>
+                        <div className="col-md-6">
+                          <div className="mb-3">
+                            <label htmlFor="assistant_coach2" className="form-label">Assistant Coach 2</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              id="assistant_coach2"
+                              name="assistant_coach2"
+                              value={newTeam.assistant_coach2}
+                              onChange={handleNewTeamChange}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="modal-footer">
+                        <button 
+                          type="button" 
+                          className="btn btn-secondary" 
+                          onClick={() => setShowNewTeamModal(false)}
+                        >
+                          Cancel
+                        </button>
+                        <button type="submit" className="btn btn-success">
+                          <i className="bi bi-check-circle me-2"></i>Create Team
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+              {/* Modal backdrop */}
+              <div className="modal-backdrop show" onClick={() => setShowNewTeamModal(false)}></div>
             </div>
-            <div className="card-body">
-              <form onSubmit={handleNewTeamSubmit}>
-                <div className="mb-3">
-                  <label htmlFor="name" className="form-label">Team Name *</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="name"
-                    name="name"
-                    value={newTeam.name}
-                    onChange={handleNewTeamChange}
-                    required
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="league" className="form-label">League</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="league"
-                    name="league"
-                    value={newTeam.league}
-                    onChange={handleNewTeamChange}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="head_coach" className="form-label">Head Coach</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="head_coach"
-                    name="head_coach"
-                    value={newTeam.head_coach}
-                    onChange={handleNewTeamChange}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="assistant_coach1" className="form-label">Assistant Coach 1</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="assistant_coach1"
-                    name="assistant_coach1"
-                    value={newTeam.assistant_coach1}
-                    onChange={handleNewTeamChange}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="assistant_coach2" className="form-label">Assistant Coach 2</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="assistant_coach2"
-                    name="assistant_coach2"
-                    value={newTeam.assistant_coach2}
-                    onChange={handleNewTeamChange}
-                  />
-                </div>
-                <button type="submit" className="btn btn-success">
-                  <i className="bi bi-check-circle me-2"></i>Create Team
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
+          )}
 
           {teams.length === 0 ? (
             <div className="alert alert-info">
