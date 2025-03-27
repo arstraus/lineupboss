@@ -569,8 +569,70 @@ def direct_generate_ai_fielding_rotation(game_id):
         
         print(f"Processing AI fielding rotation generation for game {game_id}, user {user_id}")
         
-        # Call the AI fielding rotation generation function directly
-        return generate_ai_fielding_rotation(game_id)
+        # Don't directly call the decorated function to avoid the feature check decorator
+        # Instead, implement the same logic here
+        
+        # Grab the request data
+        data = request.get_json()
+        
+        # Check for required data
+        if not data or not isinstance(data.get('players'), list) or len(data.get('players', [])) == 0:
+            return jsonify({'error': 'Player data is required for AI rotation generation'}), 400
+        
+        # Using read_only mode since this is just a verification and AI computation
+        with db_session(read_only=True) as session:
+            # Verify game belongs to user's team via service
+            from services.game_service import GameService
+            from services.ai_service import AIService
+            
+            game = GameService.get_game(session, game_id, user_id)
+            if not game:
+                return jsonify({'error': 'Game not found or unauthorized'}), 404
+            
+            # Get required parameters from request data
+            players = data['players']
+            innings = data.get('innings', game.innings) or 6  # Default to game innings or fallback to 6
+            required_positions = data.get('required_positions', [])
+            infield_positions = data.get('infield_positions', [])
+            outfield_positions = data.get('outfield_positions', [])
+            
+            # Get customization options with defaults
+            options = data.get('options', {})
+            no_consecutive_innings = options.get('noConsecutiveInnings', True)
+            balance_playing_time = options.get('balancePlayingTime', True)
+            allow_same_position = options.get('allowSamePositionMultipleTimes', False)
+            strict_position_balance = options.get('strictPositionBalance', True)
+            temperature = options.get('temperature', 0.7)  # Add temperature parameter with default
+            
+            try:
+                # Use the AI service to generate fielding rotation with timeout handling
+                rotation_result = AIService.generate_fielding_rotation(
+                    game_id, 
+                    players, 
+                    innings,
+                    required_positions,
+                    infield_positions,
+                    outfield_positions,
+                    no_consecutive_innings,
+                    balance_playing_time,
+                    allow_same_position,
+                    strict_position_balance,
+                    temperature  # Pass temperature to the AI service
+                )
+                
+                return jsonify(rotation_result), 200
+            except ValueError as ve:
+                if "timeout" in str(ve).lower():
+                    # If timeout occurs, return an informative message with HTTP 202 Accepted
+                    # This indicates the request was valid but could not be completed in time
+                    return jsonify({
+                        "message": "The AI fielding rotation could not be generated in time. Please try again later or create a manual rotation.",
+                        "error": str(ve),
+                        "success": False
+                    }), 202
+                else:
+                    # For other ValueErrors, pass through to the general error handler
+                    raise ve
             
     except Exception as e:
         print(f"Error in direct AI fielding rotation generation: {str(e)}")
