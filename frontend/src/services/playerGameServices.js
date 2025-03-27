@@ -11,8 +11,8 @@ export const getPlayer = (id) => {
 };
 
 export const createPlayer = (teamId, playerData) => {
-  // Use API route that matches backend endpoint
-  return post(`/players/team/${teamId}`, playerData);
+  // Use RESTful pattern to match the direct route in backend
+  return post(`/teams/${teamId}/players`, playerData);
 };
 
 export const updatePlayer = (id, playerData) => {
@@ -34,9 +34,9 @@ export const getGame = (id) => {
 };
 
 export const createGame = (teamId, gameData) => {
-  // Use API route that matches backend endpoint
+  // Use RESTful pattern to match the direct route in backend
   console.log(`Creating game for team ${teamId} with data:`, gameData);
-  return post(`/games/team/${teamId}`, gameData);
+  return post(`/teams/${teamId}/games`, gameData);
 };
 
 export const updateGame = (id, gameData) => {
