@@ -615,7 +615,7 @@ def static_proxy(path):
                 'message': 'Please retry your request'
             }), 307
             
-        # Player creation - redirect to direct route
+        # Player creation - direct call instead of redirect for RESTful path
         if request.method == 'POST' and 'teams' in path and 'players' in path:
             print(f"Player create request detected in proxy: {path}")
             
@@ -628,9 +628,33 @@ def static_proxy(path):
                     break
                     
             if team_id:
-                print(f"Redirecting to direct player creation for team {team_id}")
-                from werkzeug.utils import redirect
-                return redirect(f"/api/teams/{team_id}/players", code=307)
+                print(f"Directly handling player creation for team {team_id}")
+                # Import and run necessary code directly
+                try:
+                    # Manually verify JWT token
+                    from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+                    from flask import g
+                    from api.players import create_player
+                    
+                    # Verify JWT token
+                    print(f"Verifying JWT token for player creation: {team_id}")
+                    verify_jwt_in_request()
+                    
+                    # Get user ID from token
+                    user_id = get_jwt_identity()
+                    if isinstance(user_id, str):
+                        user_id = int(user_id)
+                    g.user_id = user_id
+                    
+                    print(f"Processing player creation for team {team_id}, user {user_id}")
+                    
+                    # Call the player creation function
+                    return create_player(team_id)
+                except Exception as e:
+                    print(f"Error in direct player create: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    return jsonify({'error': f'Failed to create player: {str(e)}'}), 500
             else:
                 return jsonify({
                     'error': 'Invalid team ID in request path',

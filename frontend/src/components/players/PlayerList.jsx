@@ -33,7 +33,8 @@ const PlayerList = ({ teamId }) => {
 
   const handleAddPlayer = async (playerData) => {
     try {
-      await post(`/players/team/${teamId}`, playerData);
+      // Using the RESTful endpoint format
+      await post(`/teams/${teamId}/players`, playerData);
       setShowAddForm(false);
       fetchPlayers();
     } catch (err) {
