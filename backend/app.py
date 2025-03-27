@@ -383,6 +383,166 @@ def direct_game_delete(game_id):
         traceback.print_exc()
         return jsonify({'error': f'Failed to delete game: {str(e)}'}), 500
 
+# Game batting order route
+@app.route('/api/games/<int:game_id>/batting-order', methods=['POST'])
+def direct_save_batting_order(game_id):
+    """Direct route for saving batting order that doesn't rely on decorators"""
+    print(f"Direct batting order saving route activated for game {game_id}")
+    
+    try:
+        # Manually verify JWT token
+        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+        from flask import g, request
+        from shared.database import db_session
+        from services.game_service import GameService
+        
+        # Verify JWT token
+        print(f"Verifying JWT token for batting order save: {game_id}")
+        verify_jwt_in_request()
+        
+        # Get user ID from token
+        user_id = get_jwt_identity()
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+        g.user_id = user_id
+        
+        print(f"Processing batting order save for game {game_id}, user {user_id}")
+        
+        # Parse the request data
+        data = request.get_json()
+        order_data = data.get('order_data', [])
+        
+        with db_session(commit=True) as session:
+            # Verify game belongs to user's team
+            game = GameService.get_game(session, game_id, user_id)
+            
+            if not game:
+                print(f"Game {game_id} not found or not owned by user {user_id}")
+                return jsonify({'error': 'Game not found or unauthorized'}), 404
+            
+            # Save the batting order
+            GameService.save_batting_order(session, game_id, order_data)
+            
+            return jsonify({
+                'message': 'Batting order saved successfully',
+                'game_id': game_id
+            }), 200
+            
+    except Exception as e:
+        print(f"Error in direct batting order save: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to save batting order: {str(e)}'}), 500
+
+# Game fielding rotation route
+@app.route('/api/games/<int:game_id>/fielding-rotations/<int:inning>', methods=['POST'])
+def direct_save_fielding_rotation(game_id, inning):
+    """Direct route for saving fielding rotation that doesn't rely on decorators"""
+    print(f"Direct fielding rotation saving route activated for game {game_id}, inning {inning}")
+    
+    try:
+        # Manually verify JWT token
+        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+        from flask import g, request
+        from shared.database import db_session
+        from services.game_service import GameService
+        
+        # Verify JWT token
+        print(f"Verifying JWT token for fielding rotation save: {game_id}")
+        verify_jwt_in_request()
+        
+        # Get user ID from token
+        user_id = get_jwt_identity()
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+        g.user_id = user_id
+        
+        print(f"Processing fielding rotation save for game {game_id}, inning {inning}, user {user_id}")
+        
+        # Parse the request data
+        data = request.get_json()
+        positions = data.get('positions', {})
+        
+        with db_session(commit=True) as session:
+            # Verify game belongs to user's team
+            game = GameService.get_game(session, game_id, user_id)
+            
+            if not game:
+                print(f"Game {game_id} not found or not owned by user {user_id}")
+                return jsonify({'error': 'Game not found or unauthorized'}), 404
+            
+            # Save the fielding rotation
+            GameService.save_fielding_rotation(session, game_id, inning, positions)
+            
+            return jsonify({
+                'message': 'Fielding rotation saved successfully',
+                'game_id': game_id,
+                'inning': inning
+            }), 200
+            
+    except Exception as e:
+        print(f"Error in direct fielding rotation save: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to save fielding rotation: {str(e)}'}), 500
+
+# Player availability route
+@app.route('/api/games/<int:game_id>/player-availability/<int:player_id>', methods=['POST'])
+def direct_save_player_availability(game_id, player_id):
+    """Direct route for saving player availability that doesn't rely on decorators"""
+    print(f"Direct player availability saving route activated for game {game_id}, player {player_id}")
+    
+    try:
+        # Manually verify JWT token
+        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+        from flask import g, request
+        from shared.database import db_session
+        from services.game_service import GameService
+        from services.player_service import PlayerService
+        
+        # Verify JWT token
+        print(f"Verifying JWT token for player availability save: {game_id}")
+        verify_jwt_in_request()
+        
+        # Get user ID from token
+        user_id = get_jwt_identity()
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+        g.user_id = user_id
+        
+        print(f"Processing player availability save for game {game_id}, player {player_id}, user {user_id}")
+        
+        # Parse the request data
+        data = request.get_json()
+        
+        with db_session(commit=True) as session:
+            # Verify game belongs to user's team
+            game = GameService.get_game(session, game_id, user_id)
+            if not game:
+                print(f"Game {game_id} not found or not owned by user {user_id}")
+                return jsonify({'error': 'Game not found or unauthorized'}), 404
+            
+            # Verify player belongs to user's team
+            player = PlayerService.get_player(session, player_id, user_id)
+            if not player:
+                print(f"Player {player_id} not found or not owned by user {user_id}")
+                return jsonify({'error': 'Player not found or unauthorized'}), 404
+            
+            # Save the player availability
+            GameService.save_player_availability(session, game_id, player_id, data)
+            
+            return jsonify({
+                'message': 'Player availability saved successfully',
+                'game_id': game_id,
+                'player_id': player_id
+            }), 200
+            
+    except Exception as e:
+        print(f"Error in direct player availability save: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to save player availability: {str(e)}'}), 500
+
 # Directly register analytics blueprint with the app
 try:
     from api.analytics import analytics_bp
@@ -719,6 +879,82 @@ def static_proxy(path):
                 return jsonify({
                     'error': 'Invalid team ID in request path',
                     'message': 'Could not extract team ID for game creation'
+                }), 400
+                
+        # Game batting order - direct call for RESTful path
+        if request.method == 'POST' and 'games' in path and 'batting-order' in path:
+            print(f"Batting order save request detected in proxy: {path}")
+            
+            # Extract game_id from the path
+            game_id = None
+            parts = path.split('/')
+            for i, part in enumerate(parts):
+                if part == 'games' and i+1 < len(parts) and parts[i+1].isdigit():
+                    game_id = int(parts[i+1])
+                    break
+                    
+            if game_id:
+                print(f"Redirecting to direct batting order save for game {game_id}")
+                from werkzeug.utils import redirect
+                target_url = f"/api/games/{game_id}/batting-order"
+                print(f"Redirecting to: {target_url}")
+                return redirect(target_url, code=307)  # 307 preserves the POST method and body
+            else:
+                return jsonify({
+                    'error': 'Invalid game ID in request path',
+                    'message': 'Could not extract game ID for batting order save'
+                }), 400
+                
+        # Game fielding rotation - direct call for RESTful path
+        if request.method == 'POST' and 'games' in path and 'fielding-rotations' in path:
+            print(f"Fielding rotation save request detected in proxy: {path}")
+            
+            # Extract game_id and inning from the path
+            game_id = None
+            inning = None
+            parts = path.split('/')
+            for i, part in enumerate(parts):
+                if part == 'games' and i+1 < len(parts) and parts[i+1].isdigit():
+                    game_id = int(parts[i+1])
+                if part == 'fielding-rotations' and i+1 < len(parts) and parts[i+1].isdigit():
+                    inning = int(parts[i+1])
+                    
+            if game_id and inning:
+                print(f"Redirecting to direct fielding rotation save for game {game_id}, inning {inning}")
+                from werkzeug.utils import redirect
+                target_url = f"/api/games/{game_id}/fielding-rotations/{inning}"
+                print(f"Redirecting to: {target_url}")
+                return redirect(target_url, code=307)  # 307 preserves the POST method and body
+            else:
+                return jsonify({
+                    'error': 'Invalid game ID or inning in request path',
+                    'message': 'Could not extract game ID or inning for fielding rotation save'
+                }), 400
+                
+        # Player availability - direct call for RESTful path
+        if request.method == 'POST' and 'games' in path and 'player-availability' in path:
+            print(f"Player availability save request detected in proxy: {path}")
+            
+            # Extract game_id and player_id from the path
+            game_id = None
+            player_id = None
+            parts = path.split('/')
+            for i, part in enumerate(parts):
+                if part == 'games' and i+1 < len(parts) and parts[i+1].isdigit():
+                    game_id = int(parts[i+1])
+                if part == 'player-availability' and i+1 < len(parts) and parts[i+1].isdigit():
+                    player_id = int(parts[i+1])
+                    
+            if game_id and player_id:
+                print(f"Redirecting to direct player availability save for game {game_id}, player {player_id}")
+                from werkzeug.utils import redirect
+                target_url = f"/api/games/{game_id}/player-availability/{player_id}"
+                print(f"Redirecting to: {target_url}")
+                return redirect(target_url, code=307)  # 307 preserves the POST method and body
+            else:
+                return jsonify({
+                    'error': 'Invalid game ID or player ID in request path',
+                    'message': 'Could not extract game ID or player ID for player availability save'
                 }), 400
         
         # Player creation - direct call instead of redirect for RESTful path
