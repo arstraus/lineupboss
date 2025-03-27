@@ -11,15 +11,17 @@ A comprehensive baseball lineup management application for coaches to create fai
 - **Team Management**: Create and manage multiple teams, each with their own roster of players
 - **Game Scheduling**: Organize your season with an intuitive game scheduling system
 - **Player Availability Tracking**: Easily mark which players are available for each game
-- **Smart Batting Order**: Create fair batting orders that ensure equal opportunities across games
+- **Smart Batting Order**: Create fair batting lineups that ensure equal opportunities across games
 - **Intelligent Fielding Rotations**: Assign positions for each inning with fairness validation
 - **Position Balance Analysis**: Get insights into how playing time is distributed across positions
 - **Game-Day Plans**: Generate and export lineup sheets as PDFs for coaches and parents
 - **Data Persistence**: All your team and game data is securely stored and accessible anytime
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 - **User Authentication**: Secure access with JWT-based authentication and user accounts
-- **AI-Powered Rotations**: Generate balanced fielding rotations with AI assistance
-- **Analytics Dashboard**: Track player statistics and participation across the season
+- **AI-Powered Rotations**: Generate balanced fielding rotations with AI assistance (Pro feature)
+- **Analytics Dashboard**: Track player statistics and participation across the season (Pro feature)
+- **Subscription Tiers**: Choose between free (rookie) and paid (pro) subscription options
+- **Admin Controls**: User management and subscription tier management for administrators
 
 ## Technical Architecture
 
@@ -52,6 +54,8 @@ LineupBoss employs a modern, maintainable architecture:
 - **Responsive Design**: Mobile-first approach for all user interfaces
 - **Database Session Management**: Optimized database access patterns
 - **Token Refresh**: Automatic JWT token refresh for uninterrupted user sessions
+- **Feature Gating**: Server-side subscription tier-based feature access control
+- **User Role Management**: Role-based permission system for users and admins
 
 ## Getting Started
 
@@ -132,11 +136,13 @@ The application will be available at:
 ### 1. Account Setup
 1. **Register or Login**: Create your account or log in with existing credentials
 2. **Dashboard**: View all your teams on the dashboard after logging in
+3. **Subscription Tier**: Start with the free Rookie tier or upgrade to Pro for advanced features
 
 ### 2. Team Management
 1. **Create Team**: Set up your team with name, league, and coach information
 2. **Add Players**: Create player profiles with names and jersey numbers
 3. **Manage Roster**: Edit or remove players as needed
+4. **Team Limits**: Free tier users are limited to 1 team, Pro users get unlimited teams
 
 ### 3. Game Scheduling
 1. **Add Games**: Create game entries with dates, times, and opponents
@@ -150,19 +156,20 @@ The application will be available at:
    - Color coding indicates position balance issues
    - Validation ensures no player plays the same position multiple times
    - System warns about consecutive infield/outfield assignments
-   - Use AI assistance to generate balanced rotations automatically
+   - Use AI assistance to generate balanced rotations automatically (Pro feature)
 
 ### 5. Game Day
 1. **Game Summary**: View the complete lineup card with all assignments
 2. **PDF Export**: Generate a printable PDF of your game plan
 3. **Mobile Access**: Access lineups from your phone during the game
 
-### 6. Season Analytics
+### 6. Season Analytics (Pro Features)
 1. **Team Analytics**: View game distribution by day and month
 2. **Batting Analytics**: Track batting position history and distribution
 3. **Fielding Analytics**: Analyze position distribution and playing time
 4. **Fairness Analysis**: Review position distribution across the season
 5. **Historical Data**: Access previous game plans throughout the season
+6. **Upgrade Prompt**: Free tier users will see upgrade prompts when accessing analytics
 
 ## API Architecture
 
@@ -173,13 +180,16 @@ LineupBoss uses a RESTful API architecture with standardized routes:
 /api                   - Main API blueprint
   /auth                - Authentication endpoints
   /user                - User profile endpoints
+    /subscription      - User subscription information
   /teams               - Team management
     /<team_id>/games   - Games for a specific team
     /<team_id>/players - Players for a specific team
   /players             - Player management
   /games               - Game management
   /admin               - Admin functions
-  /analytics           - Analytics endpoints
+    /users             - User management
+    /users/<user_id>/subscription - Update user subscription tier
+  /analytics           - Analytics endpoints (Pro tier only)
     /teams/<team_id>                  - Team analytics
     /teams/<team_id>/players/batting  - Player batting analytics
     /teams/<team_id>/players/fielding - Player fielding analytics
@@ -194,6 +204,9 @@ LineupBoss uses a RESTful API architecture with standardized routes:
 - Game Details: `/api/games/<game_id>/batting-order`, `/api/games/<game_id>/fielding-rotations`
 - Analytics: `/api/analytics/teams/<team_id>`, `/api/analytics/teams/<team_id>/players/batting`
 - User Profile: `/api/user/profile`
+- Subscription: `/api/user/subscription`
+- Admin: `/api/admin/users`, `/api/admin/users/<user_id>/subscription`
+- AI Features: `/api/games/<game_id>/fielding-rotations/generate` (Pro only)
 
 ## Deployment Guide
 
@@ -264,12 +277,22 @@ netlify deploy --prod
 
 ## Recent Improvements
 
+### Feature Gating by Subscription (March 2025)
+- **Subscription Tiers**: Added rookie (free) and pro (paid) subscription tiers
+- **Feature Control**: Implemented server-side feature access control based on subscription tier
+- **Admin Management**: Added admin capability to upgrade/downgrade user subscriptions
+- **Analytics Access**: Limited advanced analytics to pro users
+- **AI Features**: Restricted AI-powered rotations to pro users
+- **Email Notifications**: Added automated emails for subscription changes
+
 ### API Route Standardization (March 2025)
 - Completed migration to standard RESTful routes
 - Eliminated legacy emergency routes
 - Improved average response time by 13.9%
 - Reduced slow endpoints from 22 to 4
 - Implemented analytics endpoints with RESTful patterns
+- Fixed authentication issues in team creation/deletion
+- Resolved recursion errors in team deletion with optimized SQL approach
 
 ### UI Enhancements (2025)
 - **New Landing Page**: Baseball-themed landing page with clear features and benefits
@@ -279,10 +302,13 @@ netlify deploy --prod
 - **Mobile Responsiveness**: Improved layout for all screen sizes
 - **Visual Consistency**: Unified design language across all app screens
 - **Analytics Dashboard**: Added comprehensive analytics with intuitive data visualization
+- **Subscription UI**: Added subscription status indicators and upgrade prompts
 
 ### AI-Powered Features
 - **Fielding Rotations**: AI-assisted generation of balanced fielding rotations
 - **Position Fairness**: Intelligent suggestions for player positions
+- **Pro Features**: Tiered access to AI features based on subscription level
+- **Team Limits**: Free tier limited to 1 team, Pro tier allows unlimited teams
 
 ## Known Issues and Troubleshooting
 
@@ -290,6 +316,8 @@ netlify deploy --prod
 - If the fielding analytics page appears blank, refresh the page. This issue is being addressed in the next release.
 - Token refresh issues may occur on mobile devices with backgrounded tabs; if you see authentication errors, please log in again.
 - Position validation warnings are intended as suggestions only; you can still save lineups with these warnings.
+- "Pro features only" messages may sometimes appear twice when attempting to access restricted features.
+- Team creation may occasionally require a second attempt if the first fails with an auth error.
 
 ### Troubleshooting
 - **Authentication Issues**: Clear browser cookies/storage and log in again
