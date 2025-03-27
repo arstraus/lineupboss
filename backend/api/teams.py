@@ -190,31 +190,50 @@ def delete_team(team_id):
     - Structured error handling with db_error_response
     - Two-phase operation: find then delete
     """
-    user_id = get_jwt_identity()
+    print(f"delete_team function called with team_id={team_id}")
     
-    # Convert user_id to integer if it's a string
-    try:
-        if isinstance(user_id, str):
-            user_id = int(user_id)
-    except ValueError:
-        return jsonify({'error': 'Invalid user ID format'}), 400
+    # Get user ID from token or g object
+    from flask import g
+    
+    # Use g.user_id if it exists (set by proxy), otherwise get from JWT token
+    if hasattr(g, 'user_id') and g.user_id:
+        user_id = g.user_id
+        print(f"Using g.user_id: {user_id}")
+    else:
+        user_id = get_jwt_identity()
+        print(f"Using JWT identity: {user_id}")
+        
+        # Convert user_id to integer if it's a string
+        try:
+            if isinstance(user_id, str):
+                user_id = int(user_id)
+        except ValueError:
+            return jsonify({'error': 'Invalid user ID format'}), 400
     
     try:
+        print(f"Attempting to delete team {team_id} for user {user_id}")
         # Using commit=True to automatically commit successful operations
         with db_session(commit=True) as session:
             # Check if team exists and belongs to user
             team = TeamService.get_team(session, team_id, user_id)
             
             if not team:
+                print(f"Team {team_id} not found or not owned by user {user_id}")
                 return jsonify({'error': 'Team not found or unauthorized'}), 404
+            
+            print(f"Team {team_id} found, proceeding with deletion")
             
             # Delete team via service
             TeamService.delete_team(session, team)
+            
+            print(f"Team {team_id} deleted successfully")
             
             return jsonify({
                 'message': 'Team deleted successfully'
             }), 200
     except Exception as e:
         print(f"Error deleting team: {str(e)}")
+        import traceback
+        traceback.print_exc()
         # Use standardized error response - no need to manually rollback
         return db_error_response(e, "Failed to delete team")

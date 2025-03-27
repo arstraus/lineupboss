@@ -493,11 +493,27 @@ def static_proxy(path):
         # More detailed debugging for DELETE requests
         if request.method == 'DELETE' and 'teams' in path:
             team_id = None
-            # Extract team_id from path more reliably
-            parts = path.split('/')
-            if len(parts) >= 3 and parts[-1].isdigit():
-                team_id = int(parts[-1])
+            
+            # Improved path parsing - handle possible trailing slash
+            print(f"Raw path for deletion: '{path}'")
+            
+            # First, strip any trailing slash
+            clean_path = path.rstrip('/')
+            print(f"Cleaned path: '{clean_path}'")
+            
+            # Now extract the ID
+            parts = clean_path.split('/')
+            print(f"Path parts: {parts}")
+            
+            # Try to get the last part as the ID
+            if parts and len(parts) >= 1:
+                last_part = parts[-1]
+                print(f"Last part: '{last_part}'")
                 
+                if last_part.isdigit():
+                    team_id = int(last_part)
+                    print(f"Extracted team_id: {team_id}")
+            
             print(f"Team delete request detected in proxy: {path}, team_id extracted: {team_id}")
             
             # Direct call to the delete function rather than redirecting
@@ -505,6 +521,17 @@ def static_proxy(path):
                 from api.teams import delete_team
                 print(f"Calling delete_team({team_id}) directly from proxy")
                 try:
+                    # Need to pass the JWT token information through Flask's g object
+                    from flask import g
+                    from flask_jwt_extended import get_jwt_identity
+                    
+                    # Set g.user_id for the delete_team function
+                    user_id = get_jwt_identity()
+                    if isinstance(user_id, str):
+                        user_id = int(user_id)
+                    g.user_id = user_id
+                    print(f"Set g.user_id = {user_id} for delete operation")
+                    
                     return delete_team(team_id)
                 except Exception as e:
                     print(f"Error calling delete_team directly: {str(e)}")
@@ -513,7 +540,7 @@ def static_proxy(path):
             else:
                 return jsonify({
                     'error': 'Invalid team ID format in DELETE request',
-                    'message': 'Please provide a valid team ID'
+                    'message': f"Could not extract a valid team ID from path: {path}"
                 }), 400
         
         # Check for problematic double API prefixes and warn (these should no longer happen)
