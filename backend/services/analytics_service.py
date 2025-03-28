@@ -13,10 +13,10 @@ logger = logging.getLogger(__name__)
 try:
     from sqlalchemy import func
     from sqlalchemy.dialects.postgresql import JSONB
-    # Update to use the correct database module
-    from shared.database import db_session
-    from shared.database import db_error_response
-    from shared.models import Game, BattingOrder, FieldingRotation, PlayerAvailability, Player
+    # Update to use the correct database module paths
+    from database import db_session
+    from utils import standardize_error_response as db_error_response
+    from models.models import Game, BattingOrder, FieldingRotation, PlayerAvailability, Player
     logger.info("Successfully imported all required modules for AnalyticsService")
     HAS_DB_DEPENDENCIES = True
 except ImportError as e:
@@ -138,7 +138,7 @@ class AnalyticsService:
                         # Add to history
                         stats["batting_position_history"].append({
                             "game_id": game.id,
-                            "game_date": game.date.strftime("%Y-%m-%d") if game.date else None,
+                            "game_date": game.game_date.strftime("%Y-%m-%d") if hasattr(game, 'game_date') and game.game_date else None,
                             "opponent": game.opponent,
                             "position": position
                         })
@@ -305,7 +305,7 @@ class AnalyticsService:
                     if game_positions:
                         stats["position_history"].append({
                             "game_id": game.id,
-                            "game_date": game.date.strftime("%Y-%m-%d") if game.date else None,
+                            "game_date": game.game_date.strftime("%Y-%m-%d") if hasattr(game, 'game_date') and game.game_date else None,
                             "opponent": game.opponent,
                             "innings": game_positions
                         })
@@ -367,8 +367,8 @@ class AnalyticsService:
                 "has_data": False  # Will be updated based on data availability
             }
             
-            # Get all games with dates - use 'date' attribute instead of 'game_date'
-            games_with_dates = [g for g in games if g.date]
+            # Get all games with dates
+            games_with_dates = [g for g in games if hasattr(g, 'game_date') and g.game_date]
             logger.info(f"Found {len(games_with_dates)} games with dates for team {team_id}")
             
             if not games_with_dates:
@@ -419,13 +419,13 @@ class AnalyticsService:
                 
                 # Process game dates
                 for game in games_with_both:
-                    if game.date:
+                    if hasattr(game, 'game_date') and game.game_date:
                         # Count by month
-                        month = game.date.strftime("%Y-%m")
+                        month = game.game_date.strftime("%Y-%m")
                         stats["games_by_month"][month] = stats["games_by_month"].get(month, 0) + 1
                         
                         # Count by day of week
-                        day = game.date.strftime("%A")
+                        day = game.game_date.strftime("%A")
                         stats["games_by_day"][day] += 1
             
             logger.info(f"Team {team_id} analytics: total_games={stats['total_games']}, months={len(stats['games_by_month'])}, has_data={stats['has_data']}")
