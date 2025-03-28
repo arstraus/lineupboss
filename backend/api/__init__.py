@@ -91,6 +91,11 @@ try:
         api.register_blueprint(analytics_bp, url_prefix='/analytics')
         print(f"SUCCESS: Registered analytics blueprint with URL prefix /analytics")
         
+        # Debug - list all routes in the analytics blueprint
+        print(f"Analytics blueprint has these routes:")
+        for rule in analytics_bp.deferred_functions:
+            print(f"  - {rule}")
+            
         analytics_registered = True
     except ImportError as e:
         print(f"WARNING: Could not import analytics package: {e}")

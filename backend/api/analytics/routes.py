@@ -11,8 +11,9 @@ from flask_jwt_extended import jwt_required
 from models.models import Team, Game, BattingOrder, FieldingRotation, User
 from utils import standardize_error_response
 
-# Import blueprint but avoid circular import by importing here
-from api.analytics import analytics_bp
+# Import the blueprint from __init__.py
+# This avoids circular imports
+from backend.api.analytics import analytics_bp
 
 # Check if subscription tier feature is available
 try:
