@@ -63,16 +63,14 @@ if db_url.startswith("postgres://"):
 # Initialize JWT
 jwt = JWTManager(app)
 
-# Initialize database before first request
-@app.before_first_request
-def before_first_request():
-    # Initialize database
-    try:
-        init_db()
-        print("Database initialized successfully.")
-    except Exception as e:
-        print(f"ERROR initializing database: {e}")
-        traceback.print_exc()
+# Initialize database on startup
+# Flask 3.0+ removed before_first_request, so we initialize immediately
+try:
+    init_db()
+    print("Database initialized successfully.")
+except Exception as e:
+    print(f"ERROR initializing database: {e}")
+    traceback.print_exc()
 
 @app.route("/")
 def root():
@@ -202,13 +200,6 @@ app.register_blueprint(api)
 
 # Register API documentation blueprints
 app.register_blueprint(docs, url_prefix='/api')
-
-# Initialize Swagger API documentation
-try:
-    from api.docs import init_spec
-    init_spec(app)
-except Exception as e:
-    print(f"WARNING: Could not initialize Swagger documentation: {e}")
 
 # Keep the auth login route as it's critical for authentication
 @app.route('/api/auth/login/', methods=['POST'])

@@ -11,6 +11,22 @@ from flask_swagger_ui import get_swaggerui_blueprint
 # Create a Blueprint for docs
 docs = Blueprint('docs', __name__)
 
+# Create Swagger UI blueprint
+SWAGGER_URL = '/api/docs'
+API_URL = '/api/docs/swagger.json'
+
+swagger_ui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,
+    API_URL,
+    config={
+        'app_name': "Lineup Boss API",
+        'docExpansion': "list",
+        'deepLinking': True,
+        'defaultModelsExpandDepth': 1,
+        'defaultModelExpandDepth': 1,
+    }
+)
+
 def configure_swagger(app):
     """
     Configure Swagger for the application.
@@ -18,22 +34,7 @@ def configure_swagger(app):
     Args:
         app: Flask application instance
     """
-    # Create a Swagger UI blueprint
-    SWAGGER_URL = '/api/docs'
-    API_URL = '/api/docs/swagger.json'
-    
-    swagger_ui_blueprint = get_swaggerui_blueprint(
-        SWAGGER_URL,
-        API_URL,
-        config={
-            'app_name': "Lineup Boss API",
-            'docExpansion': "list",
-            'deepLinking': True,
-            'defaultModelsExpandDepth': 1,
-            'defaultModelExpandDepth': 1,
-        }
-    )
-    
+    # Register the Swagger UI blueprint
     app.register_blueprint(swagger_ui_blueprint)
     
     # Initialize spec with APISpec

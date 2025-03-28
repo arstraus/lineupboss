@@ -7,7 +7,7 @@ import traceback
 from sqlalchemy import func
 from shared.database import db_session
 from services.analytics_service import AnalyticsService
-from middleware.auth import jwt_required
+from flask_jwt_extended import jwt_required
 from shared.models import Team, Game, BattingOrder, FieldingRotation, User
 from backend.utils import standardize_error_response
 from shared.subscription_tiers import has_feature

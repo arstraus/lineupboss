@@ -6,7 +6,7 @@ import logging
 import traceback
 from shared.db import db_error_response
 from services.analytics_service import AnalyticsService
-from middleware.auth import jwt_required
+from flask_jwt_extended import jwt_required
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
