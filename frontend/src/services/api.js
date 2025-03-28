@@ -503,15 +503,28 @@ export const generateAIFieldingRotation = (gameId, data, options = {}) => {
     return Promise.reject(new Error('Authentication required'));
   }
   
-  // Always use trailing slash and explicit headers for reliability
+  console.log('[API] Generating AI fielding rotation with enhanced auth handling');
+  console.log(`[API] Using token: ${token.substring(0, 10)}...`);
+  
+  // Use the manual validation endpoint that has extra safeguards
+  // Try without a trailing slash to avoid redirection issues
   return axios({
     method: 'post',
-    url: `/games/${gameId}/ai-fielding-rotation/`,
+    url: `/games/${gameId}/ai-fielding-rotation-manual`,
     data: data,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
+      'Authorization': `Bearer ${token}`,
+      // Add these extra headers to help with debugging and as alternative auth sources
+      'X-Authorization': `Bearer ${token}`,
+      'X-Source': 'AIFieldingRotation',
+      'X-Token-Length': `${token.length}`
     },
-    timeout: options.timeout || 120000 // Default to 2 minute timeout for AI operations
+    // Don't follow redirects - this avoids issues with lost credentials
+    maxRedirects: 0,
+    // Add timeout for long-running operations
+    timeout: options.timeout || 120000, // Default to 2 minute timeout for AI operations
+    // Add these options which may help with token preservation
+    withCredentials: true
   });
 };

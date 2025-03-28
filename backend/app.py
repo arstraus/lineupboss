@@ -113,22 +113,97 @@ jwt = JWTManager(app)
 @jwt.expired_token_loader
 def expired_token_callback(jwt_header, jwt_payload):
     print(f"Expired token received: {jwt_header}")
-    return jsonify({"error": "Token has expired"}), 401
+    print(f"Token payload: {jwt_payload}")
+    
+    # Get request details for better debugging
+    request_info = {
+        "path": request.path,
+        "method": request.method,
+        "endpoint": request.endpoint,
+        "has_auth_header": "Authorization" in request.headers,
+    }
+    print(f"Request info for expired token: {request_info}")
+    
+    # Include more details in the response
+    return jsonify({
+        "error": "Token has expired",
+        "details": "Please log in again to get a new token"
+    }), 401
 
 @jwt.invalid_token_loader
 def invalid_token_callback(error_string):
     print(f"Invalid token error: {error_string}")
-    return jsonify({"error": f"Invalid token: {error_string}"}), 401
+    
+    # Get request details for better debugging
+    request_info = {
+        "path": request.path,
+        "method": request.method,
+        "endpoint": request.endpoint,
+        "has_auth_header": "Authorization" in request.headers,
+    }
+    print(f"Request info for invalid token: {request_info}")
+    
+    # Add more debug info if authorization header exists
+    if "Authorization" in request.headers:
+        auth_header = request.headers["Authorization"]
+        print(f"Authorization header format: {auth_header[:10]}...")
+        
+        # Check token format
+        parts = auth_header.split()
+        if len(parts) != 2:
+            print(f"Invalid Authorization header format: expected 2 parts, got {len(parts)}")
+        elif parts[0] != "Bearer":
+            print(f"Invalid Authorization scheme: expected 'Bearer', got '{parts[0]}'")
+    
+    return jsonify({
+        "error": f"Invalid token: {error_string}",
+        "details": "The token format is invalid or the signature is incorrect"
+    }), 401
 
 @jwt.unauthorized_loader
 def missing_token_callback(error_string):
     print(f"Missing token error: {error_string}")
-    return jsonify({"error": f"Missing token: {error_string}"}), 401
+    
+    # Get request details for better debugging
+    request_info = {
+        "path": request.path,
+        "method": request.method,
+        "endpoint": request.endpoint,
+        "has_auth_header": "Authorization" in request.headers,
+    }
+    print(f"Request info for missing token: {request_info}")
+    
+    # Check all headers for debugging
+    print("All headers:")
+    for key, value in request.headers.items():
+        # Don't print the full token value if it exists
+        if key.lower() == 'authorization':
+            print(f"  {key}: {value[:15]}..." if value else f"  {key}: None")
+        else:
+            print(f"  {key}: {value}")
+    
+    return jsonify({
+        "error": f"Missing token: {error_string}",
+        "details": "No JWT token was found in the request headers"
+    }), 401
 
 @jwt.token_verification_failed_loader
 def token_verification_failed_callback():
     print("Token verification failed")
-    return jsonify({"error": "Token verification failed"}), 401
+    
+    # Get request details for better debugging
+    request_info = {
+        "path": request.path,
+        "method": request.method,
+        "endpoint": request.endpoint,
+        "has_auth_header": "Authorization" in request.headers,
+    }
+    print(f"Request info for verification failed: {request_info}")
+    
+    return jsonify({
+        "error": "Token verification failed",
+        "details": "The token could not be verified. It may be corrupted or tampered with."
+    }), 401
 
 # Configure CORS to allow requests from the frontend with proper headers
 CORS(app, 
@@ -140,8 +215,21 @@ CORS(app,
          "http://127.0.0.1:3000"   # Also for local development
      ]}}, 
      supports_credentials=True,
-     allow_headers=["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
-     expose_headers=["Authorization", "Content-Type"],
+     allow_headers=[
+         "Content-Type", 
+         "Authorization", 
+         "Access-Control-Allow-Credentials",
+         "X-Authorization",       # Our custom authorization header
+         "X-Requested-With",      # For XHR detection
+         "X-Source",              # For debugging request sources
+         "X-Token-Length",        # For debugging token issues
+         "Cache-Control"          # For cache control
+     ],
+     expose_headers=[
+         "Authorization", 
+         "Content-Type",
+         "X-Authorization"        # Expose custom auth header in responses
+     ],
      max_age=86400)
 
 # Register API blueprint
@@ -547,46 +635,105 @@ def direct_save_player_availability(game_id, player_id):
 # Import this at the module level to avoid circular imports
 from services.ai_service import AIService
 
-# AI Fielding Rotation Route - Using jwt_required decorator for proper auth
-@app.route('/api/games/<int:game_id>/ai-fielding-rotation', methods=['POST'])
-@app.route('/api/games/<int:game_id>/ai-fielding-rotation/', methods=['POST'])
-@jwt_required()
-def direct_generate_ai_fielding_rotation(game_id):
-    """Direct route for generating AI fielding rotation using JWT decorator"""
-    print(f"Direct AI fielding rotation generation route activated for game {game_id}")
+# AI Fielding Rotation Route - With manual auth for special case
+@app.route('/api/games/<int:game_id>/ai-fielding-rotation-manual', methods=['POST'])
+def manual_generate_ai_fielding_rotation(game_id):
+    """Manual JWT validation route for generating AI fielding rotation as a fallback"""
+    print(f"MANUAL AI fielding rotation generation route activated for game {game_id}")
     
-    # Debug the headers
-    print("REQUEST HEADERS:")
+    # Debug the headers with more detail
+    print("REQUEST HEADERS - MANUAL AI ROTATION:")
     for key, value in request.headers.items():
         # Don't print the full token value
         if key.lower() == 'authorization':
-            print(f"  {key}: {value[:15]}..." if value else f"  {key}: None")
+            if value:
+                print(f"  {key}: {value[:15]}... [PRESENT]")
+                # Also log the token type to see if it matches what we expect
+                token_parts = value.split()
+                if len(token_parts) == 2:
+                    print(f"  Token type: {token_parts[0]}")
+                else:
+                    print(f"  Token format is not as expected. Parts: {len(token_parts)}")
+            else:
+                print(f"  {key}: [EMPTY]")
         else:
             print(f"  {key}: {value}")
-            
+    
     try:
-        # Get user ID from token
-        user_id = get_jwt_identity()
-        if isinstance(user_id, str):
-            user_id = int(user_id)
+        # Extract and validate the token manually
+        auth_header = request.headers.get('Authorization')
+        if not auth_header:
+            # Try alternate headers that might have been set
+            auth_header = request.headers.get('X-Authorization')
+            if not auth_header:
+                print("No Authorization header found in manual validation")
+                return jsonify({'error': 'Authorization header is missing'}), 401
         
-        print(f"Processing AI fielding rotation generation for game {game_id}, user {user_id}")
+        # Split the header to get the token
+        auth_parts = auth_header.split()
+        if len(auth_parts) != 2 or auth_parts[0] != 'Bearer':
+            print(f"Invalid Authorization header format: {auth_header[:15]}...")
+            return jsonify({'error': 'Invalid Authorization header format. Expected: Bearer <token>'}), 401
         
-        # Grab the request data
+        token = auth_parts[1]
+        
+        # Manually decode and validate the token
+        from flask_jwt_extended import decode_token
+        try:
+            decoded_token = decode_token(token)
+            print(f"Token successfully decoded: {decoded_token.keys()}")
+            user_id = decoded_token['sub']  # sub is where identity is stored
+            
+            # Convert user_id to integer if needed
+            if isinstance(user_id, str):
+                user_id = int(user_id)
+            
+            # Store in Flask g for compatibility
+            from flask import g
+            g.user_id = user_id
+            
+            print(f"Manually validated user_id: {user_id}")
+        except Exception as token_err:
+            print(f"Error decoding token: {token_err}")
+            return jsonify({'error': f'Invalid token: {str(token_err)}'}), 401
+        
+        # Now proceed with the rest of the function, same as the decorated version
         data = request.get_json()
+        print(f"Request JSON data keys: {data.keys() if data else 'None'}")
         
-        # Check for required data
         if not data or not isinstance(data.get('players'), list) or len(data.get('players', [])) == 0:
+            print("Error: Missing required player data")
             return jsonify({'error': 'Player data is required for AI rotation generation'}), 400
         
-        # Using read_only mode since this is just a verification and AI computation
+        # Special check for feature requirement
         with db_session(read_only=True) as session:
-            # Verify game belongs to user's team via service
+            from shared.models import User
+            from shared.subscription_tiers import has_feature
+            
+            # Check if user has the AI feature
+            user = session.query(User).filter(User.id == user_id).first()
+            if user and user.role != 'admin':
+                if not has_feature(user.subscription_tier, 'ai_lineup_generation'):
+                    print(f"User {user_id} doesn't have the AI feature")
+                    return jsonify({
+                        'error': 'Subscription required',
+                        'message': 'This feature requires a Pro subscription',
+                        'current_tier': user.subscription_tier,
+                        'required_feature': 'ai_lineup_generation',
+                        'upgrade_url': '/account/billing'
+                    }), 403
+        
+        # Continue with game validation and AI generation
+        with db_session(read_only=True) as session:
             from services.game_service import GameService
             
+            print(f"Verifying game {game_id} belongs to user {user_id}")
             game = GameService.get_game(session, game_id, user_id)
             if not game:
+                print(f"Error: Game {game_id} not found or not owned by user {user_id}")
                 return jsonify({'error': 'Game not found or unauthorized'}), 404
+            
+            print(f"Game {game_id} verification successful for user {user_id}")
             
             # Get required parameters from request data
             players = data['players']
@@ -603,7 +750,10 @@ def direct_generate_ai_fielding_rotation(game_id):
             strict_position_balance = options.get('strictPositionBalance', True)
             temperature = options.get('temperature', 0.7)  # Add temperature parameter with default
             
+            print(f"AI rotation parameters: innings={innings}, players={len(players)}, temp={temperature}")
+            
             try:
+                print("Calling AIService.generate_fielding_rotation...")
                 # Use the AI service to generate fielding rotation with timeout handling
                 rotation_result = AIService.generate_fielding_rotation(
                     game_id, 
@@ -619,10 +769,12 @@ def direct_generate_ai_fielding_rotation(game_id):
                     temperature  # Pass temperature to the AI service
                 )
                 
+                print("AI rotation generated successfully")
                 return jsonify(rotation_result), 200
             except ValueError as ve:
                 if "timeout" in str(ve).lower():
                     # If timeout occurs, return an informative message with HTTP 202 Accepted
+                    print(f"AI rotation generation timed out: {str(ve)}")
                     # This indicates the request was valid but could not be completed in time
                     return jsonify({
                         "message": "The AI fielding rotation could not be generated in time. Please try again later or create a manual rotation.",
@@ -631,6 +783,150 @@ def direct_generate_ai_fielding_rotation(game_id):
                     }), 202
                 else:
                     # For other ValueErrors, pass through to the general error handler
+                    print(f"ValueError in AI rotation generation: {str(ve)}")
+                    raise ve
+    except Exception as e:
+        print(f"Error in manual AI fielding rotation generation: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Error processing request: {str(e)}'}), 500
+
+# AI Fielding Rotation Route - Using jwt_required decorator for proper auth
+@app.route('/api/games/<int:game_id>/ai-fielding-rotation', methods=['POST'])
+@app.route('/api/games/<int:game_id>/ai-fielding-rotation/', methods=['POST'])
+@jwt_required()
+def direct_generate_ai_fielding_rotation(game_id):
+    """Direct route for generating AI fielding rotation using JWT decorator"""
+    print(f"Direct AI fielding rotation generation route activated for game {game_id}")
+    
+    # Debug the headers with more detail
+    print("REQUEST HEADERS - AI FIELDING ROTATION:")
+    for key, value in request.headers.items():
+        # Don't print the full token value
+        if key.lower() == 'authorization':
+            if value:
+                print(f"  {key}: {value[:15]}... [PRESENT]")
+                # Also log the token type to see if it matches what we expect
+                token_parts = value.split()
+                if len(token_parts) == 2:
+                    print(f"  Token type: {token_parts[0]}")
+                else:
+                    print(f"  Token format is not as expected. Parts: {len(token_parts)}")
+            else:
+                print(f"  {key}: [EMPTY]")
+        else:
+            print(f"  {key}: {value}")
+    
+    # Debug JWT state in current request
+    from flask_jwt_extended import verify_jwt_in_request, get_raw_jwt
+    try:
+        # Try to verify and get JWT manually
+        print("Manually verifying JWT token...")
+        verify_jwt_in_request()
+        print("JWT verification successful")
+        
+        # Get the JWT payload
+        try:
+            jwt_data = get_jwt()
+            print(f"JWT payload retrieved. Keys: {jwt_data.keys()}")
+            if 'exp' in jwt_data:
+                import datetime
+                exp_time = datetime.datetime.fromtimestamp(jwt_data['exp'])
+                print(f"Token expires at: {exp_time}")
+            if 'sub' in jwt_data:
+                print(f"Token subject (sub): {jwt_data['sub']}")
+        except Exception as jwt_err:
+            print(f"Error getting JWT payload: {jwt_err}")
+    except Exception as verify_err:
+        print(f"JWT verification failed: {verify_err}")
+    
+    try:
+        # Get user ID from token
+        user_id = get_jwt_identity()
+        print(f"JWT identity retrieved: {user_id} (type: {type(user_id)})")
+        
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+            print(f"Converted user_id to integer: {user_id}")
+        
+        print(f"Processing AI fielding rotation generation for game {game_id}, user {user_id}")
+        
+        # Store user_id in Flask g object for compatibility with other code
+        from flask import g
+        g.user_id = user_id
+        print(f"Stored user_id {user_id} in Flask g object")
+        
+        # Grab the request data
+        data = request.get_json()
+        print(f"Request JSON data keys: {data.keys() if data else 'None'}")
+        
+        # Check for required data
+        if not data or not isinstance(data.get('players'), list) or len(data.get('players', [])) == 0:
+            print("Error: Missing required player data")
+            return jsonify({'error': 'Player data is required for AI rotation generation'}), 400
+        
+        # Using read_only mode since this is just a verification and AI computation
+        with db_session(read_only=True) as session:
+            # Verify game belongs to user's team via service
+            from services.game_service import GameService
+            
+            print(f"Verifying game {game_id} belongs to user {user_id}")
+            game = GameService.get_game(session, game_id, user_id)
+            if not game:
+                print(f"Error: Game {game_id} not found or not owned by user {user_id}")
+                return jsonify({'error': 'Game not found or unauthorized'}), 404
+            
+            print(f"Game {game_id} verification successful for user {user_id}")
+            
+            # Get required parameters from request data
+            players = data['players']
+            innings = data.get('innings', game.innings) or 6  # Default to game innings or fallback to 6
+            required_positions = data.get('required_positions', [])
+            infield_positions = data.get('infield_positions', [])
+            outfield_positions = data.get('outfield_positions', [])
+            
+            # Get customization options with defaults
+            options = data.get('options', {})
+            no_consecutive_innings = options.get('noConsecutiveInnings', True)
+            balance_playing_time = options.get('balancePlayingTime', True)
+            allow_same_position = options.get('allowSamePositionMultipleTimes', False)
+            strict_position_balance = options.get('strictPositionBalance', True)
+            temperature = options.get('temperature', 0.7)  # Add temperature parameter with default
+            
+            print(f"AI rotation parameters: innings={innings}, players={len(players)}, temp={temperature}")
+            
+            try:
+                print("Calling AIService.generate_fielding_rotation...")
+                # Use the AI service to generate fielding rotation with timeout handling
+                rotation_result = AIService.generate_fielding_rotation(
+                    game_id, 
+                    players, 
+                    innings,
+                    required_positions,
+                    infield_positions,
+                    outfield_positions,
+                    no_consecutive_innings,
+                    balance_playing_time,
+                    allow_same_position,
+                    strict_position_balance,
+                    temperature  # Pass temperature to the AI service
+                )
+                
+                print("AI rotation generated successfully")
+                return jsonify(rotation_result), 200
+            except ValueError as ve:
+                if "timeout" in str(ve).lower():
+                    # If timeout occurs, return an informative message with HTTP 202 Accepted
+                    print(f"AI rotation generation timed out: {str(ve)}")
+                    # This indicates the request was valid but could not be completed in time
+                    return jsonify({
+                        "message": "The AI fielding rotation could not be generated in time. Please try again later or create a manual rotation.",
+                        "error": str(ve),
+                        "success": False
+                    }), 202
+                else:
+                    # For other ValueErrors, pass through to the general error handler
+                    print(f"ValueError in AI rotation generation: {str(ve)}")
                     raise ve
             
     except Exception as e:
@@ -1053,9 +1349,27 @@ def static_proxy(path):
                     'message': 'Could not extract game ID or player ID for player availability save'
                 }), 400
         
-        # AI Fielding Rotation - direct call instead of redirect
+        # AI Fielding Rotation - direct call instead of redirect with special auth handling
         if request.method == 'POST' and 'games' in path and 'ai-fielding-rotation' in path:
             print(f"AI fielding rotation request detected in proxy: {path}")
+            
+            # Enhanced debug information
+            print("AI FIELDING ROTATION PROXY HANDLER - Request Headers:")
+            for key, value in request.headers.items():
+                # Don't print the full token value
+                if key.lower() == 'authorization':
+                    if value:
+                        print(f"  {key}: {value[:15]}... [PRESENT]")
+                        # Also log the token type to see if it matches what we expect
+                        token_parts = value.split()
+                        if len(token_parts) == 2:
+                            print(f"  Token type: {token_parts[0]}")
+                        else:
+                            print(f"  Token format is not as expected. Parts: {len(token_parts)}")
+                    else:
+                        print(f"  {key}: [EMPTY]")
+                else:
+                    print(f"  {key}: {value}")
             
             # Extract game_id from the path
             game_id = None
@@ -1064,18 +1378,66 @@ def static_proxy(path):
                 if part == 'games' and i+1 < len(parts) and parts[i+1].isdigit():
                     game_id = int(parts[i+1])
                     break
-                    
-            if game_id:
-                print(f"Direct handling AI fielding rotation for game {game_id}")
-                
-                # Instead of redirecting, directly call the function
-                # This preserves all headers including Authorization
-                return direct_generate_ai_fielding_rotation(game_id)
-            else:
+            
+            if not game_id:
+                print("ERROR: Could not extract game_id from path")
                 return jsonify({
                     'error': 'Invalid game ID in request path',
                     'message': 'Could not extract game ID for AI fielding rotation generation'
                 }), 400
+            
+            print(f"Direct handling AI fielding rotation for game {game_id}")
+            
+            # Check for authorization header
+            if 'Authorization' not in request.headers:
+                print("CRITICAL ERROR: No Authorization header in AI rotation request")
+                auth_header = request.headers.get('X-Authorization') or request.headers.get('x-authorization')
+                if auth_header:
+                    print(f"Found alternative authorization header: {auth_header[:15]}...")
+                    # Copy to standard header
+                    from werkzeug.datastructures import Headers
+                    modified_headers = Headers(request.headers)
+                    modified_headers['Authorization'] = auth_header
+                    request.headers = modified_headers
+                    print("Copied alternative authorization header to standard header")
+                else:
+                    print("ERROR: No alternative authorization header found")
+                    # Try to extract from cookie if present
+                    jwt_cookie = request.cookies.get('jwt')
+                    if jwt_cookie:
+                        print(f"Found JWT cookie: {jwt_cookie[:15]}...")
+                        from werkzeug.datastructures import Headers
+                        modified_headers = Headers(request.headers)
+                        modified_headers['Authorization'] = f"Bearer {jwt_cookie}"
+                        request.headers = modified_headers
+                        print("Created Authorization header from JWT cookie")
+                    else:
+                        print("ERROR: No JWT cookie found")
+            
+            # Extra option - try extracting token from query param if present
+            if 'token' in request.args:
+                print("Found token in query parameter")
+                from werkzeug.datastructures import Headers
+                modified_headers = Headers(request.headers)
+                modified_headers['Authorization'] = f"Bearer {request.args.get('token')}"
+                request.headers = modified_headers
+                print("Created Authorization header from query parameter")
+            
+            # Instead of redirecting, directly call the function to preserve headers
+            try:
+                print("Calling direct_generate_ai_fielding_rotation directly")
+                response = direct_generate_ai_fielding_rotation(game_id)
+                print(f"Direct call returned response with status: {response[1] if isinstance(response, tuple) else '200'}")
+                return response
+            except Exception as e:
+                print(f"Error in direct call to AI rotation handler: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return jsonify({
+                    'error': f'Error processing AI fielding rotation: {str(e)}',
+                    'path': path,
+                    'game_id': game_id
+                }), 500
         
         # Player creation - direct call instead of redirect for RESTful path
         if request.method == 'POST' and 'teams' in path and 'players' in path:

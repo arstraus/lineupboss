@@ -467,9 +467,43 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       // Show a user-friendly message about AI generation
       setAIError("AI is generating rotations. This may take 1-2 minutes...");
       
-      // Try with direct fetch instead of axios
-      // IMPORTANT: Use URL without trailing slash to avoid redirect
-      const apiUrl = `/api/games/${gameId}/ai-fielding-rotation`;
+      // Try using API function first (using axios with special manual endpoint)
+      try {
+        console.log("Using API service with axios for AI rotation generation");
+        const requestData = {
+          players: playersData,
+          innings: innings,
+          required_positions: requiredPositions,
+          infield_positions: INFIELD,
+          outfield_positions: OUTFIELD,
+          options: {
+            noConsecutiveInnings: aiOptions.noConsecutiveInnings,
+            balancePlayingTime: aiOptions.balancePlayingTime,
+            allowSamePositionMultipleTimes: aiOptions.allowSamePositionMultipleTimes,
+            strictPositionBalance: aiOptions.strictPositionBalance,
+            temperature: aiOptions.temperature
+          }
+        };
+        
+        const axiosResponse = await generateAIFieldingRotation(gameId, requestData);
+        
+        console.log("Axios API call successful:", axiosResponse.status);
+        
+        // Clear the "generating" message
+        setAIError("");
+        
+        // Parse and set the AI-generated rotations
+        setAIRotations(axiosResponse.data.rotations || {});
+        
+        // If we get here, we succeeded and can return
+        return;
+      } catch (axiosError) {
+        console.error("Axios API call failed, falling back to fetch:", axiosError);
+      }
+      
+      // If axios failed, try with direct fetch as a fallback
+      console.log("Trying direct fetch as fallback method");
+      const apiUrl = `/api/games/${gameId}/ai-fielding-rotation-manual`;
       console.log(`Sending direct fetch to: ${apiUrl}`);
       
       const response = await fetch(apiUrl, {
@@ -477,9 +511,10 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
-          // Add these headers to help with debugging and ensure proper redirect behavior
+          // Add extra headers for auth fallbacks
+          'X-Authorization': `Bearer ${token}`,
           'X-Requested-With': 'XMLHttpRequest',
-          'X-Source': 'FieldingRotationTab',
+          'X-Source': 'FieldingRotationTab-DirectFetch',
           'Cache-Control': 'no-cache'
         },
         body: JSON.stringify({
@@ -497,7 +532,7 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
           }
         }),
         // Add these options to handle redirects properly
-        redirect: 'follow',
+        redirect: 'manual', // Don't auto-follow redirects - they lose auth headers
         credentials: 'include',
         referrerPolicy: 'no-referrer-when-downgrade'
       });
@@ -508,6 +543,7 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       }
       
       const data = await response.json();
+      console.log("Fetch successful, got data:", data ? "Yes" : "No");
       
       // Clear the "generating" message
       setAIError("");
