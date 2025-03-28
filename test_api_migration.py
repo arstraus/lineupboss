@@ -39,6 +39,7 @@ class APITester:
         self.success_count = 0
         self.failure_count = 0
         self.total_tests = 0
+        self.failures = []
         
         # Resources created during testing (for cleanup)
         self.created_resources = {
@@ -86,8 +87,17 @@ class APITester:
             print(f"{status_color}{status_symbol} {method.upper()} {endpoint} - {response.status_code}{Colors.ENDC}")
             
             # Handle response based on expected status
-            if response.status_code != expected_status:
+            if expected_status is not None and response.status_code != expected_status:
                 self.failure_count += 1
+                failure_info = {
+                    'endpoint': endpoint,
+                    'method': method,
+                    'expected_status': expected_status,
+                    'actual_status': response.status_code,
+                    'response': response.text[:200] + ('...' if len(response.text) > 200 else '')
+                }
+                self.failures.append(failure_info)
+                
                 if self.verbose:
                     print(f"{Colors.FAIL}Expected status: {expected_status}, got: {response.status_code}{Colors.ENDC}")
                     print(f"{Colors.FAIL}Response: {response.text}{Colors.ENDC}")
@@ -308,17 +318,29 @@ class APITester:
         
         team_id = self.created_resources['teams'][0]
         
-        # Check analytics status
+        # Check analytics status (try both original and v2 versions)
         self.make_request('get', '/api/analytics/status')
         
-        # Get team analytics
+        # Get team analytics (RESTful endpoint)
         self.make_request('get', f'/api/analytics/teams/{team_id}')
         
-        # Get player batting analytics
+        # Get team analytics (legacy endpoint)
+        self.make_request('get', f'/api/analytics/teams/{team_id}/analytics')
+        
+        # Get player batting analytics (RESTful endpoint)
         self.make_request('get', f'/api/analytics/teams/{team_id}/players/batting')
         
-        # Get player fielding analytics
+        # Get player batting analytics (legacy endpoint)
+        self.make_request('get', f'/api/analytics/teams/{team_id}/batting-analytics')
+        
+        # Get player fielding analytics (RESTful endpoint)
         self.make_request('get', f'/api/analytics/teams/{team_id}/players/fielding')
+        
+        # Get player fielding analytics (legacy endpoint)
+        self.make_request('get', f'/api/analytics/teams/{team_id}/fielding-analytics')
+        
+        # Get debug analytics data
+        self.make_request('get', f'/api/analytics/teams/{team_id}/debug')
     
     def test_admin(self):
         """Test admin endpoints."""
@@ -358,6 +380,16 @@ class APITester:
         success_rate = (self.success_count / self.total_tests) * 100 if self.total_tests > 0 else 0
         color = Colors.GREEN if success_rate >= 90 else Colors.WARNING if success_rate >= 75 else Colors.FAIL
         print(f"{color}Success rate: {success_rate:.2f}%{Colors.ENDC}")
+        
+        # Print details of failures
+        if self.failures:
+            print(f"\n{Colors.BOLD}Failed Tests:{Colors.ENDC}")
+            for i, failure in enumerate(self.failures):
+                print(f"{Colors.FAIL}{i+1}. {failure['method'].upper()} {failure['endpoint']}{Colors.ENDC}")
+                print(f"   Expected status: {failure['expected_status']}, got: {failure['actual_status']}")
+                if failure['response']:
+                    print(f"   Response: {failure['response']}")
+                print("")
         
         # Conclusion
         if self.failure_count == 0:
