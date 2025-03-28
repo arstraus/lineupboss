@@ -641,6 +641,11 @@ def manual_generate_ai_fielding_rotation(game_id):
     """Manual JWT validation route for generating AI fielding rotation as a fallback"""
     print(f"MANUAL AI fielding rotation generation route activated for game {game_id}")
     
+    # Import required modules at the top
+    from shared.database import db_session
+    from flask_jwt_extended import decode_token
+    from flask import g
+    
     # Debug the headers with more detail
     print("REQUEST HEADERS - MANUAL AI ROTATION:")
     for key, value in request.headers.items():
@@ -678,7 +683,6 @@ def manual_generate_ai_fielding_rotation(game_id):
         token = auth_parts[1]
         
         # Manually decode and validate the token
-        from flask_jwt_extended import decode_token
         try:
             decoded_token = decode_token(token)
             print(f"Token successfully decoded: {decoded_token.keys()}")
@@ -689,7 +693,6 @@ def manual_generate_ai_fielding_rotation(game_id):
                 user_id = int(user_id)
             
             # Store in Flask g for compatibility
-            from flask import g
             g.user_id = user_id
             
             print(f"Manually validated user_id: {user_id}")
@@ -705,11 +708,12 @@ def manual_generate_ai_fielding_rotation(game_id):
             print("Error: Missing required player data")
             return jsonify({'error': 'Player data is required for AI rotation generation'}), 400
         
+        # Import needed modules for feature check
+        from shared.models import User
+        from shared.subscription_tiers import has_feature
+        
         # Special check for feature requirement
         with db_session(read_only=True) as session:
-            from shared.models import User
-            from shared.subscription_tiers import has_feature
-            
             # Check if user has the AI feature
             user = session.query(User).filter(User.id == user_id).first()
             if user and user.role != 'admin':

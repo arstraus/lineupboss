@@ -488,12 +488,33 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
         const axiosResponse = await generateAIFieldingRotation(gameId, requestData);
         
         console.log("Axios API call successful:", axiosResponse.status);
+        console.log("Response data:", axiosResponse.data);
         
         // Clear the "generating" message
         setAIError("");
         
-        // Parse and set the AI-generated rotations
-        setAIRotations(axiosResponse.data.rotations || {});
+        // Parse and set the AI-generated rotations - handle different possible response formats
+        if (axiosResponse.data && typeof axiosResponse.data === 'object') {
+          if (axiosResponse.data.rotations) {
+            setAIRotations(axiosResponse.data.rotations);
+          } else if (Object.keys(axiosResponse.data).length > 0) {
+            // The API might be returning the rotations directly at the top level
+            // Check if the data looks like a rotation object with numeric keys
+            const hasNumericKeys = Object.keys(axiosResponse.data).some(key => !isNaN(parseInt(key)));
+            if (hasNumericKeys) {
+              setAIRotations(axiosResponse.data);
+            } else {
+              console.error("Unexpected response format:", axiosResponse.data);
+              setAIError("Unexpected API response format. Please try again.");
+            }
+          } else {
+            console.error("Empty response data:", axiosResponse.data);
+            setAIError("AI returned empty rotation data. Please try again.");
+          }
+        } else {
+          console.error("Invalid response data type:", typeof axiosResponse.data);
+          setAIError("Invalid API response format. Please try again.");
+        }
         
         // If we get here, we succeeded and can return
         return;
@@ -506,36 +527,88 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       const apiUrl = `/api/games/${gameId}/ai-fielding-rotation-manual`;
       console.log(`Sending direct fetch to: ${apiUrl}`);
       
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          // Add extra headers for auth fallbacks
-          'X-Authorization': `Bearer ${token}`,
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-Source': 'FieldingRotationTab-DirectFetch',
-          'Cache-Control': 'no-cache'
-        },
-        body: JSON.stringify({
-          players: playersData,
-          innings: innings,
-          required_positions: requiredPositions,
-          infield_positions: INFIELD,
-          outfield_positions: OUTFIELD,
-          options: {
-            noConsecutiveInnings: aiOptions.noConsecutiveInnings,
-            balancePlayingTime: aiOptions.balancePlayingTime,
-            allowSamePositionMultipleTimes: aiOptions.allowSamePositionMultipleTimes,
-            strictPositionBalance: aiOptions.strictPositionBalance,
-            temperature: aiOptions.temperature
-          }
-        }),
-        // Add these options to handle redirects properly
-        redirect: 'manual', // Don't auto-follow redirects - they lose auth headers
-        credentials: 'include',
-        referrerPolicy: 'no-referrer-when-downgrade'
-      });
+      // Try making the request with both endpoints
+      let response = null;
+      let errorDetails = null;
+      
+      // First try the manual endpoint
+      try {
+        response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            // Add extra headers for auth fallbacks
+            'X-Authorization': `Bearer ${token}`,
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-Source': 'FieldingRotationTab-DirectFetch-Manual',
+            'Cache-Control': 'no-cache'
+          },
+          body: JSON.stringify({
+            players: playersData,
+            innings: innings,
+            required_positions: requiredPositions,
+            infield_positions: INFIELD,
+            outfield_positions: OUTFIELD,
+            options: {
+              noConsecutiveInnings: aiOptions.noConsecutiveInnings,
+              balancePlayingTime: aiOptions.balancePlayingTime,
+              allowSamePositionMultipleTimes: aiOptions.allowSamePositionMultipleTimes,
+              strictPositionBalance: aiOptions.strictPositionBalance,
+              temperature: aiOptions.temperature
+            }
+          }),
+          // Add these options to handle redirects properly
+          redirect: 'manual', // Don't auto-follow redirects - they lose auth headers
+          credentials: 'include',
+          referrerPolicy: 'no-referrer-when-downgrade'
+        });
+      } catch (manualError) {
+        console.error("Error with manual endpoint:", manualError);
+        errorDetails = `Manual endpoint error: ${manualError.message}`;
+        
+        // Try the standard endpoint as a fallback
+        try {
+          console.log("Manual endpoint failed, trying standard endpoint");
+          const standardApiUrl = `/api/games/${gameId}/ai-fielding-rotation`;
+          
+          response = await fetch(standardApiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+              'X-Authorization': `Bearer ${token}`,
+              'X-Requested-With': 'XMLHttpRequest',
+              'X-Source': 'FieldingRotationTab-DirectFetch-Standard',
+              'Cache-Control': 'no-cache'
+            },
+            body: JSON.stringify({
+              players: playersData,
+              innings: innings,
+              required_positions: requiredPositions,
+              infield_positions: INFIELD,
+              outfield_positions: OUTFIELD,
+              options: {
+                noConsecutiveInnings: aiOptions.noConsecutiveInnings,
+                balancePlayingTime: aiOptions.balancePlayingTime,
+                allowSamePositionMultipleTimes: aiOptions.allowSamePositionMultipleTimes,
+                strictPositionBalance: aiOptions.strictPositionBalance,
+                temperature: aiOptions.temperature
+              }
+            }),
+            redirect: 'manual',
+            credentials: 'include',
+            referrerPolicy: 'no-referrer-when-downgrade'
+          });
+        } catch (standardError) {
+          console.error("Error with standard endpoint:", standardError);
+          throw new Error(`Both endpoints failed. Manual: ${errorDetails}, Standard: ${standardError.message}`);
+        }
+      }
+      
+      if (!response) {
+        throw new Error("No response received from either endpoint");
+      }
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -544,12 +617,33 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       
       const data = await response.json();
       console.log("Fetch successful, got data:", data ? "Yes" : "No");
+      console.log("Response data:", data);
       
       // Clear the "generating" message
       setAIError("");
       
-      // Parse and set the AI-generated rotations
-      setAIRotations(data.rotations || {});
+      // Parse and set the AI-generated rotations - handle different possible response formats
+      if (data && typeof data === 'object') {
+        if (data.rotations) {
+          setAIRotations(data.rotations);
+        } else if (Object.keys(data).length > 0) {
+          // The API might be returning the rotations directly at the top level
+          // Check if the data looks like a rotation object with numeric keys
+          const hasNumericKeys = Object.keys(data).some(key => !isNaN(parseInt(key)));
+          if (hasNumericKeys) {
+            setAIRotations(data);
+          } else {
+            console.error("Unexpected response format:", data);
+            setAIError("Unexpected API response format. Please try again.");
+          }
+        } else {
+          console.error("Empty response data:", data);
+          setAIError("AI returned empty rotation data. Please try again.");
+        }
+      } else {
+        console.error("Invalid response data type:", typeof data);
+        setAIError("Invalid API response format. Please try again.");
+      }
       
     } catch (err) {
       console.error("Error generating AI rotation:", err);

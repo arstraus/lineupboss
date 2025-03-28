@@ -251,7 +251,9 @@ class AIService:
                     logger.warning("No valid rotations parsed, generating a simple default")
                     rotations = {1: {"error": "Failed to parse response"}}
                 
-                return {'rotations': rotations}
+                # Ensure consistent output format with rotations at top level
+                logger.info(f"Returning rotation result with {len(rotations)} innings")
+                return rotations
             else:
                 logger.error("Failed to extract JSON from Anthropic response")
                 raise ValueError("Failed to extract valid JSON from Anthropic response")
