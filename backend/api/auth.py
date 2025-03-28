@@ -112,6 +112,114 @@ def register():
     - Structured error handling
     - Clear transaction boundaries
     """
+    # Document this endpoint in the OpenAPI spec
+    try:
+        from api.docs_helper import document_endpoint
+        document_endpoint(
+            blueprint=auth,
+            path='/register',
+            methods=['POST'],
+            summary='Register a new user',
+            description='Register a new user with email and password',
+            request_body={
+                'description': 'User registration data',
+                'required': True,
+                'content': {
+                    'application/json': {
+                        'schema': {
+                            'type': 'object',
+                            'properties': {
+                                'email': {
+                                    'type': 'string',
+                                    'format': 'email',
+                                    'description': 'User email address'
+                                },
+                                'password': {
+                                    'type': 'string',
+                                    'format': 'password',
+                                    'description': 'User password'
+                                },
+                                'name': {
+                                    'type': 'string',
+                                    'description': 'User name (optional)'
+                                }
+                            },
+                            'required': ['email', 'password']
+                        }
+                    }
+                }
+            },
+            responses={
+                '200': {
+                    'description': 'User registered successfully',
+                    'content': {
+                        'application/json': {
+                            'schema': {
+                                'type': 'object',
+                                'properties': {
+                                    'message': {
+                                        'type': 'string',
+                                        'example': 'User created successfully.'
+                                    },
+                                    'token': {
+                                        'type': 'string',
+                                        'example': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+                                    },
+                                    'user': {
+                                        'type': 'object',
+                                        'properties': {
+                                            'id': {
+                                                'type': 'integer',
+                                                'example': 1
+                                            },
+                                            'email': {
+                                                'type': 'string',
+                                                'example': 'user@example.com'
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                '400': {
+                    'description': 'Invalid input data',
+                    'content': {
+                        'application/json': {
+                            'schema': {
+                                'type': 'object',
+                                'properties': {
+                                    'error': {
+                                        'type': 'string',
+                                        'example': 'Email and password are required'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                '409': {
+                    'description': 'Email already registered',
+                    'content': {
+                        'application/json': {
+                            'schema': {
+                                'type': 'object',
+                                'properties': {
+                                    'error': {
+                                        'type': 'string',
+                                        'example': 'Email already registered'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        )
+    except ImportError:
+        # Optional documentation - continue if not available
+        pass
     print("Register endpoint hit")
     data = request.get_json()
     print(f"Received data: {data}")
@@ -179,9 +287,114 @@ def login():
     
     Uses standardized database access patterns:
     - db_session context manager for automatic cleanup
-    - Read-only operation (no commits needed)
-    - Structured error handling
     """
+    # Document this endpoint in the OpenAPI spec
+    try:
+        from api.docs_helper import document_endpoint
+        document_endpoint(
+            blueprint=auth,
+            path='/login',
+            methods=['POST'],
+            summary='Login a user',
+            description='Login a user with email and password and return a JWT token',
+            request_body={
+                'description': 'User login credentials',
+                'required': True,
+                'content': {
+                    'application/json': {
+                        'schema': {
+                            'type': 'object',
+                            'properties': {
+                                'email': {
+                                    'type': 'string',
+                                    'format': 'email',
+                                    'description': 'User email address'
+                                },
+                                'password': {
+                                    'type': 'string',
+                                    'format': 'password',
+                                    'description': 'User password'
+                                }
+                            },
+                            'required': ['email', 'password']
+                        }
+                    }
+                }
+            },
+            responses={
+                '200': {
+                    'description': 'Login successful',
+                    'content': {
+                        'application/json': {
+                            'schema': {
+                                'type': 'object',
+                                'properties': {
+                                    'access_token': {
+                                        'type': 'string',
+                                        'example': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+                                    },
+                                    'user_id': {
+                                        'type': 'integer',
+                                        'example': 1
+                                    },
+                                    'role': {
+                                        'type': 'string',
+                                        'example': 'user'
+                                    },
+                                    'status': {
+                                        'type': 'string',
+                                        'example': 'approved'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                '401': {
+                    'description': 'Invalid credentials',
+                    'content': {
+                        'application/json': {
+                            'schema': {
+                                'type': 'object',
+                                'properties': {
+                                    'error': {
+                                        'type': 'string',
+                                        'example': 'Invalid email or password'
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                '403': {
+                    'description': 'Account not approved',
+                    'content': {
+                        'application/json': {
+                            'schema': {
+                                'type': 'object',
+                                'properties': {
+                                    'error': {
+                                        'type': 'string',
+                                        'example': 'Your account is pending approval'
+                                    },
+                                    'status': {
+                                        'type': 'string',
+                                        'example': 'pending'
+                                    },
+                                    'user_id': {
+                                        'type': 'integer',
+                                        'example': 1
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        )
+    except ImportError:
+        # Optional documentation - continue if not available
+        pass
     data = request.get_json()
     
     # Input validation

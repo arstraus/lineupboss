@@ -15,6 +15,7 @@ from functools import wraps
 from services.auth_service import AuthService
 from shared.models import User
 from shared.subscription_tiers import ALL_TIERS
+from backend.utils import standardize_error_response
 
 admin = Blueprint('admin', __name__)
 
@@ -22,36 +23,58 @@ admin = Blueprint('admin', __name__)
 def admin_required(fn):
     """Decorator to verify the user has admin role.
     
-    Uses standardized database access patterns:
+    Uses standardized patterns:
+    - Proper JWT verification
     - db_session context manager for automatic cleanup
     - Read-only operation (no commits needed)
+    - Standardized error responses
+    
+    Similar to the new in-route feature checking pattern, but as a decorator 
+    for admin-only routes where feature checks aren't needed.
     """
-    @jwt_required()
     @wraps(fn)  # Preserve the original function's name and metadata
     def admin_check(*args, **kwargs):
-        user_id = get_jwt_identity()
+        from backend.utils import standardize_error_response
         
         try:
-            if isinstance(user_id, str):
-                user_id = int(user_id)
-        except ValueError:
-            return jsonify({'error': 'Invalid user ID format'}), 400
+            # First verify JWT is present and valid
+            verify_jwt_in_request()
+            user_id = get_jwt_identity()
             
-        try:
+            # Convert user_id to int if it's a string
+            try:
+                if isinstance(user_id, str):
+                    user_id = int(user_id)
+            except ValueError:
+                return standardize_error_response('Invalid user ID format', 400)
+                
             # Using read_only mode since this is just a query operation
             with db_session(read_only=True) as session:
                 user = AuthService.get_user_by_id(session, user_id)
                 
                 if not user:
-                    return jsonify({'error': 'User not found'}), 404
+                    return standardize_error_response('User not found', 404)
                     
                 if user.role != 'admin':
-                    return jsonify({'error': 'Admin access required'}), 403
-                    
+                    return standardize_error_response(
+                        'Admin access required', 
+                        403,
+                        {'required_role': 'admin', 'current_role': user.role}
+                    )
+                
+                # Store user and user_id in Flask's g object for convenience
+                from flask import g
+                g.user_id = user_id
+                g.user = user
+                
+                # Call the original function
                 return fn(*args, **kwargs)
+                
         except Exception as e:
+            import traceback
             print(f"Error in admin_required: {str(e)}")
-            return db_error_response(e, "Failed to verify admin access")
+            print(traceback.format_exc())
+            return standardize_error_response('Failed to verify admin access', 500, str(e))
             
     return admin_check
 
@@ -130,7 +153,7 @@ def get_users():
         import traceback
         print(traceback.format_exc())
         # Use standardized error response
-        return db_error_response(e, "Failed to retrieve users")
+        return standardize_error_response("Failed to retrieve users", 500, str(e))
 
 @admin.route('/approve/<int:user_id>', methods=['POST'])
 @admin_required
@@ -145,15 +168,17 @@ def approve_user(user_id):
     
     Uses standardized database access patterns:
     - db_session context manager with automatic commit
-    - Structured error handling with db_error_response
+    - Structured error handling with standardize_error_response
     """
+    from backend.utils import standardize_error_response
+    
     admin_id = get_jwt_identity()
     
     try:
         if isinstance(admin_id, str):
             admin_id = int(admin_id)
     except ValueError:
-        return jsonify({'error': 'Invalid admin ID format'}), 400
+        return standardize_error_response('Invalid admin ID format', 400)
         
     try:
         # Using commit=True to automatically commit successful operations
@@ -162,10 +187,13 @@ def approve_user(user_id):
             user = AuthService.get_user_by_id(session, user_id)
             
             if not user:
-                return jsonify({'error': 'User not found'}), 404
+                return standardize_error_response('User not found', 404)
                 
             if user.status == 'approved':
-                return jsonify({'message': 'User already approved'}), 200
+                return jsonify({
+                    'message': 'User already approved',
+                    'user': AuthService.serialize_user(user)
+                }), 200
                 
             # Update user status
             user.status = 'approved'
@@ -189,7 +217,7 @@ def approve_user(user_id):
     except Exception as e:
         print(f"Error approving user: {e}")
         # Use standardized error response - no need to manually rollback
-        return db_error_response(e, "Failed to approve user")
+        return standardize_error_response('Failed to approve user', 500, str(e))
 
 @admin.route('/reject/<int:user_id>', methods=['POST'])
 @admin_required
@@ -204,7 +232,7 @@ def reject_user(user_id):
     
     Uses standardized database access patterns:
     - db_session context manager with automatic commit
-    - Structured error handling with db_error_response
+    - Structured error handling with standardize_error_response
     """
     admin_id = get_jwt_identity()
     
@@ -212,7 +240,7 @@ def reject_user(user_id):
         if isinstance(admin_id, str):
             admin_id = int(admin_id)
     except ValueError:
-        return jsonify({'error': 'Invalid admin ID format'}), 400
+        return standardize_error_response('Invalid admin ID format', 400)
         
     data = request.get_json() or {}
     reason = data.get('reason', 'Your account request has been rejected.')
@@ -224,10 +252,13 @@ def reject_user(user_id):
             user = AuthService.get_user_by_id(session, user_id)
             
             if not user:
-                return jsonify({'error': 'User not found'}), 404
+                return standardize_error_response('User not found', 404)
                 
             if user.status == 'rejected':
-                return jsonify({'message': 'User already rejected'}), 200
+                return jsonify({
+                    'message': 'User already rejected',
+                    'user': AuthService.serialize_user(user)
+                }), 200
                 
             # Update user status
             user.status = 'rejected'
@@ -251,7 +282,7 @@ def reject_user(user_id):
     except Exception as e:
         print(f"Error rejecting user: {e}")
         # Use standardized error response - no need to manually rollback
-        return db_error_response(e, "Failed to reject user")
+        return standardize_error_response("Failed to reject user", 500, str(e))
 
 @admin.route('/users/<int:user_id>/role', methods=['PUT'])
 @admin_required
@@ -260,7 +291,7 @@ def update_user_role(user_id):
     
     Uses standardized database access patterns:
     - db_session context manager with automatic commit
-    - Structured error handling with db_error_response
+    - Structured error handling with standardize_error_response
     - Role validation
     """
     admin_id = get_jwt_identity()
@@ -269,16 +300,16 @@ def update_user_role(user_id):
         if isinstance(admin_id, str):
             admin_id = int(admin_id)
     except ValueError:
-        return jsonify({'error': 'Invalid admin ID format'}), 400
+        return standardize_error_response('Invalid admin ID format', 400)
         
     data = request.get_json()
     
     if not data or not data.get('role'):
-        return jsonify({'error': 'Role is required'}), 400
+        return standardize_error_response('Role is required', 400)
         
     role = data['role']
     if role not in ['admin', 'user']:
-        return jsonify({'error': 'Invalid role. Must be "admin" or "user"'}), 400
+        return standardize_error_response('Invalid role. Must be "admin" or "user"', 400, {'valid_roles': ['admin', 'user']})
         
     try:
         # Using commit=True to automatically commit successful operations
@@ -287,11 +318,11 @@ def update_user_role(user_id):
             user = AuthService.get_user_by_id(session, user_id)
             
             if not user:
-                return jsonify({'error': 'User not found'}), 404
+                return standardize_error_response('User not found', 404)
                 
             # Don't allow changing own role
             if user_id == admin_id:
-                return jsonify({'error': 'Cannot change your own role'}), 403
+                return standardize_error_response('Cannot change your own role', 403)
                 
             # Update user role
             user.role = role
@@ -303,7 +334,7 @@ def update_user_role(user_id):
     except Exception as e:
         print(f"Error updating user role: {e}")
         # Use standardized error response - no need to manually rollback
-        return db_error_response(e, "Failed to update user role")
+        return standardize_error_response("Failed to update user role", 500, str(e))
 
 @admin.route('/users/<int:user_id>', methods=['DELETE'])
 @admin_required
@@ -312,7 +343,7 @@ def delete_user(user_id):
     
     Uses standardized database access patterns:
     - db_session context manager with automatic commit
-    - Structured error handling with db_error_response
+    - Structured error handling with standardize_error_response
     """
     admin_id = get_jwt_identity()
     
@@ -320,7 +351,7 @@ def delete_user(user_id):
         if isinstance(admin_id, str):
             admin_id = int(admin_id)
     except ValueError:
-        return jsonify({'error': 'Invalid admin ID format'}), 400
+        return standardize_error_response('Invalid admin ID format', 400)
         
     try:
         # Using commit=True to automatically commit successful operations
@@ -329,11 +360,11 @@ def delete_user(user_id):
             user = AuthService.get_user_by_id(session, user_id)
             
             if not user:
-                return jsonify({'error': 'User not found'}), 404
+                return standardize_error_response('User not found', 404)
                 
             # Don't allow admin to delete themselves
             if user_id == admin_id:
-                return jsonify({'error': 'Cannot delete your own account'}), 403
+                return standardize_error_response('Cannot delete your own account', 403)
                 
             # Delete user
             session.delete(user)
@@ -345,7 +376,7 @@ def delete_user(user_id):
     except Exception as e:
         print(f"Error deleting user: {e}")
         # Use standardized error response - no need to manually rollback
-        return db_error_response(e, "Failed to delete user")
+        return standardize_error_response("Failed to delete user", 500, str(e))
 
 
 @admin.route('/pending-users', methods=['GET'])
@@ -370,7 +401,7 @@ def update_user_subscription(user_id):
     
     Uses standardized database access patterns:
     - db_session context manager with automatic commit
-    - Structured error handling with db_error_response
+    - Structured error handling with standardize_error_response
     - Tier validation
     """
     admin_id = get_jwt_identity()
@@ -379,16 +410,20 @@ def update_user_subscription(user_id):
         if isinstance(admin_id, str):
             admin_id = int(admin_id)
     except ValueError:
-        return jsonify({'error': 'Invalid admin ID format'}), 400
+        return standardize_error_response('Invalid admin ID format', 400)
         
     data = request.get_json()
     
     if not data or not data.get('subscription_tier'):
-        return jsonify({'error': 'Subscription tier is required'}), 400
+        return standardize_error_response('Subscription tier is required', 400)
         
     tier = data['subscription_tier']
     if tier not in ALL_TIERS:
-        return jsonify({'error': f'Invalid subscription tier. Must be one of: {", ".join(ALL_TIERS)}'}), 400
+        return standardize_error_response(
+            'Invalid subscription tier',
+            400,
+            {'valid_tiers': ALL_TIERS}
+        )
         
     try:
         # Using commit=True to automatically commit successful operations
@@ -397,7 +432,7 @@ def update_user_subscription(user_id):
             user = AuthService.get_user_by_id(session, user_id)
             
             if not user:
-                return jsonify({'error': 'User not found'}), 404
+                return standardize_error_response('User not found', 404)
                 
             # Update user subscription tier
             previous_tier = user.subscription_tier
@@ -423,7 +458,7 @@ def update_user_subscription(user_id):
     except Exception as e:
         print(f"Error updating user subscription: {e}")
         # Use standardized error response - no need to manually rollback
-        return db_error_response(e, "Failed to update user subscription")
+        return standardize_error_response('Failed to update user subscription', 500, str(e))
 
 @admin.route('/pending-count', methods=['GET'])
 @admin_required
@@ -449,4 +484,4 @@ def get_pending_count():
     except Exception as e:
         print(f"Error getting pending count: {e}")
         # Use standardized error response
-        return db_error_response(e, "Failed to get pending count")
+        return standardize_error_response("Failed to get pending count", 500, str(e))

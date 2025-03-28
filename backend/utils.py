@@ -1,207 +1,195 @@
 """
-Utility functions for the LineupBoss backend.
+Utility functions for the backend.
 """
+import json
+import re
 from functools import wraps
-from flask import jsonify, g
-from shared.database import db_session
-from shared.subscription_tiers import has_feature, TIER_FEATURES
+from flask import jsonify, g, request
+from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 
-def with_db_session(f):
-    """Decorator to provide a database session to a route handler.
+# Legacy feature gating decorators
+# Note: These decorators have been deprecated in favor of in-route feature checks.
+# They are kept here for reference but are no longer used in the application.
+#
+# def subscription_required(required_tier):
+#     """
+#     [DEPRECATED] Decorator to restrict routes based on subscription tier.
+#     This has been replaced by in-route feature checks.
+#     """
+#     pass
+#
+# def feature_required(feature_name):
+#     """
+#     [DEPRECATED] Decorator to restrict routes based on features available in subscription tier.
+#     This has been replaced by in-route feature checks.
+#     """
+#     pass
+#
+# def team_limit_check(f):
+#     """
+#     [DEPRECATED] Decorator to check if a user has reached their team limit.
+#     This has been replaced by in-route checks.
+#     """
+#     pass
+
+# JWT helper functions - for standardized JWT usage
+
+def token_required(f):
+    """
+    Decorator that combines jwt_required with setting g.user_id.
     
-    Usage:
-    @with_db_session
-    def some_route(db=None):
-        # Use db session here
-        result = db.query(Model).all()
-        return jsonify(result)
+    This is a convenience wrapper around jwt_required that also
+    sets g.user_id for use in the route function.
     
-    The decorated function will receive a db session as a keyword argument.
-    The session will be automatically closed when the function returns.
+    Returns:
+        Function that verifies the JWT token and sets g.user_id
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        with db_session() as session:
-            try:
-                # Add session to kwargs
-                kwargs['db'] = session
-                # Call the original function
-                return f(*args, **kwargs)
-            except Exception as e:
-                session.rollback()
-                return jsonify({'error': str(e)}), 500
-    return decorated_function
-
-def subscription_required(tier):
-    """Decorator to restrict route access based on subscription tier.
-    
-    Usage:
-    @subscription_required('pro')
-    @token_required
-    def premium_route():
-        # This will only be accessible to users with 'pro' subscription
-        
-    The decorator assumes token_required has already set g.user_id
-    """
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            # Verify user_id is in global context
-            if not hasattr(g, 'user_id'):
-                return jsonify({
-                    'error': 'Authentication required',
-                    'message': 'Please log in first'
-                }), 401
-                
-            # Check user's subscription tier
-            with db_session(read_only=True) as session:
-                from shared.models import User
-                from shared.subscription_tiers import compare_tiers
-                
-                user = session.query(User).filter(User.id == g.user_id).first()
-                
-                if not user:
-                    return jsonify({
-                        'error': 'User not found',
-                        'message': 'Could not verify subscription tier'
-                    }), 404
-                    
-                if user.role == 'admin':
-                    # Admins bypass subscription checks
-                    return f(*args, **kwargs)
-                    
-                # Check if user's tier is sufficient using our tier helper
-                if not compare_tiers(user.subscription_tier, tier):
-                    return jsonify({
-                        'error': 'Subscription required',
-                        'message': f'This feature requires a {tier} subscription',
-                        'current_tier': user.subscription_tier,
-                        'required_tier': tier,
-                        'upgrade_url': '/account/billing'
-                    }), 403
-                
-                # If we get here, the user has adequate permissions
-                return f(*args, **kwargs)
-        return decorated_function
-    return decorator
-
-def feature_required(feature_name):
-    """Decorator to restrict route access based on user's subscription features.
-    
-    Usage:
-    @feature_required('ai_lineup_generation')
-    @token_required
-    def generate_ai_lineup():
-        # This will only be accessible to users with the ai_lineup_generation feature
-        
-    The decorator assumes token_required has already set g.user_id
-    """
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            # Verify user_id is in global context
-            if not hasattr(g, 'user_id'):
-                return jsonify({
-                    'error': 'Authentication required',
-                    'message': 'Please log in first'
-                }), 401
-                
-            # Check user's subscription tier
-            with db_session(read_only=True) as session:
-                from shared.models import User
-                user = session.query(User).filter(User.id == g.user_id).first()
-                
-                if not user:
-                    return jsonify({
-                        'error': 'User not found',
-                        'message': 'Could not verify subscription features'
-                    }), 404
-                    
-                if user.role == 'admin':
-                    # Admins bypass feature checks
-                    return f(*args, **kwargs)
-                    
-                # Check if user's tier has the required feature
-                if not has_feature(user.subscription_tier, feature_name):
-                    return jsonify({
-                        'error': 'Subscription required',
-                        'message': f'This feature requires a Pro subscription',
-                        'current_tier': user.subscription_tier,
-                        'required_feature': feature_name,
-                        'upgrade_url': '/account/billing'
-                    }), 403
-                
-                # If we get here, the user has the required feature
-                return f(*args, **kwargs)
-        return decorated_function
-    return decorator
-
-def team_limit_check(f):
-    """Decorator to check if a user has reached their team limit based on subscription tier.
-    
-    Usage:
-    @team_limit_check
-    @jwt_required()
-    def create_team_route():
-        # This will check if user is allowed to create more teams
-    """
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Get user ID directly from JWT instead of relying on g.user_id
-        from flask_jwt_extended import get_jwt_identity
-        
-        user_id = get_jwt_identity()
-        # Convert to integer if string
-        if isinstance(user_id, str):
-            try:
+        try:
+            # Verify the JWT token
+            verify_jwt_in_request()
+            
+            # Get the user ID from the token
+            user_id = get_jwt_identity()
+            
+            # Convert to int if it's a string
+            if isinstance(user_id, str):
                 user_id = int(user_id)
-            except ValueError:
-                return jsonify({"error": "Invalid user ID format"}), 400
                 
-        # Store in g for compatibility with the rest of the function
-        from flask import g
-        g.user_id = user_id
-        
-        print(f"Team limit check for user_id: {user_id}")
+            # Store user_id in g for use in the route function
+            g.user_id = user_id
             
-        # Check user's team count against their subscription limit
-        with db_session(read_only=True) as session:
-            from shared.models import User, Team
-            
-            user = session.query(User).filter(User.id == user_id).first()
-            if not user:
-                print(f"User not found: {user_id}")
-                return jsonify({
-                    'error': 'User not found'
-                }), 404
-                
-            # Admins bypass team limits
-            if user.role == 'admin':
-                print(f"Admin user {user_id} bypassing team limit check")
-                return f(*args, **kwargs)
-                
-            # Get the user's team count
-            team_count = session.query(Team).filter(Team.user_id == user_id).count()
-            
-            # Get the user's tier limit from the tier features
-            tier = user.subscription_tier
-            if tier not in TIER_FEATURES:
-                tier = "rookie"  # Default to rookie for unknown tiers
-                
-            user_limit = TIER_FEATURES[tier].get("max_teams", 2)  # Default to 2 teams
-            
-            print(f"User {user_id} has {team_count} teams out of {user_limit} allowed for tier {tier}")
-            
-            # Check if user is at or over their limit
-            if team_count >= user_limit and user_limit != float('inf'):
-                return jsonify({
-                    'error': 'Team limit reached',
-                    'message': f'Your {user.subscription_tier} plan allows {user_limit} teams. Upgrade to create more teams.',
-                    'current_count': team_count,
-                    'limit': user_limit,
-                    'upgrade_url': '/account/billing'
-                }), 403
-                
-            # User is within their limits
+            # Call the original function
             return f(*args, **kwargs)
+        except Exception as e:
+            print(f"Error in token_required decorator: {str(e)}")
+            return jsonify({'error': 'Authentication error'}), 401
+    
     return decorated_function
+
+def extract_id_from_path(path, resource_type):
+    """
+    Extract an ID from a URL path for a specific resource type.
+    
+    Args:
+        path: URL path
+        resource_type: Resource type to find ID for (e.g., 'teams', 'games', 'players')
+        
+    Returns:
+        ID if found, None otherwise
+    """
+    parts = path.split('/')
+    for i, part in enumerate(parts):
+        if part == resource_type and i+1 < len(parts) and parts[i+1].isdigit():
+            return int(parts[i+1])
+    return None
+
+def get_auth_header():
+    """
+    Get the Authorization header from various sources.
+    
+    Tries multiple sources for the auth token in this order:
+    1. Standard Authorization header
+    2. Custom X-Authorization header
+    3. JWT cookie
+    4. token URL parameter
+    
+    Returns:
+        Full authorization header string if found, None otherwise
+    """
+    # Try standard Authorization header
+    auth_header = request.headers.get('Authorization')
+    if auth_header:
+        return auth_header
+    
+    # Try custom X-Authorization header
+    x_auth = request.headers.get('X-Authorization')
+    if x_auth:
+        return x_auth
+    
+    # Try cookie
+    jwt_cookie = request.cookies.get('jwt')
+    if jwt_cookie:
+        return f"Bearer {jwt_cookie}"
+    
+    # Try URL parameter
+    token_param = request.args.get('token')
+    if token_param:
+        return f"Bearer {token_param}"
+    
+    return None
+
+def forward_auth_header(headers_dict):
+    """
+    Add/forward the Authorization header to a headers dictionary.
+    
+    This function is useful when calling another function directly
+    to ensure authentication headers are preserved.
+    
+    Args:
+        headers_dict: Headers dictionary to modify
+        
+    Returns:
+        Modified headers dictionary with Authorization header if available
+    """
+    auth_header = get_auth_header()
+    if auth_header:
+        from werkzeug.datastructures import Headers
+        headers = Headers(headers_dict)
+        headers['Authorization'] = auth_header
+        return headers
+    return headers_dict
+
+def direct_function_call(function, *args, **kwargs):
+    """
+    Call a function directly while preserving request context.
+    
+    This function is especially useful for directly calling routes
+    instead of redirecting to ensure headers and request data are preserved.
+    
+    Args:
+        function: Function to call
+        *args: Arguments to pass to the function
+        **kwargs: Keyword arguments to pass to the function
+        
+    Returns:
+        Function's return value
+    """
+    # Forward authentication headers
+    current_headers = dict(request.headers)
+    forwarded_headers = forward_auth_header(current_headers)
+    
+    # Save the original headers
+    original_headers = request.headers
+    
+    try:
+        # Update request headers with forwarded headers
+        request.headers = forwarded_headers
+        
+        # Call the function
+        return function(*args, **kwargs)
+    finally:
+        # Restore original headers
+        request.headers = original_headers
+
+def standardize_error_response(error_message, status_code=400, details=None):
+    """
+    Generate a standardized error response.
+    
+    Args:
+        error_message: Error message
+        status_code: HTTP status code
+        details: Additional details about the error
+        
+    Returns:
+        JSONified error response and status code
+    """
+    response = {
+        'error': error_message
+    }
+    
+    if details:
+        response['details'] = details
+        
+    return jsonify(response), status_code

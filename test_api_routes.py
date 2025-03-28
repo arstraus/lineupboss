@@ -14,7 +14,7 @@ Options:
     --dry-run              Skip data-modifying operations (POST/PUT/DELETE) that would change data
     --live-data            Actually execute data-modifying operations (use with caution!)
     --endpoint-group GROUP Test only a specific group of endpoints: 
-                          (auth, system, user, teams, players, games, lineup, admin, docs)
+                          (auth, system, user, teams, players, games, lineup, admin, docs, feature-gates)
     --test-credentials     File with test credentials (email:password) for login/register tests
     --verbose              Show more detailed output for each test
     --continue-on-error    Continue testing even if dependencies (like team_id) are missing
@@ -659,6 +659,85 @@ class ApiTester:
             self.test_endpoint(f"/admin/users/{user_id}", method="DELETE", 
                          skip_if_dry_run=True, group="admin", description="Delete user")
 
+        # Feature-gated endpoints testing
+        if self.should_test_group("feature-gates"):
+            print_section("Feature-Gated Endpoints")
+            
+            # Ensure we have required IDs
+            team_id = self.test_resources["team_id"]
+            game_id = self.test_resources["game_id"]
+            
+            if not team_id:
+                team_id = self._get_team_id()
+                self.test_resources["team_id"] = team_id
+            
+            if not game_id and team_id:
+                game_id = self._get_game_id(team_id)
+                self.test_resources["game_id"] = game_id
+            
+            # Test each feature-gated endpoint with the same token
+            # The token must be for a user with known subscription tier for meaningful results
+            if game_id:
+                # Test AI Rotation Generation
+                print_info("Testing AI Fielding Rotation with standard subscription")
+                ai_response = self.test_endpoint(f"/games/{game_id}/ai-fielding-rotation", method="POST", 
+                             data={
+                                "players": [
+                                    {"id": 1, "name": "Test Player", "positions": ["Pitcher", "Catcher"]}
+                                ],
+                                "innings": 6
+                             }, 
+                             skip_if_dry_run=False, 
+                             expect_error=True,  # We expect this to fail due to subscription
+                             group="feature-gates", 
+                             description="AI Fielding Rotation (Feature-Gated)")
+                
+                # Check the error response to verify feature gating is working
+                if ai_response and self.verbose:
+                    try:
+                        response_json = ai_response.json()
+                        if 'error' in response_json and response_json.get('error') == 'Subscription required':
+                            print_success("Feature gating is working properly for AI fielding rotation")
+                            print_info(f"Error message: {response_json.get('details', {}).get('message', 'No message')}")
+                        else:
+                            print_warning("Feature gating may not be working properly for AI fielding rotation")
+                            print_info(f"Response: {response_json}")
+                    except:
+                        print_warning("Could not parse JSON response for AI fielding rotation")
+            
+            # Test Analytics endpoints
+            if team_id:
+                print_info("Testing Advanced Analytics with standard subscription")
+                analytics_response = self.test_endpoint(f"/analytics/teams/{team_id}/batting-analytics", 
+                                   skip_if_dry_run=False,
+                                   expect_error=True,  # We expect this to fail due to subscription
+                                   group="feature-gates", 
+                                   description="Team Batting Analytics (Feature-Gated)")
+                
+                # Check the error response to verify feature gating is working
+                if analytics_response and self.verbose:
+                    try:
+                        response_json = analytics_response.json()
+                        if 'error' in response_json and response_json.get('error') == 'Subscription required':
+                            print_success("Feature gating is working properly for analytics endpoints")
+                            print_info(f"Error message: {response_json.get('details', {}).get('message', 'No message')}")
+                        else:
+                            print_warning("Feature gating may not be working properly for analytics endpoints")
+                            print_info(f"Response: {response_json}")
+                    except:
+                        print_warning("Could not parse JSON response for analytics endpoint")
+                
+                # Test the RESTful pattern too
+                restful_analytics_response = self.test_endpoint(f"/analytics/teams/{team_id}/players/batting", 
+                                          skip_if_dry_run=False,
+                                          expect_error=True,  # We expect this to fail due to subscription
+                                          group="feature-gates", 
+                                          description="Player Batting Analytics RESTful (Feature-Gated)")
+            
+            # Summary for feature gating tests
+            print_info("Feature gating test complete")
+            print_info("To fully test feature gating, run these tests with tokens for users with different subscription tiers")
+
         # Cleanup resources created during testing
         self._cleanup_test_resources()
 
@@ -877,7 +956,7 @@ def main():
     parser.add_argument("--live-data", action="store_true", default=False,
                        help="Actually execute data-modifying operations (use with caution!)")
     parser.add_argument("--endpoint-group", 
-                       choices=["auth", "system", "user", "teams", "players", "games", "lineup", "admin", "docs"],
+                       choices=["auth", "system", "user", "teams", "players", "games", "lineup", "admin", "docs", "feature-gates"],
                        help="Test only a specific group of endpoints")
     parser.add_argument("--test-credentials", 
                        help="File with test credentials (email:password) for login/register tests")

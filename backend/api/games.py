@@ -7,7 +7,7 @@ from services.team_service import TeamService
 from services.game_service import GameService
 from services.ai_service import AIService
 from shared.models import Game, Team
-from backend.utils import feature_required
+from backend.utils import standardize_error_response
 import csv
 import io
 import os
@@ -921,15 +921,18 @@ def batch_save_player_availability(game_id):
 # AI Fielding Rotation endpoint
 @games.route('/<int:game_id>/ai-fielding-rotation', methods=['POST'])
 @jwt_required()
-@feature_required('ai_lineup_generation')
 def generate_ai_fielding_rotation(game_id):
     """Generate AI-based fielding rotation for a specific game.
     
-    Uses standardized database access patterns:
+    Uses standardized database access patterns with in-route feature checking:
     - db_session context manager for automatic cleanup
     - Read-only operation (no commits needed) for verification
-    - Structured error handling with db_error_response
+    - Structured error handling with standardize_error_response
     """
+    from backend.utils import standardize_error_response
+    from shared.models import User
+    from shared.subscription_tiers import has_feature
+    
     user_id = get_jwt_identity()
     
     # Convert user_id to integer if it's a string
@@ -937,14 +940,35 @@ def generate_ai_fielding_rotation(game_id):
         if isinstance(user_id, str):
             user_id = int(user_id)
     except ValueError:
-        return jsonify({'error': 'Invalid user ID format'}), 400
-        
+        return standardize_error_response('Invalid user ID format', 400)
+    
     data = request.get_json()
     
     # Handle missing data errors more gracefully
     if not data:
-        return jsonify({'error': 'Request body is required with player data'}), 400
+        return standardize_error_response('Request body is required with player data', 400)
+    
+    # Check if user has the feature access
+    with db_session(read_only=True) as session:
+        user = session.query(User).filter(User.id == user_id).first()
         
+        if not user:
+            return standardize_error_response('User not found', 404)
+        
+        # Skip feature check for admins
+        if user.role != 'admin':
+            if not has_feature(user.subscription_tier, 'ai_lineup_generation'):
+                return standardize_error_response(
+                    'Subscription required',
+                    403,
+                    {
+                        'message': 'AI lineup generation requires a Pro subscription',
+                        'current_tier': user.subscription_tier,
+                        'required_feature': 'ai_lineup_generation',
+                        'upgrade_url': '/account/billing'
+                    }
+                )
+    
     # For the testing endpoint, create a basic structure if not provided
     if 'players' not in data or not isinstance(data['players'], list):
         print(f"AI Endpoint: Missing players data, creating dummy data for testing")
@@ -972,7 +996,7 @@ def generate_ai_fielding_rotation(game_id):
             
     # Continue with normal validation - but now we have test data if needed
     if not isinstance(data['players'], list) or len(data['players']) == 0:
-        return jsonify({'error': 'At least one player is required'}), 400
+        return standardize_error_response('At least one player is required', 400)
     
     try:
         # Using read_only mode since this is just a verification and AI computation
@@ -980,7 +1004,7 @@ def generate_ai_fielding_rotation(game_id):
             # Verify game belongs to user's team via service
             game = GameService.get_game(session, game_id, user_id)
             if not game:
-                return jsonify({'error': 'Game not found or unauthorized'}), 404
+                return standardize_error_response('Game not found or unauthorized', 404)
             
             # Get required parameters from request data
             players = data['players']
@@ -1016,21 +1040,23 @@ def generate_ai_fielding_rotation(game_id):
                 return jsonify(rotation_result), 200
             except ValueError as ve:
                 if "timeout" in str(ve).lower():
-                    # If timeout occurs, return an informative message with HTTP 202 Accepted
-                    # This indicates the request was valid but could not be completed in time
-                    return jsonify({
-                        "message": "The AI fielding rotation could not be generated in time. Please try again later or create a manual rotation.",
-                        "error": str(ve),
-                        "success": False
-                    }), 202  # 202 Accepted indicates the request was valid but processing couldn't be completed
+                    # If timeout occurs, return an informative message
+                    return standardize_error_response(
+                        'AI Rotation Timeout',
+                        202,  # Accepted but not completed
+                        {
+                            'message': 'The AI fielding rotation could not be generated in time. Please try again later or create a manual rotation.',
+                            'error': str(ve),
+                            'success': False
+                        }
+                    )
                 else:
                     # For other ValueErrors, pass through to the general error handler
                     raise ve
     except ValueError as e:
-        print(f"Error generating AI fielding rotation: {str(e)}")
-        return jsonify({"error": str(e)}), 400
+        return standardize_error_response('Invalid request data', 400, str(e))
     except Exception as e:
-        print(f"Error generating AI fielding rotation: {str(e)}")
-        # Use standardized error response
-        return db_error_response(e, "Failed to generate AI fielding rotation")
+        import traceback
+        traceback.print_exc()
+        return standardize_error_response('Error processing request', 500, str(e))
 

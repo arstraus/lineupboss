@@ -517,22 +517,11 @@ export const getTeamAnalytics = (teamId) => {
 
 // AI Operations
 /**
- * Generates AI fielding rotation with enhanced authentication strategy
+ * Generates AI fielding rotation
  * 
- * IMPORTANT: Authentication Architecture
- * This function is part of a multi-tier authentication approach:
- * 1. This axios request uses the manual validation endpoint first (/ai-fielding-rotation-manual)
- *    which extracts and validates tokens manually to handle edge cases
- * 2. If this fails, the FieldingRotationTab component has fallback mechanisms:
- *    - It tries direct fetch with the manual endpoint
- *    - Then tries the standard endpoint with additional custom headers
- * 
- * The backend implements dual endpoints for authentication:
- * - Manual endpoint: Extracts and validates tokens manually (used here)
- * - Standard endpoint: Uses @jwt_required() decorator (used as fallback)
- * 
- * This approach provides maximum resilience against authentication issues
- * caused by proxy handling, header loss in redirects, or inconsistent token handling.
+ * This function uses the standard blueprint route for AI fielding rotation.
+ * We've migrated from the legacy manual validation endpoint to the standard
+ * blueprint route that uses the middleware authentication layer.
  */
 export const generateAIFieldingRotation = (gameId, data, options = {}) => {
   // Use explicit authentication and timeout for AI operations
@@ -542,28 +531,18 @@ export const generateAIFieldingRotation = (gameId, data, options = {}) => {
     return Promise.reject(new Error('Authentication required'));
   }
   
-  console.log('[API] Generating AI fielding rotation with enhanced auth handling');
-  console.log(`[API] Using token: ${token.substring(0, 10)}...`);
+  console.log('[API] Generating AI fielding rotation');
   
-  // Use the manual validation endpoint that has extra safeguards
-  // Try without a trailing slash to avoid redirection issues
+  // Use the standard blueprint route
   return axios({
     method: 'post',
-    url: `/games/${gameId}/ai-fielding-rotation-manual`,
+    url: `/games/${gameId}/ai-fielding-rotation`,
     data: data,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      // Add these extra headers to help with debugging and as alternative auth sources
-      'X-Authorization': `Bearer ${token}`,
-      'X-Source': 'AIFieldingRotation',
-      'X-Token-Length': `${token.length}`
+      'Authorization': `Bearer ${token}`
     },
-    // Don't follow redirects - this avoids issues with lost credentials
-    maxRedirects: 0,
     // Add timeout for long-running operations
     timeout: options.timeout || 120000, // Default to 2 minute timeout for AI operations
-    // Add these options which may help with token preservation
-    withCredentials: true
   });
 };

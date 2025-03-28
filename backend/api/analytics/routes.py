@@ -1,15 +1,16 @@
 """
 API endpoints for analytics.
 """
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, g
 import logging
 import traceback
 from sqlalchemy import func
-from shared.database import db_session, db_error_response
+from shared.database import db_session
 from services.analytics_service import AnalyticsService
 from middleware.auth import jwt_required
-from backend.utils import feature_required
-from shared.models import Team, Game, BattingOrder, FieldingRotation
+from shared.models import Team, Game, BattingOrder, FieldingRotation, User
+from backend.utils import standardize_error_response
+from shared.subscription_tiers import has_feature
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -20,7 +21,6 @@ analytics_bp = Blueprint('analytics', __name__)
 
 @analytics_bp.route('/teams/<int:team_id>/players/batting', methods=['GET'])
 @jwt_required
-@feature_required('advanced_analytics')
 def get_player_batting_analytics(team_id):
     """
     Get batting analytics for all players in a team using RESTful pattern.
@@ -31,11 +31,37 @@ def get_player_batting_analytics(team_id):
     Returns:
         JSON response with player batting analytics
     """
+    # Check feature access inside the function
+    user_id = g.user_id
+    
+    # Check if user has the advanced analytics feature
+    with db_session(read_only=True) as session:
+        user = session.query(User).filter(User.id == user_id).first()
+        
+        if not user:
+            return standardize_error_response(
+                'User not found',
+                404
+            )
+        
+        # Skip feature check for admins
+        if user.role != 'admin':
+            if not has_feature(user.subscription_tier, 'advanced_analytics'):
+                return standardize_error_response(
+                    'Subscription required',
+                    403,
+                    {
+                        'message': 'Advanced analytics requires a Pro subscription',
+                        'current_tier': user.subscription_tier,
+                        'required_feature': 'advanced_analytics',
+                        'upgrade_url': '/account/billing'
+                    }
+                )
+    
     return get_team_batting_analytics(team_id)
 
 @analytics_bp.route('/teams/<int:team_id>/batting-analytics', methods=['GET'])
 @jwt_required
-@feature_required('advanced_analytics')
 def get_team_batting_analytics(team_id):
     """
     Get batting analytics for all players in a team.
@@ -46,6 +72,32 @@ def get_team_batting_analytics(team_id):
     Returns:
         JSON response with player batting analytics
     """
+    user_id = g.user_id
+    
+    # Check if user has the advanced analytics feature
+    with db_session(read_only=True) as session:
+        user = session.query(User).filter(User.id == user_id).first()
+        
+        if not user:
+            return standardize_error_response(
+                'User not found',
+                404
+            )
+        
+        # Skip feature check for admins
+        if user.role != 'admin':
+            if not has_feature(user.subscription_tier, 'advanced_analytics'):
+                return standardize_error_response(
+                    'Subscription required',
+                    403,
+                    {
+                        'message': 'Advanced analytics requires a Pro subscription',
+                        'current_tier': user.subscription_tier,
+                        'required_feature': 'advanced_analytics',
+                        'upgrade_url': '/account/billing'
+                    }
+                )
+    
     logger.info(f"API request: get_team_batting_analytics for team_id: {team_id}")
     try:
         analytics = AnalyticsService.get_player_batting_analytics(team_id)
@@ -54,11 +106,10 @@ def get_team_batting_analytics(team_id):
     except Exception as e:
         logger.error(f"Error getting batting analytics for team_id {team_id}: {str(e)}")
         logger.error(traceback.format_exc())
-        return db_error_response(e, "Failed to get batting analytics")
+        return standardize_error_response("Failed to get batting analytics", 500, str(e))
 
 @analytics_bp.route('/teams/<int:team_id>/players/fielding', methods=['GET'])
 @jwt_required
-@feature_required('advanced_analytics')
 def get_player_fielding_analytics(team_id):
     """
     Get fielding analytics for all players in a team using RESTful pattern.
@@ -69,11 +120,37 @@ def get_player_fielding_analytics(team_id):
     Returns:
         JSON response with player fielding analytics
     """
+    # Check feature access inside the function
+    user_id = g.user_id
+    
+    # Check if user has the advanced analytics feature
+    with db_session(read_only=True) as session:
+        user = session.query(User).filter(User.id == user_id).first()
+        
+        if not user:
+            return standardize_error_response(
+                'User not found',
+                404
+            )
+        
+        # Skip feature check for admins
+        if user.role != 'admin':
+            if not has_feature(user.subscription_tier, 'advanced_analytics'):
+                return standardize_error_response(
+                    'Subscription required',
+                    403,
+                    {
+                        'message': 'Advanced analytics requires a Pro subscription',
+                        'current_tier': user.subscription_tier,
+                        'required_feature': 'advanced_analytics',
+                        'upgrade_url': '/account/billing'
+                    }
+                )
+    
     return get_team_fielding_analytics(team_id)
 
 @analytics_bp.route('/teams/<int:team_id>/fielding-analytics', methods=['GET'])
 @jwt_required
-@feature_required('advanced_analytics')
 def get_team_fielding_analytics(team_id):
     """
     Get fielding analytics for all players in a team.
@@ -84,6 +161,32 @@ def get_team_fielding_analytics(team_id):
     Returns:
         JSON response with player fielding analytics
     """
+    user_id = g.user_id
+    
+    # Check if user has the advanced analytics feature
+    with db_session(read_only=True) as session:
+        user = session.query(User).filter(User.id == user_id).first()
+        
+        if not user:
+            return standardize_error_response(
+                'User not found',
+                404
+            )
+        
+        # Skip feature check for admins
+        if user.role != 'admin':
+            if not has_feature(user.subscription_tier, 'advanced_analytics'):
+                return standardize_error_response(
+                    'Subscription required',
+                    403,
+                    {
+                        'message': 'Advanced analytics requires a Pro subscription',
+                        'current_tier': user.subscription_tier,
+                        'required_feature': 'advanced_analytics',
+                        'upgrade_url': '/account/billing'
+                    }
+                )
+    
     logger.info(f"API request: get_team_fielding_analytics for team_id: {team_id}")
     try:
         analytics = AnalyticsService.get_player_fielding_analytics(team_id)
@@ -92,7 +195,7 @@ def get_team_fielding_analytics(team_id):
     except Exception as e:
         logger.error(f"Error getting fielding analytics for team_id {team_id}: {str(e)}")
         logger.error(traceback.format_exc())
-        return db_error_response(e, "Failed to get fielding analytics")
+        return standardize_error_response("Failed to get fielding analytics", 500, str(e))
 
 @analytics_bp.route('/status', methods=['GET'])
 def analytics_status():
@@ -104,7 +207,6 @@ def analytics_status():
 
 @analytics_bp.route('/teams/<int:team_id>', methods=['GET'])
 @jwt_required
-@feature_required('advanced_analytics')
 def get_team_analytics_restful(team_id):
     """
     Get team analytics across all games using RESTful pattern.
@@ -115,11 +217,37 @@ def get_team_analytics_restful(team_id):
     Returns:
         JSON response with team analytics
     """
+    # Check feature access inside the function
+    user_id = g.user_id
+    
+    # Check if user has the advanced analytics feature
+    with db_session(read_only=True) as session:
+        user = session.query(User).filter(User.id == user_id).first()
+        
+        if not user:
+            return standardize_error_response(
+                'User not found',
+                404
+            )
+        
+        # Skip feature check for admins
+        if user.role != 'admin':
+            if not has_feature(user.subscription_tier, 'advanced_analytics'):
+                return standardize_error_response(
+                    'Subscription required',
+                    403,
+                    {
+                        'message': 'Advanced analytics requires a Pro subscription',
+                        'current_tier': user.subscription_tier,
+                        'required_feature': 'advanced_analytics',
+                        'upgrade_url': '/account/billing'
+                    }
+                )
+    
     return get_team_analytics(team_id)
 
 @analytics_bp.route('/teams/<int:team_id>/analytics', methods=['GET'])
 @jwt_required
-@feature_required('advanced_analytics')
 def get_team_analytics(team_id):
     """
     Get team analytics across all games.
@@ -130,6 +258,32 @@ def get_team_analytics(team_id):
     Returns:
         JSON response with team analytics
     """
+    user_id = g.user_id
+    
+    # Check if user has the advanced analytics feature
+    with db_session(read_only=True) as session:
+        user = session.query(User).filter(User.id == user_id).first()
+        
+        if not user:
+            return standardize_error_response(
+                'User not found',
+                404
+            )
+        
+        # Skip feature check for admins
+        if user.role != 'admin':
+            if not has_feature(user.subscription_tier, 'advanced_analytics'):
+                return standardize_error_response(
+                    'Subscription required',
+                    403,
+                    {
+                        'message': 'Advanced analytics requires a Pro subscription',
+                        'current_tier': user.subscription_tier,
+                        'required_feature': 'advanced_analytics',
+                        'upgrade_url': '/account/billing'
+                    }
+                )
+    
     logger.info(f"API request: get_team_analytics for team_id: {team_id}")
     try:
         analytics = AnalyticsService.get_team_analytics(team_id)
@@ -138,7 +292,7 @@ def get_team_analytics(team_id):
     except Exception as e:
         logger.error(f"Error getting team analytics for team_id {team_id}: {str(e)}")
         logger.error(traceback.format_exc())
-        return db_error_response(e, "Failed to get team analytics")
+        return standardize_error_response("Failed to get team analytics", 500, str(e))
 
 @analytics_bp.route('/teams/<int:team_id>/debug', methods=['GET'])
 @jwt_required
