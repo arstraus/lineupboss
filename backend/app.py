@@ -206,6 +206,19 @@ def direct_auth_login():
     from api.auth import login
     return login()
 
+# Debug route to list all registered routes
+@app.route('/api/debug/routes', methods=['GET'])
+def debug_routes():
+    """Debug endpoint to list all registered routes."""
+    routes = []
+    for rule in app.url_map.iter_rules():
+        routes.append({
+            'endpoint': rule.endpoint,
+            'methods': ','.join(rule.methods),
+            'path': str(rule)
+        })
+    return jsonify(routes)
+
 # Run server if executed directly
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

@@ -2,8 +2,8 @@
 Admin routes for managing users and application settings.
 """
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from shared.database import db_session, db_error_response
+from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
+from database import db_session
 from sqlalchemy import desc
 from datetime import datetime
 import os
@@ -13,9 +13,11 @@ from email.mime.multipart import MIMEMultipart
 from functools import wraps
 
 from services.auth_service import AuthService
-from shared.models import User
-from shared.subscription_tiers import ALL_TIERS
-from backend.utils import standardize_error_response
+from models.models import User
+from utils import standardize_error_response
+
+# Placeholder until we update subscription tiers
+ALL_TIERS = ["free", "basic", "pro", "team"]
 
 admin = Blueprint('admin', __name__)
 
