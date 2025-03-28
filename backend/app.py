@@ -630,11 +630,94 @@ def direct_save_player_availability(game_id, player_id):
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'Failed to save player availability: {str(e)}'}), 500
+        
+# Batch player availability route
+@app.route('/api/games/<int:game_id>/player-availability/batch', methods=['POST'])
+def direct_batch_save_player_availability(game_id):
+    """Direct route for batch saving player availability"""
+    print(f"Direct batch player availability saving route activated for game {game_id}")
+    
+    try:
+        # Manually verify JWT token
+        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+        from flask import g, request
+        from shared.database import db_session
+        from services.game_service import GameService
+        from services.player_service import PlayerService
+        
+        # Verify JWT token
+        print(f"Verifying JWT token for batch player availability save: {game_id}")
+        verify_jwt_in_request()
+        
+        # Get user ID from token
+        user_id = get_jwt_identity()
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+        g.user_id = user_id
+        
+        print(f"Processing batch player availability save for game {game_id}, user {user_id}")
+        
+        # Parse the request data
+        data = request.get_json()
+        
+        # Validate request data
+        if not data or not isinstance(data, list) or len(data) == 0:
+            print(f"Invalid batch data format: {type(data)}")
+            return jsonify({'error': 'A list of player availability records is required'}), 400
+        
+        # Validate each record in the batch
+        for idx, record in enumerate(data):
+            if not isinstance(record, dict) or 'player_id' not in record or not isinstance(record.get('available'), bool):
+                print(f"Invalid record at index {idx}: {record}")
+                return jsonify({'error': f'Invalid record at index {idx}: Must contain player_id and availability status'}), 400
+        
+        with db_session(commit=True) as session:
+            # Verify game belongs to user's team
+            game = GameService.get_game(session, game_id, user_id)
+            if not game:
+                print(f"Game {game_id} not found or not owned by user {user_id}")
+                return jsonify({'error': 'Game not found or unauthorized'}), 404
+            
+            # Verify all players belong to user's team
+            player_ids = [record['player_id'] for record in data]
+            for player_id in player_ids:
+                player = PlayerService.get_player(session, player_id, user_id)
+                if not player:
+                    print(f"Player {player_id} not found or not owned by user {user_id}")
+                    return jsonify({'error': f'Player with ID {player_id} not found or unauthorized'}), 404
+            
+            # Batch update player availability via service
+            updated_records = GameService.batch_set_player_availability(session, game_id, data)
+            
+            # Serialize responses
+            result = [GameService.serialize_player_availability(record) for record in updated_records]
+            
+            return jsonify({
+                'message': f'Successfully updated {len(updated_records)} player availability records',
+                'records': result
+            }), 200
+            
+    except Exception as e:
+        print(f"Error in direct batch player availability save: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to save player availability: {str(e)}'}), 500
 
 # AI Fielding Rotation Route
 # Import this at the module level to avoid circular imports
 from services.ai_service import AIService
 
+# IMPORTANT: AI Fielding Rotation Authentication Architecture
+# We implement dual authentication endpoints for AI fielding rotation to ensure robustness:
+# 1. The manual_generate_ai_fielding_rotation endpoint extracts and validates JWT tokens manually
+#    to handle cases where the Authorization header might be lost in redirects or proxy handlers.
+# 2. The direct_generate_ai_fielding_rotation endpoint uses the standard @jwt_required() decorator
+#    which is more concise but depends on proper header propagation in all environments.
+# 
+# This dual-endpoint approach provides a fallback mechanism for frontend authentication, where
+# the client can try both endpoints if one fails. The frontend fetches from the direct endpoint first,
+# and if that fails with an authentication error, it falls back to the manual endpoint.
+#
 # AI Fielding Rotation Route - With manual auth for special case
 @app.route('/api/games/<int:game_id>/ai-fielding-rotation-manual', methods=['POST'])
 def manual_generate_ai_fielding_rotation(game_id):
@@ -803,6 +886,11 @@ def direct_generate_ai_fielding_rotation(game_id):
     """Direct route for generating AI fielding rotation using JWT decorator"""
     print(f"Direct AI fielding rotation generation route activated for game {game_id}")
     
+    # Import required modules at the top
+    from shared.database import db_session, db_error_response
+    from shared.models import User
+    from shared.subscription_tiers import has_feature
+    
     # Debug the headers with more detail
     print("REQUEST HEADERS - AI FIELDING ROTATION:")
     for key, value in request.headers.items():
@@ -868,6 +956,21 @@ def direct_generate_ai_fielding_rotation(game_id):
         if not data or not isinstance(data.get('players'), list) or len(data.get('players', [])) == 0:
             print("Error: Missing required player data")
             return jsonify({'error': 'Player data is required for AI rotation generation'}), 400
+        
+        # Special check for feature requirement
+        with db_session(read_only=True) as session:
+            # Check if user has the AI feature
+            user = session.query(User).filter(User.id == user_id).first()
+            if user and user.role != 'admin':
+                if not has_feature(user.subscription_tier, 'ai_lineup_generation'):
+                    print(f"User {user_id} doesn't have the AI feature")
+                    return jsonify({
+                        'error': 'Subscription required',
+                        'message': 'This feature requires a Pro subscription',
+                        'current_tier': user.subscription_tier,
+                        'required_feature': 'ai_lineup_generation',
+                        'upgrade_url': '/account/billing'
+                    }), 403
         
         # Using read_only mode since this is just a verification and AI computation
         with db_session(read_only=True) as session:
@@ -1331,6 +1434,39 @@ def static_proxy(path):
         if request.method == 'POST' and 'games' in path and 'player-availability' in path:
             print(f"Player availability save request detected in proxy: {path}")
             
+            # Special handling for batch updates
+            if 'batch' in path:
+                print(f"Batch player availability save detected: {path}")
+                
+                # Extract game_id from the path
+                game_id = None
+                parts = path.split('/')
+                for i, part in enumerate(parts):
+                    if part == 'games' and i+1 < len(parts) and parts[i+1].isdigit():
+                        game_id = int(parts[i+1])
+                        break
+                
+                if game_id:
+                    print(f"Calling direct batch player availability save for game {game_id}")
+                    # Call the direct function instead of redirecting
+                    try:
+                        return direct_batch_save_player_availability(game_id)
+                    except Exception as e:
+                        print(f"Error in direct batch player availability call: {str(e)}")
+                        import traceback
+                        traceback.print_exc()
+                        return jsonify({
+                            'error': f'Error processing batch player availability: {str(e)}',
+                            'path': path,
+                            'game_id': game_id
+                        }), 500
+                else:
+                    return jsonify({
+                        'error': 'Invalid game ID in request path',
+                        'message': 'Could not extract game ID for batch player availability save'
+                    }), 400
+            
+            # Regular (non-batch) player availability
             # Extract game_id and player_id from the path
             game_id = None
             player_id = None

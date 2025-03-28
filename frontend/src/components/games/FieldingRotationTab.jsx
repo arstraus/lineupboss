@@ -434,6 +434,22 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
   };
   
   // Function to generate AI fielding rotation
+  // IMPORTANT: Authentication Strategy for AI Fielding Rotation
+  //
+  // The application implements a robust multi-tier fallback approach for authentication:
+  // 1. First try: Use the api.js service with axios to call the standard endpoint
+  //    (/api/games/{id}/ai-fielding-rotation) with JWT authentication header 
+  // 2. Fallback: If the first attempt fails with auth error, try direct fetch with
+  //    the manual authentication endpoint (/api/games/{id}/ai-fielding-rotation-manual)
+  // 3. Last resort: If manual endpoint fails, try the standard endpoint again with
+  //    additional custom headers
+  //
+  // The backend implements dual endpoints for authentication:
+  // - Standard endpoint: Uses @jwt_required() decorator for token validation
+  // - Manual endpoint: Extracts and validates tokens manually to handle various edge cases
+  //
+  // This approach provides maximum resilience against authentication issues caused by
+  // proxy handling, header loss in redirects, or inconsistent token handling.
   const handleGenerateAIRotation = async () => {
     try {
       setGeneratingAI(true);

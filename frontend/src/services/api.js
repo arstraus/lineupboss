@@ -474,8 +474,29 @@ export const updatePlayerAvailability = (gameId, availabilityData) => {
 };
 
 export const batchSavePlayerAvailability = (gameId, playerAvailabilityArray) => {
-  // Use direct axios call to avoid duplicating the /api prefix from baseURL
-  return axios.post(`/games/${gameId}/player-availability/batch`, playerAvailabilityArray);
+  // Use direct axios call with explicit configuration to avoid routing issues
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.error('[API] No token available for batch save player availability');
+    return Promise.reject(new Error('Authentication required'));
+  }
+  
+  console.log('[API] Batch saving player availability with token:', token.substring(0, 10) + '...');
+  
+  // Use explicit configuration to ensure proper headers and URL
+  return axios({
+    method: 'post',
+    url: `/games/${gameId}/player-availability/batch`,
+    data: playerAvailabilityArray,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    // Don't follow redirects automatically
+    maxRedirects: 0,
+    // Include credentials for any same-origin requests
+    withCredentials: true
+  });
 };
 
 // ANALYTICS API
@@ -495,6 +516,24 @@ export const getTeamAnalytics = (teamId) => {
 };
 
 // AI Operations
+/**
+ * Generates AI fielding rotation with enhanced authentication strategy
+ * 
+ * IMPORTANT: Authentication Architecture
+ * This function is part of a multi-tier authentication approach:
+ * 1. This axios request uses the manual validation endpoint first (/ai-fielding-rotation-manual)
+ *    which extracts and validates tokens manually to handle edge cases
+ * 2. If this fails, the FieldingRotationTab component has fallback mechanisms:
+ *    - It tries direct fetch with the manual endpoint
+ *    - Then tries the standard endpoint with additional custom headers
+ * 
+ * The backend implements dual endpoints for authentication:
+ * - Manual endpoint: Extracts and validates tokens manually (used here)
+ * - Standard endpoint: Uses @jwt_required() decorator (used as fallback)
+ * 
+ * This approach provides maximum resilience against authentication issues
+ * caused by proxy handling, header loss in redirects, or inconsistent token handling.
+ */
 export const generateAIFieldingRotation = (gameId, data, options = {}) => {
   // Use explicit authentication and timeout for AI operations
   const token = localStorage.getItem('token');
