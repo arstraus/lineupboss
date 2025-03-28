@@ -549,6 +549,7 @@ from services.ai_service import AIService
 
 # AI Fielding Rotation Route - Using jwt_required decorator for proper auth
 @app.route('/api/games/<int:game_id>/ai-fielding-rotation', methods=['POST'])
+@app.route('/api/games/<int:game_id>/ai-fielding-rotation/', methods=['POST'])
 @jwt_required()
 def direct_generate_ai_fielding_rotation(game_id):
     """Direct route for generating AI fielding rotation using JWT decorator"""
@@ -1052,7 +1053,7 @@ def static_proxy(path):
                     'message': 'Could not extract game ID or player ID for player availability save'
                 }), 400
         
-        # AI Fielding Rotation - direct call for RESTful path
+        # AI Fielding Rotation - direct call instead of redirect
         if request.method == 'POST' and 'games' in path and 'ai-fielding-rotation' in path:
             print(f"AI fielding rotation request detected in proxy: {path}")
             
@@ -1065,11 +1066,11 @@ def static_proxy(path):
                     break
                     
             if game_id:
-                print(f"Redirecting to direct AI fielding rotation for game {game_id}")
-                from werkzeug.utils import redirect
-                target_url = f"/api/games/{game_id}/ai-fielding-rotation"
-                print(f"Redirecting to: {target_url}")
-                return redirect(target_url, code=307)  # 307 preserves the POST method and body
+                print(f"Direct handling AI fielding rotation for game {game_id}")
+                
+                # Instead of redirecting, directly call the function
+                # This preserves all headers including Authorization
+                return direct_generate_ai_fielding_rotation(game_id)
             else:
                 return jsonify({
                     'error': 'Invalid game ID in request path',

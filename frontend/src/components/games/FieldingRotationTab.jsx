@@ -468,14 +468,19 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       setAIError("AI is generating rotations. This may take 1-2 minutes...");
       
       // Try with direct fetch instead of axios
-      const apiUrl = `/api/games/${gameId}/ai-fielding-rotation/`;
+      // IMPORTANT: Use URL without trailing slash to avoid redirect
+      const apiUrl = `/api/games/${gameId}/ai-fielding-rotation`;
       console.log(`Sending direct fetch to: ${apiUrl}`);
       
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          // Add these headers to help with debugging and ensure proper redirect behavior
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-Source': 'FieldingRotationTab',
+          'Cache-Control': 'no-cache'
         },
         body: JSON.stringify({
           players: playersData,
@@ -490,7 +495,11 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
             strictPositionBalance: aiOptions.strictPositionBalance,
             temperature: aiOptions.temperature
           }
-        })
+        }),
+        // Add these options to handle redirects properly
+        redirect: 'follow',
+        credentials: 'include',
+        referrerPolicy: 'no-referrer-when-downgrade'
       });
       
       if (!response.ok) {
