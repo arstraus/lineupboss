@@ -1,20 +1,19 @@
 """
-DEPRECATED: This module has been migrated to a package structure.
+DISABLED: This module has been disabled due to route conflicts.
 
-This file exists only to maintain backward compatibility and redirect imports.
-All new code should import directly from the package:
-
+All code should import directly from the package:
 from api.analytics import analytics_bp
 """
 
-# Redirect imports to the package
-from api.analytics import analytics_bp
-from api.analytics.routes import *
+# Create a deprecated dummy blueprint without routes
+# to avoid conflicts with the package implementation
+from flask import Blueprint
+analytics_bp = Blueprint('analytics_legacy', __name__)
 
 # Include deprecation warning
 import warnings
 warnings.warn(
-    "The 'api.analytics' module is deprecated. Import directly from the package instead: from api.analytics import analytics_bp",
+    "The 'api.analytics' module is deprecated and has been disabled. Import directly from the package instead: from api.analytics import analytics_bp",
     DeprecationWarning,
     stacklevel=2
 )
