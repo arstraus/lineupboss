@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { getFieldingRotations, saveFieldingRotation, getPlayerAvailability, getBattingOrder, post } from "../../services/api";
+import { 
+  getFieldingRotations, 
+  saveFieldingRotation, 
+  getPlayerAvailability, 
+  getBattingOrder, 
+  generateAIFieldingRotation 
+} from "../../services/api";
 
 // Constants from constants.js
 const POSITIONS = ["Pitcher", "Catcher", "1B", "2B", "3B", "SS", "LF", "RF", "LC", "RC", "Bench"];
@@ -453,9 +459,9 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       // Show a user-friendly message about AI generation
       setAIError("AI is generating rotations. This may take 1-2 minutes...");
       
-      // Custom API call with longer timeout specifically for AI operations
-      const response = await post(
-        `/games/${gameId}/ai-fielding-rotation`, 
+      // Use dedicated API function with explicit auth handling for AI operations
+      const response = await generateAIFieldingRotation(
+        gameId,
         {
           players: playersData,
           innings: innings,

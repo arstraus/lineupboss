@@ -493,3 +493,25 @@ export const getTeamAnalytics = (teamId) => {
   // Use more concise RESTful URL pattern
   return axios.get(`/analytics/teams/${teamId}`);
 };
+
+// AI Operations
+export const generateAIFieldingRotation = (gameId, data, options = {}) => {
+  // Use explicit authentication and timeout for AI operations
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.error('[API] Unable to generate AI fielding rotation - no authentication token available');
+    return Promise.reject(new Error('Authentication required'));
+  }
+  
+  // Always use trailing slash and explicit headers for reliability
+  return axios({
+    method: 'post',
+    url: `/games/${gameId}/ai-fielding-rotation/`,
+    data: data,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    timeout: options.timeout || 120000 // Default to 2 minute timeout for AI operations
+  });
+};
