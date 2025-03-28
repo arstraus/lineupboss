@@ -496,13 +496,19 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
         // Parse and set the AI-generated rotations - handle different possible response formats
         if (axiosResponse.data && typeof axiosResponse.data === 'object') {
           if (axiosResponse.data.rotations) {
+            console.log("Response contains rotations property - using it");
             setAIRotations(axiosResponse.data.rotations);
           } else if (Object.keys(axiosResponse.data).length > 0) {
             // The API might be returning the rotations directly at the top level
             // Check if the data looks like a rotation object with numeric keys
             const hasNumericKeys = Object.keys(axiosResponse.data).some(key => !isNaN(parseInt(key)));
             if (hasNumericKeys) {
+              console.log("Response has numeric keys at top level - using as rotations");
               setAIRotations(axiosResponse.data);
+            } else if (axiosResponse.data.error) {
+              // Handle error response
+              console.error("API returned error:", axiosResponse.data.error);
+              setAIError(`API error: ${axiosResponse.data.error}`);
             } else {
               console.error("Unexpected response format:", axiosResponse.data);
               setAIError("Unexpected API response format. Please try again.");
@@ -625,13 +631,19 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       // Parse and set the AI-generated rotations - handle different possible response formats
       if (data && typeof data === 'object') {
         if (data.rotations) {
+          console.log("Response contains rotations property - using it");
           setAIRotations(data.rotations);
         } else if (Object.keys(data).length > 0) {
           // The API might be returning the rotations directly at the top level
           // Check if the data looks like a rotation object with numeric keys
           const hasNumericKeys = Object.keys(data).some(key => !isNaN(parseInt(key)));
           if (hasNumericKeys) {
+            console.log("Response has numeric keys at top level - using as rotations");
             setAIRotations(data);
+          } else if (data.error) {
+            // Handle error response
+            console.error("API returned error:", data.error);
+            setAIError(`API error: ${data.error}`);
           } else {
             console.error("Unexpected response format:", data);
             setAIError("Unexpected API response format. Please try again.");
