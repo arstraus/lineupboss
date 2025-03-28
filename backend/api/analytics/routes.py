@@ -5,13 +5,27 @@ from flask import jsonify, request, g
 import logging
 import traceback
 from sqlalchemy import func
-from shared.database import db_session
+from database import db_session
 from services.analytics_service import AnalyticsService
 from flask_jwt_extended import jwt_required
-from shared.models import Team, Game, BattingOrder, FieldingRotation, User
-from backend.utils import standardize_error_response
-from shared.subscription_tiers import has_feature
+from models.models import Team, Game, BattingOrder, FieldingRotation, User
+from utils import standardize_error_response
 from api.analytics import analytics_bp
+
+# Check if subscription tier feature is available
+try:
+    from services.subscription_service import has_feature
+except ImportError:
+    # Fallback implementation if subscription service is not available
+    def has_feature(tier, feature_name):
+        # For testing: Always allow admins and return True for Pro tier
+        if tier == 'admin' or tier == 'pro':
+            return True
+        # For all other tiers, advanced_analytics requires Pro
+        if feature_name == 'advanced_analytics':
+            return False
+        # Default to True for other features
+        return True
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)

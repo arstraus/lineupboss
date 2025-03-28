@@ -2,35 +2,46 @@
 
 This module provides analytics endpoints for the LineupBoss API.
 
-## Endpoints
+## Overview
+The analytics module provides data aggregation and statistical analysis for:
+- Team performance metrics
+- Player batting statistics
+- Player fielding performance
+- Rotational analytics
 
-- GET /analytics/status - Check analytics service status
-- GET /analytics/teams/{team_id} - Get team analytics
-- GET /analytics/teams/{team_id}/players/batting - Get player batting analytics
-- GET /analytics/teams/{team_id}/players/fielding - Get player fielding analytics
+## Usage
 
-## Architecture
+### Prerequisites
+Analytics functionality requires a Pro subscription tier. The endpoints will return
+appropriate error messages for users without access to the advanced analytics feature.
 
-This module follows the package-based blueprint pattern described in the main API architecture guide:
+### Endpoints
 
-1. `__init__.py` creates the blueprint and imports routes
-2. `routes.py` defines endpoints using the blueprint from __init__
+#### Team Analytics
+- `GET /api/analytics/teams/{team_id}` - Get comprehensive team analytics
+- `GET /api/analytics/teams/{team_id}/analytics` - Legacy endpoint, same as above
 
-## Usage Example
+#### Batting Analytics
+- `GET /api/analytics/teams/{team_id}/players/batting` - Get batting analytics for all players
+- `GET /api/analytics/teams/{team_id}/batting-analytics` - Legacy endpoint, same as above
 
-```python
-# Example API request to get team analytics
-import requests
+#### Fielding Analytics
+- `GET /api/analytics/teams/{team_id}/players/fielding` - Get fielding analytics for all players
+- `GET /api/analytics/teams/{team_id}/fielding-analytics` - Legacy endpoint, same as above
 
-def get_team_analytics(team_id, token):
-    headers = {"Authorization": f"Bearer {token}"}
-    response = requests.get(f"https://lineupboss.app/api/analytics/teams/{team_id}", headers=headers)
-    return response.json()
-```
+#### Debug
+- `GET /api/analytics/status` - Simple health check for analytics module
+- `GET /api/analytics/teams/{team_id}/debug` - Detailed diagnostics on analytics data
 
 ## Implementation Notes
 
-- Analytics data is computed on request, not stored in the database
-- Most endpoints require the 'analytics' feature to be available in the user's subscription
-- Time-intensive queries are optimized with caching and SQL query optimization
-- Results are formatted for easy consumption by the frontend data visualization components
+- All analytics endpoints require JWT authentication
+- Advanced analytics features are restricted to Pro subscription tier
+- Error handling follows the standard API error response format
+- The module uses the `AnalyticsService` for data processing
+
+## Future Improvements
+- Add player-specific analytics routes (e.g., `/api/analytics/players/{player_id}`)
+- Add date range filtering for all analytics queries
+- Add export functionality for analytics data
+- Implement analytics caching for better performance
