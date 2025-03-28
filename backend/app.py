@@ -72,17 +72,6 @@ except Exception as e:
     print(f"ERROR initializing database: {e}")
     traceback.print_exc()
 
-@app.route("/")
-def root():
-    """
-    Root endpoint returning basic API information.
-    """
-    return jsonify({
-        "name": "Lineup Boss API",
-        "version": "1.0",
-        "status": "active"
-    })
-
 # Serve React App
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
@@ -91,6 +80,14 @@ def serve(path):
     Serve the React frontend.
     """
     print(f"Serving path: {path}")
+    # Special case for /api/ path to show API info
+    if path == "api":
+        return jsonify({
+            "name": "Lineup Boss API",
+            "version": "1.0",
+            "status": "active"
+        })
+    
     if path != "" and os.path.exists(app.static_folder + "/" + path):
         return send_from_directory(app.static_folder, path)
     else:
