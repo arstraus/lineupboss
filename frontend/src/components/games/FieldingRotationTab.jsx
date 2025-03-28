@@ -439,17 +439,25 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       setGeneratingAI(true);
       setAIError("");
       
+      // Debugging - check if token exists
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error("No authentication token found in localStorage");
+        setAIError("Authentication required: No token found. Please try logging out and back in.");
+        setGeneratingAI(false);
+        return;
+      } else {
+        console.log("Token exists:", token.substring(0, 10) + "...");
+      }
+      
       // Prepare player data for AI
       const playersData = availablePlayers.map(player => {
-        // Find availability data for this player
-        const availabilityData = {};
-        
         return {
           id: player.id,
           name: player.name,
           jersey_number: player.jersey_number,
           available: true, // We already filter unavailable players
-          can_play_catcher: true // Assuming all can play catcher for now, adjust based on your data model
+          can_play_catcher: true // Assuming all can play catcher for now
         };
       });
       
@@ -459,10 +467,17 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       // Show a user-friendly message about AI generation
       setAIError("AI is generating rotations. This may take 1-2 minutes...");
       
-      // Use dedicated API function with explicit auth handling for AI operations
-      const response = await generateAIFieldingRotation(
-        gameId,
-        {
+      // Try with direct fetch instead of axios
+      const apiUrl = `/api/games/${gameId}/ai-fielding-rotation/`;
+      console.log(`Sending direct fetch to: ${apiUrl}`);
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
           players: playersData,
           innings: innings,
           required_positions: requiredPositions,
@@ -475,15 +490,21 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
             strictPositionBalance: aiOptions.strictPositionBalance,
             temperature: aiOptions.temperature
           }
-        },
-        { timeout: 120000 } // 2 minute timeout for AI operations
-      );
+        })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server responded with ${response.status}: ${errorText}`);
+      }
+      
+      const data = await response.json();
       
       // Clear the "generating" message
       setAIError("");
       
       // Parse and set the AI-generated rotations
-      setAIRotations(response.data.rotations || {});
+      setAIRotations(data.rotations || {});
       
     } catch (err) {
       console.error("Error generating AI rotation:", err);

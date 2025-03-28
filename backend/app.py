@@ -554,6 +554,15 @@ def direct_generate_ai_fielding_rotation(game_id):
     """Direct route for generating AI fielding rotation using JWT decorator"""
     print(f"Direct AI fielding rotation generation route activated for game {game_id}")
     
+    # Debug the headers
+    print("REQUEST HEADERS:")
+    for key, value in request.headers.items():
+        # Don't print the full token value
+        if key.lower() == 'authorization':
+            print(f"  {key}: {value[:15]}..." if value else f"  {key}: None")
+        else:
+            print(f"  {key}: {value}")
+            
     try:
         # Get user ID from token
         user_id = get_jwt_identity()
