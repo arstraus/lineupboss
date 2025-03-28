@@ -82,24 +82,36 @@ register_blueprint(api, 'admin', 'admin', '/admin')
 
 # Register analytics blueprint (for team and player analytics)
 try:
-    # Import from package structure (preferred)
+    # Try importing the simplified blueprint first (for debugging)
     try:
-        # First try to import from the package
-        from api.analytics import analytics_bp
-        
-        # Register blueprint with proper URL prefix
-        api.register_blueprint(analytics_bp, url_prefix='/analytics')
-        print(f"SUCCESS: Registered analytics blueprint with URL prefix /analytics")
-        
-        # Debug - list all routes in the analytics blueprint
-        print(f"Analytics blueprint has these routes:")
-        for rule in analytics_bp.deferred_functions:
-            print(f"  - {rule}")
+        # First try the simplified module
+        from backend.api.analytics.simple_blueprint import simple_analytics_bp
+
+        # Register simplified blueprint
+        api.register_blueprint(simple_analytics_bp, url_prefix='/analytics')
+        print(f"SUCCESS: Registered simplified analytics blueprint with URL prefix /analytics")
             
         analytics_registered = True
     except ImportError as e:
-        print(f"WARNING: Could not import analytics package: {e}")
-        analytics_registered = False
+        print(f"WARNING: Could not import simplified analytics package: {e}")
+        
+        # Fall back to regular analytics blueprint
+        try:
+            from backend.api.analytics import analytics_bp
+            
+            # Register blueprint with proper URL prefix
+            api.register_blueprint(analytics_bp, url_prefix='/analytics')
+            print(f"SUCCESS: Registered analytics blueprint with URL prefix /analytics")
+            
+            # Debug - list all routes in the analytics blueprint
+            print(f"Analytics blueprint has these routes:")
+            for rule in analytics_bp.deferred_functions:
+                print(f"  - {rule}")
+                
+            analytics_registered = True
+        except ImportError as e2:
+            print(f"WARNING: Could not import analytics package: {e2}")
+            analytics_registered = False
 except Exception as e:
     print(f"ERROR: Error registering analytics blueprint: {e}")
     print(f"Stack trace: {traceback.format_exc()}")
