@@ -1,7 +1,7 @@
 """
 API endpoints for analytics.
 """
-from flask import Blueprint, jsonify, request, g
+from flask import jsonify, request, g
 import logging
 import traceback
 from sqlalchemy import func
@@ -11,13 +11,11 @@ from flask_jwt_extended import jwt_required
 from shared.models import Team, Game, BattingOrder, FieldingRotation, User
 from backend.utils import standardize_error_response
 from shared.subscription_tiers import has_feature
+from api.analytics import analytics_bp
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Create blueprint
-analytics_bp = Blueprint('analytics', __name__)
 
 @analytics_bp.route('/teams/<int:team_id>/players/batting', methods=['GET'])
 @jwt_required

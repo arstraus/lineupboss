@@ -3,14 +3,19 @@ Analytics module initialization.
 
 This module exports the analytics blueprint for RESTful API endpoints.
 """
-# Import the routes module to ensure all routes are defined
-from api.analytics.routes import analytics_bp
+from flask import Blueprint
 
-# Make sure RESTful endpoints are registered and available for import
-analytics_bp.name = 'analytics_restful'
+# Create the blueprint
+analytics_bp = Blueprint('analytics', __name__)
 
-# Export the blueprint for import by the main API module
-__all__ = ['analytics_bp']
+# Import routes to register them with the blueprint
+# (import after creating blueprint to avoid circular imports)
+from api.analytics.routes import *
+
+# This package follows the standard blueprint pattern
+# - Blueprint is created here
+# - Routes are defined in routes.py
+# - Routes are automatically registered when imported
 
 # Include an additional variable to explicitly check for successful import
 ANALYTICS_MODULE_LOADED = True
