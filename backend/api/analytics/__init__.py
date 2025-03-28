@@ -6,7 +6,7 @@ This module exports the analytics blueprint for RESTful API endpoints.
 from flask import Blueprint
 
 # Create the blueprint with unique name to avoid conflicts
-analytics_bp = Blueprint('analytics', __name__)
+# Use a completely different name to avoid any conflicts with existing route registrations
+analytics_bp = Blueprint('analytics_v2', __name__)
 
-# Import routes to register them with the blueprint
-from api.analytics.routes import *
+# Import routes will happen in routes.py to avoid circular imports

@@ -10,6 +10,8 @@ from services.analytics_service import AnalyticsService
 from flask_jwt_extended import jwt_required
 from models.models import Team, Game, BattingOrder, FieldingRotation, User
 from utils import standardize_error_response
+
+# Import blueprint but avoid circular import by importing here
 from api.analytics import analytics_bp
 
 # Check if subscription tier feature is available
@@ -33,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 @analytics_bp.route('/teams/<int:team_id>/players/batting', methods=['GET'])
 @jwt_required
-def get_player_batting_analytics(team_id):
+def get_player_batting_analytics_v2(team_id):
     """
     Get batting analytics for all players in a team using RESTful pattern.
     
@@ -70,11 +72,11 @@ def get_player_batting_analytics(team_id):
                     }
                 )
     
-    return get_team_batting_analytics(team_id)
+    return get_team_batting_analytics_v2(team_id)
 
 @analytics_bp.route('/teams/<int:team_id>/batting-analytics', methods=['GET'])
 @jwt_required
-def get_team_batting_analytics(team_id):
+def get_team_batting_analytics_v2(team_id):
     """
     Get batting analytics for all players in a team.
     
@@ -122,7 +124,7 @@ def get_team_batting_analytics(team_id):
 
 @analytics_bp.route('/teams/<int:team_id>/players/fielding', methods=['GET'])
 @jwt_required
-def get_player_fielding_analytics(team_id):
+def get_player_fielding_analytics_v2(team_id):
     """
     Get fielding analytics for all players in a team using RESTful pattern.
     
@@ -159,11 +161,11 @@ def get_player_fielding_analytics(team_id):
                     }
                 )
     
-    return get_team_fielding_analytics(team_id)
+    return get_team_fielding_analytics_v2(team_id)
 
 @analytics_bp.route('/teams/<int:team_id>/fielding-analytics', methods=['GET'])
 @jwt_required
-def get_team_fielding_analytics(team_id):
+def get_team_fielding_analytics_v2(team_id):
     """
     Get fielding analytics for all players in a team.
     
@@ -210,7 +212,7 @@ def get_team_fielding_analytics(team_id):
         return standardize_error_response("Failed to get fielding analytics", 500, str(e))
 
 @analytics_bp.route('/status', methods=['GET'])
-def analytics_status():
+def analytics_status_v2():
     """
     Simple endpoint to verify the analytics module is loaded.
     """
@@ -219,7 +221,7 @@ def analytics_status():
 
 @analytics_bp.route('/teams/<int:team_id>', methods=['GET'])
 @jwt_required
-def get_team_analytics_restful(team_id):
+def get_team_analytics_restful_v2(team_id):
     """
     Get team analytics across all games using RESTful pattern.
     
@@ -256,11 +258,11 @@ def get_team_analytics_restful(team_id):
                     }
                 )
     
-    return get_team_analytics(team_id)
+    return get_team_analytics_v2(team_id)
 
 @analytics_bp.route('/teams/<int:team_id>/analytics', methods=['GET'])
 @jwt_required
-def get_team_analytics(team_id):
+def get_team_analytics_v2(team_id):
     """
     Get team analytics across all games.
     
@@ -308,7 +310,7 @@ def get_team_analytics(team_id):
 
 @analytics_bp.route('/teams/<int:team_id>/debug', methods=['GET'])
 @jwt_required
-def debug_analytics_data(team_id):
+def debug_analytics_data_v2(team_id):
     """
     Debug endpoint for analytics data.
     
