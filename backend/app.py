@@ -544,33 +544,23 @@ def direct_save_player_availability(game_id, player_id):
         return jsonify({'error': f'Failed to save player availability: {str(e)}'}), 500
 
 # AI Fielding Rotation Route
+# Import this at the module level to avoid circular imports
+from services.ai_service import AIService
+
+# AI Fielding Rotation Route - Using jwt_required decorator for proper auth
 @app.route('/api/games/<int:game_id>/ai-fielding-rotation', methods=['POST'])
+@jwt_required()
 def direct_generate_ai_fielding_rotation(game_id):
-    """Direct route for generating AI fielding rotation that doesn't rely on decorators"""
+    """Direct route for generating AI fielding rotation using JWT decorator"""
     print(f"Direct AI fielding rotation generation route activated for game {game_id}")
     
     try:
-        # Manually verify JWT token
-        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
-        from flask import g, request
-        from shared.database import db_session
-        from services.game_service import GameService
-        from api.games import generate_ai_fielding_rotation
-        
-        # Verify JWT token
-        print(f"Verifying JWT token for AI fielding rotation generation: {game_id}")
-        verify_jwt_in_request()
-        
         # Get user ID from token
         user_id = get_jwt_identity()
         if isinstance(user_id, str):
             user_id = int(user_id)
-        g.user_id = user_id
         
         print(f"Processing AI fielding rotation generation for game {game_id}, user {user_id}")
-        
-        # Don't directly call the decorated function to avoid the feature check decorator
-        # Instead, implement the same logic here
         
         # Grab the request data
         data = request.get_json()
@@ -583,7 +573,6 @@ def direct_generate_ai_fielding_rotation(game_id):
         with db_session(read_only=True) as session:
             # Verify game belongs to user's team via service
             from services.game_service import GameService
-            from services.ai_service import AIService
             
             game = GameService.get_game(session, game_id, user_id)
             if not game:
