@@ -37,43 +37,88 @@ const GameSummaryTab = ({ gameId, players, game, innings }) => {
       const teamResponse = await getTeam(game.team_id);
       setTeamDetails(teamResponse.data);
       
-      // Get batting order
-      try {
-        const battingOrderResponse = await getBattingOrder(gameId);
-        const orderData = battingOrderResponse.data.order_data || [];
-        
-        // Create an array of player objects in batting order
-        const playerMap = players.reduce((map, player) => {
-          map[player.id] = player;
-          return map;
-        }, {});
-        
-        const orderedPlayers = orderData
-          .map(playerId => playerMap[playerId])
-          .filter(Boolean);
-          
-        setBattingOrder(orderedPlayers);
-      } catch (err) {
-        console.error("Failed to load batting order:", err);
-        setBattingOrder([]);
-      }
-
-      // Get fielding rotations
-      try {
-        const rotationsResponse = await getFieldingRotations(gameId);
-        setFieldingRotations(rotationsResponse.data);
-      } catch (err) {
-        console.error("Failed to load fielding rotations:", err);
-        setFieldingRotations([]);
-      }
-
-      // Get player availability
+      // IMPORTANT: First get player availability to know who's available
       try {
         const availabilityResponse = await getPlayerAvailability(gameId);
         setPlayerAvailability(availabilityResponse.data);
+        
+        // Load the rest of the data AFTER we know player availability
+        // This ensures we don't have UI flickering or inconsistencies
+        
+        // Get batting order
+        try {
+          const battingOrderResponse = await getBattingOrder(gameId);
+          const orderData = battingOrderResponse.data.order_data || [];
+          
+          // Create an array of player objects in batting order
+          const playerMap = players.reduce((map, player) => {
+            map[player.id] = player;
+            return map;
+          }, {});
+          
+          // Get availability map for filtering
+          const availabilityMap = {};
+          availabilityResponse.data.forEach(item => {
+            availabilityMap[item.player_id] = item.available;
+          });
+          
+          // Filter ordered players to only include available players
+          const orderedPlayers = orderData
+            .map(playerId => playerMap[playerId])
+            .filter(player => {
+              if (!player) return false;
+              // Only exclude explicitly unavailable players
+              return availabilityMap[player.id] !== false;
+            });
+            
+          setBattingOrder(orderedPlayers);
+        } catch (err) {
+          console.error("Failed to load batting order:", err);
+          setBattingOrder([]);
+        }
+  
+        // Get fielding rotations
+        try {
+          const rotationsResponse = await getFieldingRotations(gameId);
+          setFieldingRotations(rotationsResponse.data);
+        } catch (err) {
+          console.error("Failed to load fielding rotations:", err);
+          setFieldingRotations([]);
+        }
+        
       } catch (err) {
         console.error("Failed to load player availability:", err);
         setPlayerAvailability([]);
+        
+        // Even if availability failed, still try to load other data
+        try {
+          const battingOrderResponse = await getBattingOrder(gameId);
+          const orderData = battingOrderResponse.data.order_data || [];
+          
+          // Create an array of player objects in batting order
+          const playerMap = players.reduce((map, player) => {
+            map[player.id] = player;
+            return map;
+          }, {});
+          
+          const orderedPlayers = orderData
+            .map(playerId => playerMap[playerId])
+            .filter(Boolean);
+            
+          setBattingOrder(orderedPlayers);
+        } catch (batchErr) {
+          console.error("Failed to load batting order:", batchErr);
+          setBattingOrder([]);
+        }
+  
+        // Get fielding rotations
+        try {
+          const rotationsResponse = await getFieldingRotations(gameId);
+          setFieldingRotations(rotationsResponse.data);
+        } catch (rotErr) {
+          console.error("Failed to load fielding rotations:", rotErr);
+          setFieldingRotations([]);
+        }
       }
     } catch (err) {
       setError("Failed to load game summary data. Please try again.");
@@ -101,8 +146,16 @@ const GameSummaryTab = ({ gameId, players, game, innings }) => {
   };
 
   const isPlayerAvailable = (playerId) => {
+    // Only check for explicitly unavailable players
+    // If we don't have data yet, assume available to avoid flicker during loading
+    if (!playerAvailability || playerAvailability.length === 0) {
+      return true;
+    }
+    
     const availability = playerAvailability.find(a => a.player_id === playerId);
-    return availability ? availability.available : false;
+    // If we have a record and available is explicitly false, player is unavailable
+    // Otherwise assume available (includes null/undefined availability records)
+    return availability ? availability.available !== false : true;
   };
 
   // Removed unused getPlayerById function
@@ -199,12 +252,13 @@ const GameSummaryTab = ({ gameId, players, game, innings }) => {
           </thead>
           <tbody>
             {battingOrder.length > 0 ? (
+              // Show players in batting order (already filtered for availability)
               battingOrder.map((player, index) => (
                 <tr key={player.id}>
                   <td className="py-1">{index + 1}</td>
                   <td className="py-1">{player.jersey_number}</td>
                   <td className="py-1">{player.full_name || `${player.first_name} ${player.last_name}`}</td>
-                  <td className="py-1">{isPlayerAvailable(player.id) ? "Y" : "N"}</td>
+                  <td className="py-1">Y</td>
                   {Array.from({ length: innings }).map((_, i) => {
                     const position = getPlayerPosition(player.id, i+1);
                     return (
@@ -216,22 +270,25 @@ const GameSummaryTab = ({ gameId, players, game, innings }) => {
                 </tr>
               ))
             ) : (
-              players.map((player) => (
-                <tr key={player.id}>
-                  <td className="py-1">-</td>
-                  <td className="py-1">{player.jersey_number}</td>
-                  <td className="py-1">{player.full_name || `${player.first_name} ${player.last_name}`}</td>
-                  <td className="py-1">{isPlayerAvailable(player.id) ? "Y" : "N"}</td>
-                  {Array.from({ length: innings }).map((_, i) => {
-                    const position = getPlayerPosition(player.id, i+1);
-                    return (
-                      <td key={i+1} className={`py-1 ${position === 'Bench' ? 'text-muted fst-italic' : ''}`}>
-                        {position}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))
+              // Filter players list to only show available players
+              players
+                .filter(player => isPlayerAvailable(player.id))
+                .map((player) => (
+                  <tr key={player.id}>
+                    <td className="py-1">-</td>
+                    <td className="py-1">{player.jersey_number}</td>
+                    <td className="py-1">{player.full_name || `${player.first_name} ${player.last_name}`}</td>
+                    <td className="py-1">Y</td>
+                    {Array.from({ length: innings }).map((_, i) => {
+                      const position = getPlayerPosition(player.id, i+1);
+                      return (
+                        <td key={i+1} className={`py-1 ${position === 'Bench' ? 'text-muted fst-italic' : ''}`}>
+                          {position}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))
             )}
           </tbody>
         </table>
