@@ -481,9 +481,37 @@ def get_batting_order(game_id):
             if not batting_order:
                 return jsonify({'error': 'Batting order not found for this game'}), 404
             
+            # Get player availability to filter unavailable players
+            availability_records = GameService.get_player_availability(session, game_id)
+            unavailable_player_ids = set()
+            
+            # Create a set of unavailable player IDs
+            for record in availability_records:
+                if record.available is False:  # Only if explicitly False
+                    unavailable_player_ids.add(record.player_id)
+            
             # Serialize batting order
             result = GameService.serialize_batting_order(batting_order)
             
+            # Filter out unavailable players from order_data
+            if result.get('order_data') and isinstance(result['order_data'], list):
+                filtered_order = [
+                    player_id for player_id in result['order_data'] 
+                    if player_id not in unavailable_player_ids
+                ]
+                result['order_data'] = filtered_order
+                
+                print(f"Filtered {len(result['order_data']) - len(filtered_order)} unavailable players from batting order")
+                
+                # Also save the filtered order back to the database
+                if len(filtered_order) != len(batting_order.order_data):
+                    print(f"Updating batting order to remove unavailable players")
+                    with db_session(commit=True) as write_session:
+                        # Re-fetch in write session
+                        write_batting_order = GameService.get_batting_order(write_session, game_id)
+                        if write_batting_order:
+                            write_batting_order.order_data = filtered_order
+                    
             return jsonify(result), 200
     except Exception as e:
         print(f"Error getting batting order: {str(e)}")

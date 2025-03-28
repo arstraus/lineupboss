@@ -251,45 +251,66 @@ const GameSummaryTab = ({ gameId, players, game, innings }) => {
             </tr>
           </thead>
           <tbody>
-            {battingOrder.length > 0 ? (
-              // Show players in batting order (already filtered for availability)
-              battingOrder.map((player, index) => (
-                <tr key={player.id}>
-                  <td className="py-1">{index + 1}</td>
-                  <td className="py-1">{player.jersey_number}</td>
-                  <td className="py-1">{player.full_name || `${player.first_name} ${player.last_name}`}</td>
-                  <td className="py-1">Y</td>
-                  {Array.from({ length: innings }).map((_, i) => {
-                    const position = getPlayerPosition(player.id, i+1);
-                    return (
-                      <td key={i+1} className={`py-1 ${position === 'Bench' ? 'text-muted fst-italic' : ''}`}>
-                        {position}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))
-            ) : (
-              // Filter players list to only show available players
-              players
-                .filter(player => isPlayerAvailable(player.id))
-                .map((player) => (
-                  <tr key={player.id}>
-                    <td className="py-1">-</td>
-                    <td className="py-1">{player.jersey_number}</td>
-                    <td className="py-1">{player.full_name || `${player.first_name} ${player.last_name}`}</td>
-                    <td className="py-1">Y</td>
-                    {Array.from({ length: innings }).map((_, i) => {
-                      const position = getPlayerPosition(player.id, i+1);
-                      return (
-                        <td key={i+1} className={`py-1 ${position === 'Bench' ? 'text-muted fst-italic' : ''}`}>
-                          {position}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))
-            )}
+            {/* Get the list of actually available players */}
+            {
+              (() => {
+                // First, get a list of only available players
+                const availablePlayerIds = new Set();
+                playerAvailability.forEach(record => {
+                  if (record.available !== false) {
+                    availablePlayerIds.add(record.player_id);
+                  }
+                });
+                
+                // Filter the players list to only include available players
+                const availablePlayers = players.filter(player => 
+                  availablePlayerIds.has(player.id)
+                );
+                
+                // Filter the batting order to only include available players
+                const availableBattingOrder = battingOrder.filter(player => 
+                  availablePlayerIds.has(player.id)
+                );
+                
+                // If we have a batting order with available players, show it
+                if (availableBattingOrder.length > 0) {
+                  return availableBattingOrder.map((player, index) => (
+                    <tr key={player.id}>
+                      <td className="py-1">{index + 1}</td>
+                      <td className="py-1">{player.jersey_number}</td>
+                      <td className="py-1">{player.full_name || `${player.first_name} ${player.last_name}`}</td>
+                      <td className="py-1">Y</td>
+                      {Array.from({ length: innings }).map((_, i) => {
+                        const position = getPlayerPosition(player.id, i+1);
+                        return (
+                          <td key={i+1} className={`py-1 ${position === 'Bench' ? 'text-muted fst-italic' : ''}`}>
+                            {position}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ));
+                } else {
+                  // Otherwise show all available players without batting order
+                  return availablePlayers.map((player) => (
+                    <tr key={player.id}>
+                      <td className="py-1">-</td>
+                      <td className="py-1">{player.jersey_number}</td>
+                      <td className="py-1">{player.full_name || `${player.first_name} ${player.last_name}`}</td>
+                      <td className="py-1">Y</td>
+                      {Array.from({ length: innings }).map((_, i) => {
+                        const position = getPlayerPosition(player.id, i+1);
+                        return (
+                          <td key={i+1} className={`py-1 ${position === 'Bench' ? 'text-muted fst-italic' : ''}`}>
+                            {position}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ));
+                }
+              })()
+            }
           </tbody>
         </table>
       </div>
