@@ -91,6 +91,14 @@ try:
         api.register_blueprint(analytics_production_bp, url_prefix='/analytics')
         print(f"SUCCESS: Registered production analytics blueprint with URL prefix /analytics")
             
+        # Also try to import and register the data fix blueprint
+        try:
+            from backend.api.analytics.data_fix import data_fix_bp
+            api.register_blueprint(data_fix_bp, url_prefix='/api/data-fix')
+            print(f"SUCCESS: Registered data fix blueprint with URL prefix /api/data-fix")
+        except ImportError as e_fix:
+            print(f"WARNING: Could not import data fix package: {e_fix}")
+            
         analytics_registered = True
     except ImportError as e:
         print(f"WARNING: Could not import production analytics package: {e}")
