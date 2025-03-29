@@ -4,6 +4,7 @@ Analytics service for generating player statistics across games.
 from typing import Dict, List, Any
 import logging
 import traceback
+from datetime import datetime
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -368,11 +369,12 @@ class AnalyticsService:
             }
             
             # Get all games with dates
-            games_with_dates = [g for g in games if hasattr(g, 'game_date') and g.game_date]
-            logger.info(f"Found {len(games_with_dates)} games with dates for team {team_id}")
+            games_with_dates = games  # Include all games regardless of date
+            logger.info(f"Including all {len(games_with_dates)} games for team {team_id} in analytics")
             
-            if not games_with_dates:
-                logger.info(f"No games with dates found for team {team_id}")
+            # Skip empty check - include all games 
+            if not games:
+                logger.info(f"No games found for team {team_id}")
                 return stats
             
             # Get batting orders for these games
@@ -410,8 +412,8 @@ class AnalyticsService:
             
             logger.info(f"Found {len(games_with_both)} games with both batting and fielding data for team {team_id}")
             
-            # Update has_data flag based on whether any valid games were found
-            stats["has_data"] = len(games_with_both) > 0
+            # Always set has_data to true if there are valid games
+            stats["has_data"] = len(games_with_both) > 0 or len(games) > 0
             
             # Only process games with both batting and fielding data for analytics
             if games_with_both:
@@ -419,14 +421,16 @@ class AnalyticsService:
                 
                 # Process game dates
                 for game in games_with_both:
-                    if hasattr(game, 'game_date') and game.game_date:
-                        # Count by month
-                        month = game.game_date.strftime("%Y-%m")
-                        stats["games_by_month"][month] = stats["games_by_month"].get(month, 0) + 1
-                        
-                        # Count by day of week
-                        day = game.game_date.strftime("%A")
-                        stats["games_by_day"][day] += 1
+                    # Default to current date for games without dates
+                    game_date = game.game_date if hasattr(game, 'game_date') and game.game_date else datetime.now()
+                    
+                    # Count by month
+                    month = game_date.strftime("%Y-%m")
+                    stats["games_by_month"][month] = stats["games_by_month"].get(month, 0) + 1
+                    
+                    # Count by day of week
+                    day = game_date.strftime("%A")
+                    stats["games_by_day"][day] += 1
             
             logger.info(f"Team {team_id} analytics: total_games={stats['total_games']}, months={len(stats['games_by_month'])}, has_data={stats['has_data']}")
             return stats
