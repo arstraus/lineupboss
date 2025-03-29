@@ -50,13 +50,10 @@ axios.interceptors.request.use(
         config.url = `api/${config.url}`;
       }
       
-      // Ensure trailing slash for POST endpoints (backend expects it)
-      if ((config.method === 'post' || config.method === 'delete') && 
-          !config.url.endsWith('/') && 
-          !config.url.includes('?') &&
-          !config.url.includes('refresh')) {
-        config.url = `${config.url}/`;
-      }
+      // IMPORTANT: We're removing automatic slash appending because it causes 405 errors
+      // with our Flask backend endpoints
+      // If you need trailing slashes for certain endpoints, add them explicitly
+      // in the function that creates the request
       
       // Log the final URL in development
       if (process.env.NODE_ENV === 'development') {
@@ -468,9 +465,13 @@ export const saveFieldingRotation = (gameId, inning, positions) => {
   
   console.log(`[API] Saving fielding rotation for game ${gameId}, inning ${inning}`);
   
+  // Remove any trailing slash to prevent 405 errors
+  const url = `/games/${gameId}/fielding-rotations/${inning}`;
+  console.log(`[API] Using URL without trailing slash: ${url}`);
+  
   return axios({
     method: 'post',
-    url: `/games/${gameId}/fielding-rotations/${inning}`,
+    url: url,
     data: { positions },
     headers: {
       'Content-Type': 'application/json',
@@ -479,7 +480,11 @@ export const saveFieldingRotation = (gameId, inning, positions) => {
     // Don't follow redirects automatically
     maxRedirects: 0,
     // Include credentials for any same-origin requests
-    withCredentials: true
+    withCredentials: true,
+    // Ensure we don't add a trailing slash
+    paramsSerializer: {
+      indexes: null
+    }
   });
 };
 
@@ -495,9 +500,13 @@ export const batchSaveFieldingRotations = (gameId, rotationsData) => {
   console.log(`[API] Saving rotations for game ${gameId}, innings:`, Object.keys(rotationsData));
   
   // Use explicit configuration to ensure proper headers and URL
+  // Remove any trailing slash to prevent 405 errors
+  const url = `/games/${gameId}/fielding-rotations/batch`;
+  console.log(`[API] Using URL without trailing slash: ${url}`);
+  
   return axios({
     method: 'post',
-    url: `/games/${gameId}/fielding-rotations/batch`,
+    url: url,
     data: rotationsData,
     headers: {
       'Content-Type': 'application/json',
@@ -508,7 +517,11 @@ export const batchSaveFieldingRotations = (gameId, rotationsData) => {
     // Include credentials for any same-origin requests
     withCredentials: true,
     // Add timeout for large data operations
-    timeout: 30000 // 30 second timeout
+    timeout: 30000, // 30 second timeout
+    // Ensure we don't add a trailing slash
+    paramsSerializer: {
+      indexes: null
+    }
   });
 };
 
@@ -533,9 +546,13 @@ export const batchSavePlayerAvailability = (gameId, playerAvailabilityArray) => 
   console.log('[API] Batch saving player availability with token:', token.substring(0, 10) + '...');
   
   // Use explicit configuration to ensure proper headers and URL
+  // Remove any trailing slash to prevent 405 errors
+  const url = `/games/${gameId}/player-availability/batch`;
+  console.log(`[API] Using URL without trailing slash: ${url}`);
+  
   return axios({
     method: 'post',
-    url: `/games/${gameId}/player-availability/batch`,
+    url: url,
     data: playerAvailabilityArray,
     headers: {
       'Content-Type': 'application/json',
@@ -544,7 +561,11 @@ export const batchSavePlayerAvailability = (gameId, playerAvailabilityArray) => 
     // Don't follow redirects automatically
     maxRedirects: 0,
     // Include credentials for any same-origin requests
-    withCredentials: true
+    withCredentials: true,
+    // Ensure we don't add a trailing slash
+    paramsSerializer: {
+      indexes: null
+    }
   });
 };
 
@@ -571,6 +592,14 @@ export const getTeamAnalytics = (teamId) => {
  * This function uses the standard blueprint route for AI fielding rotation.
  * We've migrated from the legacy manual validation endpoint to the standard
  * blueprint route that uses the middleware authentication layer.
+ * 
+ * IMPORTANT NOTE ABOUT ENDPOINTS WITH TRAILING SLASHES:
+ * Our Flask backend expects URLs WITHOUT trailing slashes. Adding a trailing slash
+ * can cause 405 Method Not Allowed errors. When building POST requests to the API:
+ * - DO NOT add trailing slashes to URLs
+ * - Use the explicit URL construction pattern seen in batchSaveFieldingRotations and other methods
+ * - Include log statements to verify URLs
+ * - Set paramsSerializer: { indexes: null } to prevent URL modification
  */
 export const generateAIFieldingRotation = (gameId, data, options = {}) => {
   // Use explicit authentication and timeout for AI operations
@@ -582,10 +611,13 @@ export const generateAIFieldingRotation = (gameId, data, options = {}) => {
   
   console.log('[API] Generating AI fielding rotation');
   
-  // Use the standard blueprint route
+  // Use the standard blueprint route without trailing slash
+  const url = `/games/${gameId}/ai-fielding-rotation`;
+  console.log(`[API] Using URL without trailing slash for AI: ${url}`);
+  
   return axios({
     method: 'post',
-    url: `/games/${gameId}/ai-fielding-rotation`,
+    url: url,
     data: data,
     headers: {
       'Content-Type': 'application/json',
@@ -593,5 +625,9 @@ export const generateAIFieldingRotation = (gameId, data, options = {}) => {
     },
     // Add timeout for long-running operations
     timeout: options.timeout || 120000, // Default to 2 minute timeout for AI operations
+    // Ensure we don't add a trailing slash
+    paramsSerializer: {
+      indexes: null
+    }
   });
 };
