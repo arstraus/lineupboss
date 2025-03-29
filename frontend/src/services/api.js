@@ -459,8 +459,57 @@ export const updateFieldingRotation = (gameId, inning, positionsData) => {
 };
 
 export const saveFieldingRotation = (gameId, inning, positions) => {
-  // Use direct axios call to avoid duplicating the /api prefix from baseURL
-  return axios.post(`/games/${gameId}/fielding-rotations/${inning}`, { positions });
+  // Use explicit configuration to ensure proper URL formatting and error handling
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.error('[API] No token available for save fielding rotation');
+    return Promise.reject(new Error('Authentication required'));
+  }
+  
+  console.log(`[API] Saving fielding rotation for game ${gameId}, inning ${inning}`);
+  
+  return axios({
+    method: 'post',
+    url: `/games/${gameId}/fielding-rotations/${inning}`,
+    data: { positions },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    // Don't follow redirects automatically
+    maxRedirects: 0,
+    // Include credentials for any same-origin requests
+    withCredentials: true
+  });
+};
+
+export const batchSaveFieldingRotations = (gameId, rotationsData) => {
+  // Use explicit configuration to ensure proper URL formatting and error handling
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.error('[API] No token available for batch save fielding rotations');
+    return Promise.reject(new Error('Authentication required'));
+  }
+  
+  console.log('[API] Batch saving fielding rotations with token:', token.substring(0, 10) + '...');
+  console.log(`[API] Saving rotations for game ${gameId}, innings:`, Object.keys(rotationsData));
+  
+  // Use explicit configuration to ensure proper headers and URL
+  return axios({
+    method: 'post',
+    url: `/games/${gameId}/fielding-rotations/batch`,
+    data: rotationsData,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    // Don't follow redirects automatically
+    maxRedirects: 0,
+    // Include credentials for any same-origin requests
+    withCredentials: true,
+    // Add timeout for large data operations
+    timeout: 30000 // 30 second timeout
+  });
 };
 
 export const getPlayerAvailability = (gameId) => {

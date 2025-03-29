@@ -612,6 +612,78 @@ def get_fielding_rotations(game_id):
         return db_error_response(e, "Failed to retrieve fielding rotations")
 
 
+@games.route('/<int:game_id>/fielding-rotations/batch', methods=['POST'])
+@jwt_required()
+def batch_save_fielding_rotations(game_id):
+    """Update multiple fielding rotations for a specific game in a single operation.
+    
+    Uses standardized database access patterns:
+    - db_session context manager with automatic commit
+    - Structured error handling with db_error_response
+    - Batch data validation and processing
+    """
+    user_id = get_jwt_identity()
+    
+    # Convert user_id to integer if it's a string
+    try:
+        if isinstance(user_id, str):
+            user_id = int(user_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid user ID format'}), 400
+        
+    data = request.get_json()
+    
+    if not data or not isinstance(data, dict) or len(data) == 0:
+        return jsonify({'error': 'A dictionary of inning to positions data is required'}), 400
+    
+    # Validate each record in the batch
+    for inning, positions in data.items():
+        if not isinstance(positions, dict):
+            return jsonify({'error': f'Invalid positions data for inning {inning}: Must be a dictionary of positions to player IDs'}), 400
+    
+    try:
+        # Using commit=True to automatically commit successful operations
+        with db_session(commit=True) as session:
+            # Verify game belongs to user's team via service
+            game = GameService.get_game(session, game_id, user_id)
+            if not game:
+                return jsonify({'error': 'Game not found or unauthorized'}), 404
+            
+            # Batch update fielding rotations
+            updated_rotations = []
+            processed_innings = []
+            
+            for inning_str, positions in data.items():
+                try:
+                    # Convert inning to integer
+                    inning = int(inning_str)
+                    processed_innings.append(inning)
+                    
+                    # Create or update fielding rotation via service
+                    rotation = GameService.create_or_update_fielding_rotation(
+                        session, game_id, inning, positions
+                    )
+                    
+                    # Add to result list
+                    updated_rotations.append(rotation)
+                except (ValueError, TypeError) as e:
+                    print(f"Error processing inning {inning_str}: {str(e)}")
+                    return jsonify({'error': f'Invalid inning number: {inning_str}'}), 400
+            
+            # Serialize responses
+            result = [GameService.serialize_fielding_rotation(rotation) for rotation in updated_rotations]
+            
+            return jsonify({
+                'message': f'Successfully updated {len(updated_rotations)} fielding rotations',
+                'innings_processed': processed_innings,
+                'rotations': result
+            }), 200
+    except Exception as e:
+        print(f"Error updating fielding rotations in batch: {str(e)}")
+        # Use standardized error response - no need to manually rollback
+        return db_error_response(e, "Failed to update fielding rotations")
+
+
 @games.route('/<int:game_id>/fielding-rotations/<int:inning>', methods=['GET', 'POST', 'PUT']) 
 @jwt_required()
 def fielding_rotation_by_inning(game_id, inning):

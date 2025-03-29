@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { 
   getFieldingRotations, 
   saveFieldingRotation, 
+  batchSaveFieldingRotations,
   getPlayerAvailability, 
   getBattingOrder, 
   generateAIFieldingRotation 
@@ -264,20 +265,87 @@ const FieldingRotationTab = ({ gameId, players, innings = 6 }) => {
       setSuccess("");
       setError("");
       
+      // First try the batch save approach (much more efficient)
+      try {
+        console.log("[FieldingRotation] Attempting batch save:", rotations);
+        
+        // Convert rotations to the format expected by the batch API
+        const batchData = { ...rotations };
+        
+        // Invoke the batch API
+        const result = await batchSaveFieldingRotations(gameId, batchData);
+        console.log("[FieldingRotation] Batch save successful:", result.data);
+        
+        // Success message
+        setSuccess(isValid ? 
+          "Fielding rotations saved successfully." :
+          "Fielding rotations saved with validation issues.");
+          
+        // Refresh data to ensure UI is in sync with server
+        await fetchData();
+        
+        // Exit early after successful batch save
+        return;
+      } catch (batchError) {
+        // If batch save fails, log the error and fall back to individual saves
+        console.error("[FieldingRotation] Batch save failed, falling back to individual saves:", batchError);
+        
+        // Don't set an error yet, try individual saves next
+      }
+      
       // Generate array of innings
       const inningsArray = Array.from({ length: innings }, (_, i) => i + 1);
       
-      // Save each inning
+      // Fall back to saving each inning individually
+      console.log("[FieldingRotation] Falling back to individual saves for innings:", inningsArray);
+      
+      const saveResults = [];
+      const saveErrors = [];
+      
       for (const inning of inningsArray) {
-        await saveFieldingRotation(gameId, inning, rotations[inning] || {});
+        try {
+          // Log more details for debugging
+          console.log(`Saving rotation for inning ${inning}:`, rotations[inning] || {});
+          
+          // Add a small delay between saves to avoid race conditions
+          if (inning > 1) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+          
+          const result = await saveFieldingRotation(gameId, inning, rotations[inning] || {});
+          saveResults.push(result);
+          console.log(`Successfully saved inning ${inning}:`, result);
+        } catch (inningError) {
+          console.error(`Error saving inning ${inning}:`, inningError);
+          // Capture the specific error and inning
+          saveErrors.push({ inning, error: inningError });
+          // Continue trying to save other innings
+        }
       }
       
-      setSuccess(isValid ? 
-        "Fielding rotations saved successfully." :
-        "Fielding rotations saved with validation issues.");
+      // Check for errors
+      if (saveErrors.length > 0) {
+        // If some innings failed but others succeeded
+        if (saveResults.length > 0) {
+          setError(`Saved ${saveResults.length} of ${innings} innings. Some innings failed to save.`);
+          console.error("Save errors:", saveErrors);
+        } else {
+          // If all innings failed
+          setError("Failed to save any fielding rotations. Please try again.");
+          console.error("All save attempts failed:", saveErrors);
+        }
+      } else {
+        // All innings saved successfully
+        setSuccess(isValid ? 
+          "Fielding rotations saved successfully." :
+          "Fielding rotations saved with validation issues.");
+          
+        // Refresh data to ensure UI is in sync with server
+        await fetchData();
+      }
     } catch (err) {
       setError("Failed to save fielding rotations. Please try again.");
-      console.error(err);
+      console.error("Error in save rotation handler:", err);
     } finally {
       setSaving(false);
     }

@@ -78,11 +78,42 @@ const PlayerAvailabilityTab = ({ gameId, players, refreshPlayers }) => {
         can_play_catcher: item.can_play_catcher
       }));
       
-      await batchSavePlayerAvailability(gameId, apiData);
-      setSuccess("Player availability saved successfully.");
+      // Log more details for debugging
+      console.log(`[PlayerAvailability] Saving availability data for ${apiData.length} players:`, apiData);
+      
+      // Attempt to save with more detailed error handling
+      try {
+        const result = await batchSavePlayerAvailability(gameId, apiData);
+        console.log("[PlayerAvailability] Save successful:", result);
+        
+        // Refresh data to ensure UI is in sync with server
+        await fetchPlayerAvailability();
+        
+        setSuccess("Player availability saved successfully.");
+      } catch (saveError) {
+        console.error("[PlayerAvailability] Save error details:", saveError);
+        
+        // More specific error messaging based on the error
+        if (saveError.response) {
+          const status = saveError.response.status;
+          const responseData = saveError.response.data;
+          
+          if (status === 401 || status === 403) {
+            setError("Authentication error. Please try logging in again.");
+          } else if (status === 400 && responseData.error) {
+            setError(`Error: ${responseData.error}`);
+          } else {
+            setError(`Server error (${status}). Please try again.`);
+          }
+        } else if (saveError.request) {
+          setError("No response from server. Please check your connection.");
+        } else {
+          setError("Failed to save player availability. Please try again.");
+        }
+      }
     } catch (err) {
       setError("Failed to save player availability. Please try again.");
-      console.error(err);
+      console.error("[PlayerAvailability] Unhandled error:", err);
     } finally {
       setSaving(false);
     }
